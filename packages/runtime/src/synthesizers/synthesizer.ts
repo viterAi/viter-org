@@ -59,7 +59,8 @@ export async function synthesize(
   const { systemPrompt, userPrompt, codeMap } = dispatchPromptBuilder(scopeKind, scopeKey, events);
 
   // ── 3. LLM ─────────────────────────────────────────────────────────
-  const model = opts.modelOverride ?? 'claude-opus-4-5';
+  // OpenRouter-format default; Anthropic SDK strips 'anthropic/' prefix automatically
+  const model = opts.modelOverride ?? 'anthropic/claude-opus-4-5';
   const completion = await llm({
     model,
     systemPrompt,
