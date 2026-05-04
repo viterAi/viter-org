@@ -48,7 +48,15 @@ export interface LLMCompletionRequest {
 
 export interface LLMCompletionResult {
   body: string;
-  generator: string;        // 'claude-opus-4-7' etc — matches principals.canonical_id
+  /** Principal canonical_id for FK lookup. e.g. 'claude-opus-4-7'. Falls back. */
+  generator: string;
+  /** RAW model id from the provider response (NOT canonicalized). e.g. 'x-ai/grok-4-fast' */
+  model_used: string;
+  /** Provider routing tag. 'openrouter' | 'anthropic' | 'openai' | … */
+  provider_name: string;
+  /** Generation id from OpenRouter (for async cost enrichment). */
+  generation_id: string | null;
+  finish_reason: string | null;
   generator_params: Record<string, unknown>;
   usage?: Record<string, unknown>;
 }
@@ -78,4 +86,7 @@ export interface SynthesisResult {
   unresolved_codes: string[];   // [eN] codes the LLM cited but the parser couldn't map (signal for hallucination)
   llm_call_id: UUID | null;     // backref to llm_call_log row (null if logging skipped)
   latency_ms: number;           // wall-clock for the LLM completion
+  model_used: string;           // RAW model id from provider (not canonicalized)
+  provider_name: string;        // 'openrouter' | 'anthropic'
+  generation_id: string | null; // OpenRouter generation id (for cost enrichment)
 }

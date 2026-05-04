@@ -13,16 +13,13 @@
  * Env required: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY + OPENROUTER_API_KEY
  */
 
-import { homedir } from 'node:os';
-import { join } from 'node:path';
-
 import {
   createServiceRoleClient,
   createLLMClient,
   synthesize,
   scoreL2,
   resolveCitations,
-} from '@vita/runtime';
+} from '../packages/runtime/src/index.js';
 
 interface Args {
   fixture: string;
@@ -168,7 +165,8 @@ async function main() {
           fixture_id: fixture.id,
           llm_call_id: result.llm_call_id,
           model_requested: model,
-          model_used: result.generator,
+          model_used: result.model_used,
+          provider_name: result.provider_name,
           replica_n: replica,
           body: result.body,
           cited_event_ids: result.cited_event_ids,

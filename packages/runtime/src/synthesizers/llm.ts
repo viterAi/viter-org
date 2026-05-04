@@ -61,10 +61,15 @@ function createOpenRouterClient(): LLMClient {
     const choice = response.choices[0];
     const body = (choice?.message?.content ?? '').trim();
     const usedModel = response.model ?? model;
+    const generationId = (response as { id?: string | null }).id ?? null;
 
     return {
       body,
       generator: openrouterModelToCanonical(usedModel),
+      model_used: usedModel,
+      provider_name: 'openrouter',
+      generation_id: generationId,
+      finish_reason: choice?.finish_reason ?? null,
       generator_params: {
         provider: 'openrouter',
         model: usedModel,
@@ -116,6 +121,10 @@ function createAnthropicClient(): LLMClient {
     return {
       body,
       generator: openrouterModelToCanonical(response.model),
+      model_used: response.model,
+      provider_name: 'anthropic',
+      generation_id: response.id ?? null,
+      finish_reason: response.stop_reason ?? null,
       generator_params: {
         provider: 'anthropic',
         model: response.model,

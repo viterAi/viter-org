@@ -63,6 +63,9 @@ export async function synthesize(
       unresolved_codes: [],
       llm_call_id: null,
       latency_ms: 0,
+      model_used: '',
+      provider_name: '',
+      generation_id: null,
     };
   }
 
@@ -131,10 +134,10 @@ export async function synthesize(
       status: 'ok',
       completed_at: new Date().toISOString(),
       latency_ms: latencyMs,
-      model_used: completion.generator_params?.model ?? model,
-      provider_name: completion.generator_params?.provider as string | undefined,
-      generation_id: (completion.generator_params?.generation_id as string | undefined) ?? null,
-      finish_reason: completion.generator_params?.finish_reason as string | undefined,
+      model_used: completion.model_used,
+      provider_name: completion.provider_name,
+      generation_id: completion.generation_id,
+      finish_reason: completion.finish_reason,
       prompt_tokens: promptTokens ?? null,
       completion_tokens: completionTokens ?? null,
       reasoning_tokens: reasoningTokens,
@@ -192,6 +195,9 @@ export async function synthesize(
     unresolved_codes: parsed.unresolved_codes,
     llm_call_id: llmCallId,
     latency_ms: latencyMs,
+    model_used: completion.model_used,
+    provider_name: completion.provider_name,
+    generation_id: completion.generation_id,
   };
 }
 
