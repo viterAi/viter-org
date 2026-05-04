@@ -110,11 +110,17 @@ async function main() {
     }
   }
 
+  // ignoreInitial=true by default: only catch NEW writes after start.
+  // Set VITA_WATCHER_CATCHUP=1 to process all existing files on startup (will run
+  // every JSONL through Runner.ingestFile; sha256 dedup makes already-ingested files
+  // a no-op but FRESH files get fully ingested — pick scope deliberately).
+  const catchUp = process.env.VITA_WATCHER_CATCHUP === '1';
   const watcher = chokidar.watch(`${projectsRoot}/-Users-mordechai-*/*.jsonl`, {
     persistent: true,
-    ignoreInitial: false, // process existing files on startup (they'll be deduped via sha256)
+    ignoreInitial: !catchUp,
     awaitWriteFinish: { stabilityThreshold: 1000, pollInterval: 200 },
   });
+  console.log(`[watcher] mode: ${catchUp ? 'catch-up (ALL existing files)' : 'live-only (new writes only)'}`);
 
   watcher
     .on('add', (p) => {
