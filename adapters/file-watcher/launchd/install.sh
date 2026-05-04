@@ -40,8 +40,11 @@ case "$cmd" in
     ;;
 
   status)
-    if launchctl list | grep -q "${LABEL}"; then
-      launchctl list | grep "${LABEL}"
+    # Note: avoid `grep -q` with `set -o pipefail` — early-exit closes the pipe and
+    # propagates SIGPIPE-induced nonzero from launchctl, falsely tripping the `else`.
+    line=$(launchctl list | awk -v lbl="$LABEL" '$3 == lbl { print }')
+    if [[ -n "$line" ]]; then
+      printf '✓ loaded\n  %s\n' "$line"
       echo "  plist: $PLIST_DST"
       echo "  out:   $LOG_OUT"
       echo "  err:   $LOG_ERR"
