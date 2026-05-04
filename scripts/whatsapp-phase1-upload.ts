@@ -54,6 +54,50 @@ function sha256OfBuffer(buf: Buffer): string {
 }
 
 /**
+ * Merge two _chat.txt exports.
+ *
+ * Each header line `[DD/MM/YYYY, HH:MM:SS] Sender: ...` plus its continuation
+ * lines forms one logical message. We dedupe whole messages by sha256(header+body),
+ * preserving the first export's order and appending only messages new to the second.
+ *
+ * The second export may be a strict subset, a strict superset, or overlap — output
+ * is the UNION, never shrinking what was previously stored.
+ */
+function mergeChatTxt(existing: string, incoming: string): string {
+  const HEADER = /^‎?\[\d{1,2}\/\d{1,2}\/\d{4},\s+\d{1,2}:\d{2}:\d{2}\]\s+/;
+
+  function splitMessages(text: string): string[] {
+    const lines = text.split(/\r?\n/);
+    const msgs: string[] = [];
+    let cur: string[] = [];
+    for (const ln of lines) {
+      if (HEADER.test(ln)) {
+        if (cur.length) msgs.push(cur.join('\n'));
+        cur = [ln];
+      } else if (cur.length) {
+        cur.push(ln);
+      }
+    }
+    if (cur.length) msgs.push(cur.join('\n'));
+    return msgs;
+  }
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of splitMessages(existing)) {
+    const h = createHash('sha256').update(m).digest('hex');
+    if (!seen.has(h)) { seen.add(h); out.push(m); }
+  }
+  let added = 0;
+  for (const m of splitMessages(incoming)) {
+    const h = createHash('sha256').update(m).digest('hex');
+    if (!seen.has(h)) { seen.add(h); out.push(m); added++; }
+  }
+  if (added > 0) console.log(`  ↻ _chat.txt merge: +${added} new messages`);
+  return out.join('\n') + '\n';
+}
+
+/**
  * Parse origin_at from WhatsApp's stable filename pattern:
  *   00000002-AUDIO-2026-02-25-23-26-02.opus
  *   00000005-PHOTO-2026-02-26-00-05-45.jpg
@@ -145,13 +189,59 @@ async function main() {
     const fileStat = await stat(localPath);
     if (!fileStat.isFile()) continue;
 
-    const buf = await readFile(localPath);
-    const sha = sha256OfBuffer(buf);
+    let buf = await readFile(localPath);
     const mime = inferMimeType(filename);
     const isChat = filename === '_chat.txt';
     const remotePath = `${args.tenant}/${args.chat}/${filename}`;
 
-    // 1. Upload to Storage (skip if exists by uploading with upsert=false; treat 'Duplicate' error as success)
+    // 1. Upload to Storage
+    if (isChat) {
+      // _chat.txt: merge with existing remote copy (UNION of lines, preserving order from
+      // first appearance). Re-exports may be a subset of history — never overwrite-shrink.
+      const { data: existingBlob } = await db.storage.from('l0-whatsapp').download(remotePath);
+      if (existingBlob) {
+        const existingText = await existingBlob.text();
+        const newText = buf.toString('utf-8');
+        const merged = mergeChatTxt(existingText, newText);
+        const mergedBuf = Buffer.from(merged, 'utf-8');
+        const oldBytes = existingText.length;
+        const newBytes = newText.length;
+        const mergedBytes = merged.length;
+        if (mergedBytes !== oldBytes) {
+          const { error: upErr } = await db.storage
+            .from('l0-whatsapp')
+            .upload(remotePath, mergedBuf, { contentType: mime, upsert: true });
+          if (upErr) {
+            nErrors++;
+            console.error(`  ✗ merged-upload ${filename}: ${upErr.message}`);
+            continue;
+          }
+          nUploaded++;
+          console.log(`  ↻ ${filename.padEnd(50)} merged: ${(oldBytes / 1024).toFixed(1)}K + ${(newBytes / 1024).toFixed(1)}K → ${(mergedBytes / 1024).toFixed(1)}K`);
+          buf = mergedBuf;
+        } else {
+          nSkippedDup++;
+          console.log(`  ⌥ ${filename.padEnd(50)} ${(oldBytes / 1024).toFixed(1)}K  ← _chat.txt (no new lines)`);
+        }
+        continue;
+      }
+      // No existing remote — just upload
+      const { error: upErr } = await db.storage
+        .from('l0-whatsapp')
+        .upload(remotePath, buf, { contentType: mime, upsert: false });
+      if (upErr) {
+        nErrors++;
+        console.error(`  ✗ upload ${filename}: ${upErr.message}`);
+        continue;
+      }
+      nUploaded++;
+      console.log(`  ⌥ ${filename.padEnd(50)} ${(buf.length / 1024).toFixed(1)}K  ← _chat.txt (first upload)`);
+      continue;
+    }
+
+    const sha = sha256OfBuffer(buf);
+
+    // Attachment: upload with upsert=false; treat 'Duplicate' error as success
     const { error: upErr } = await db.storage
       .from('l0-whatsapp')
       .upload(remotePath, buf, { contentType: mime, upsert: false });
@@ -169,13 +259,7 @@ async function main() {
       nUploaded++;
     }
 
-    // 2. Skip l0_artifact insert for _chat.txt (it's not an L0 row, just bytes)
-    if (isChat) {
-      console.log(`  ⌥ ${filename.padEnd(50)} ${(buf.length / 1024).toFixed(1)}K  ← _chat.txt (no l0_artifact)`);
-      continue;
-    }
-
-    // 3. Insert l0_artifact (whatsapp_attachment) — sha-deduped via unique constraint
+    // 2. Insert l0_artifact (whatsapp_attachment) — sha-deduped via unique constraint
     const originAt = parseOriginAtFromFilename(filename) ?? new Date(fileStat.mtime).toISOString();
 
     const { data: existing } = await db
