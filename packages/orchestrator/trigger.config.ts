@@ -15,8 +15,7 @@ import { defineConfig } from '@trigger.dev/sdk';
 import { ffmpeg } from '@trigger.dev/build/extensions/core';
 
 export default defineConfig({
-  // Replace with the `proj_` ref from your dashboard if needed.
-  project: 'test-JeHj',
+  project: 'proj_hvcfyxehhvtsodxlicvb',
   runtime: 'node',
   logLevel: 'info',
   // ingest-zip orchestrator can run for many minutes on a big chat;
