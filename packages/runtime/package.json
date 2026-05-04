@@ -14,6 +14,10 @@
       "types": "./dist/extractors/index.d.ts",
       "default": "./dist/extractors/index.js"
     },
+    "./extractors-attachments": {
+      "types": "./dist/extractors/attachments/dispatcher.d.ts",
+      "default": "./src/extractors/attachments/dispatcher.ts"
+    },
     "./synthesizers": {
       "types": "./dist/synthesizers/index.d.ts",
       "default": "./dist/synthesizers/index.js"
@@ -31,7 +35,9 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
     "@supabase/supabase-js": "^2.45.0",
-    "openai": "^4.73.0"
+    "mammoth": "^1.12.0",
+    "openai": "^4.73.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
