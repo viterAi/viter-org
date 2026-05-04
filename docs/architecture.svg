@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1080" font-family="-apple-system, system-ui, 'Segoe UI', sans-serif">
+  <defs>
+    <!-- Arrow marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa5b1"/>
+    </marker>
+    <marker id="arrow-active" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a90c2"/>
+    </marker>
+    <marker id="arrow-future" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b6b6b"/>
+    </marker>
+    <!-- Gradient for L-tiers -->
+    <linearGradient id="g-l0" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1f4d2f"/><stop offset="100%" stop-color="#2d5a3d"/>
+    </linearGradient>
+    <linearGradient id="g-l1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d5a3d"/><stop offset="100%" stop-color="#3a6e4d"/>
+    </linearGradient>
+    <linearGradient id="g-l2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a4a2d"/><stop offset="100%" stop-color="#6e5a3a"/>
+    </linearGradient>
+    <linearGradient id="g-l3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a2d3d"/><stop offset="100%" stop-color="#6e3a4d"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="1080" fill="#0d1117"/>
+
+  <!-- Title -->
+  <text x="40" y="48" font-size="28" font-weight="600" fill="#e6edf3">vita · L0 → L3 substrate · code + runtime placement</text>
+  <text x="40" y="74" font-size="14" fill="#8b949e">vita Supabase · us-west-1 · dkccadwohifcqcdzhhnu  ·  May 4 2026</text>
+
+  <!-- Section labels (column headers) -->
+  <text x="120" y="120" font-size="13" font-weight="600" fill="#8b949e" letter-spacing="2">📥  L0 SOURCES</text>
+  <text x="380" y="120" font-size="13" font-weight="600" fill="#8b949e" letter-spacing="2">🔌  STREAMERS  (near source)</text>
+  <text x="730" y="120" font-size="13" font-weight="600" fill="#8b949e" letter-spacing="2">🗄  SUPABASE TABLES</text>
+  <text x="1080" y="120" font-size="13" font-weight="600" fill="#8b949e" letter-spacing="2">⚙  PROCESSORS  (runtime varies)</text>
+  <text x="1380" y="120" font-size="13" font-weight="600" fill="#8b949e" letter-spacing="2">🖥  CONSUMERS</text>
+
+  <!-- ============================================ -->
+  <!-- L0 SOURCES (column 1) -->
+  <!-- ============================================ -->
+  <g font-size="12" fill="#e6edf3">
+    <rect x="40" y="140" width="240" height="42" rx="5" fill="#1c2128" stroke="#2ea043" stroke-width="2"/>
+    <text x="160" y="158" text-anchor="middle" font-weight="500">Claude Code JSONL</text>
+    <text x="160" y="174" text-anchor="middle" fill="#7d8590" font-size="10">~/.claude/projects/*.jsonl</text>
+
+    <rect x="40" y="194" width="240" height="42" rx="5" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="160" y="212" text-anchor="middle">WhatsApp zip</text>
+    <text x="160" y="228" text-anchor="middle" fill="#7d8590" font-size="10">~/Downloads/WhatsApp Chat - viter*.zip</text>
+
+    <rect x="40" y="248" width="240" height="42" rx="5" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="160" y="266" text-anchor="middle">Screenpipe DB</text>
+    <text x="160" y="282" text-anchor="middle" fill="#7d8590" font-size="10">~/.screenpipe/db.sqlite</text>
+
+    <rect x="40" y="302" width="240" height="42" rx="5" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="160" y="320" text-anchor="middle">Meeting audio</text>
+    <text x="160" y="336" text-anchor="middle" fill="#7d8590" font-size="10">meetings/YYYY-MM-DD/*.m4a</text>
+
+    <rect x="40" y="356" width="240" height="42" rx="5" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="160" y="374" text-anchor="middle">Email (Gmail / IMAP)</text>
+    <text x="160" y="390" text-anchor="middle" fill="#7d8590" font-size="10">webhook push</text>
+
+    <rect x="40" y="410" width="240" height="42" rx="5" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="160" y="428" text-anchor="middle">Calendar</text>
+    <text x="160" y="444" text-anchor="middle" fill="#7d8590" font-size="10">Google Calendar API</text>
+
+    <rect x="40" y="464" width="240" height="42" rx="5" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="160" y="482" text-anchor="middle">Plunet (browser scrape)</text>
+    <text x="160" y="498" text-anchor="middle" fill="#7d8590" font-size="10">Playwright session</text>
+
+    <rect x="40" y="518" width="240" height="42" rx="5" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="160" y="536" text-anchor="middle">PDF / docs</text>
+    <text x="160" y="552" text-anchor="middle" fill="#7d8590" font-size="10">upload via app</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- STREAMERS (column 2) -->
+  <!-- ============================================ -->
+  <g font-size="11">
+    <!-- file-watcher (LIVE) -->
+    <rect x="320" y="140" width="280" height="42" rx="5" fill="#0e2a1a" stroke="#2ea043" stroke-width="2"/>
+    <text x="460" y="158" text-anchor="middle" fill="#e6edf3" font-weight="500">file-watcher  ·  chokidar  ✓</text>
+    <text x="460" y="174" text-anchor="middle" fill="#7ee787" font-size="10">📍 Mac launchd · live since today</text>
+
+    <!-- whatsapp watcher -->
+    <rect x="320" y="194" width="280" height="42" rx="5" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="460" y="212" text-anchor="middle" fill="#e6edf3">whatsapp-watcher</text>
+    <text x="460" y="228" text-anchor="middle" fill="#8b949e" font-size="10">📍 Mac launchd · future</text>
+
+    <!-- screenpipe tap -->
+    <rect x="320" y="248" width="280" height="42" rx="5" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="460" y="266" text-anchor="middle" fill="#e6edf3">screenpipe-tap</text>
+    <text x="460" y="282" text-anchor="middle" fill="#8b949e" font-size="10">📍 Mac · reads local sqlite</text>
+
+    <!-- audio poller -->
+    <rect x="320" y="302" width="280" height="42" rx="5" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="460" y="320" text-anchor="middle" fill="#e6edf3">audio-poller  →  whisper</text>
+    <text x="460" y="336" text-anchor="middle" fill="#8b949e" font-size="10">📍 Mac · or Modal at scale</text>
+
+    <!-- gmail webhook -->
+    <rect x="320" y="356" width="280" height="42" rx="5" fill="#1c2128" stroke="#5a3a7a" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="460" y="374" text-anchor="middle" fill="#e6edf3">gmail-webhook</text>
+    <text x="460" y="390" text-anchor="middle" fill="#a78bfa" font-size="10">📍 Supabase Edge Function</text>
+
+    <!-- calendar poller -->
+    <rect x="320" y="410" width="280" height="42" rx="5" fill="#1c2128" stroke="#7a5a3a" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="460" y="428" text-anchor="middle" fill="#e6edf3">calendar-poller</text>
+    <text x="460" y="444" text-anchor="middle" fill="#fbbf24" font-size="10">📍 Trigger.dev cron</text>
+
+    <!-- playwright -->
+    <rect x="320" y="464" width="280" height="42" rx="5" fill="#1c2128" stroke="#3a7a7a" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="460" y="482" text-anchor="middle" fill="#e6edf3">playwright-scraper</text>
+    <text x="460" y="498" text-anchor="middle" fill="#67e8f9" font-size="10">📍 Railway · persistent browser</text>
+
+    <!-- pdf upload -->
+    <rect x="320" y="518" width="280" height="42" rx="5" fill="#1c2128" stroke="#7a3a5a" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="460" y="536" text-anchor="middle" fill="#e6edf3">pdf-upload-handler</text>
+    <text x="460" y="552" text-anchor="middle" fill="#f472b6" font-size="10">📍 Vercel API route</text>
+  </g>
+
+  <!-- Arrows L0 → Streamers -->
+  <g stroke="#9aa5b1" stroke-width="1.5" fill="none">
+    <line x1="280" y1="161" x2="320" y2="161" marker-end="url(#arrow)"/>
+    <line x1="280" y1="215" x2="320" y2="215" marker-end="url(#arrow)" opacity="0.5"/>
+    <line x1="280" y1="269" x2="320" y2="269" marker-end="url(#arrow)" opacity="0.5"/>
+    <line x1="280" y1="323" x2="320" y2="323" marker-end="url(#arrow)" opacity="0.5"/>
+    <line x1="280" y1="377" x2="320" y2="377" marker-end="url(#arrow)" opacity="0.5"/>
+    <line x1="280" y1="431" x2="320" y2="431" marker-end="url(#arrow)" opacity="0.5"/>
+    <line x1="280" y1="485" x2="320" y2="485" marker-end="url(#arrow)" opacity="0.5"/>
+    <line x1="280" y1="539" x2="320" y2="539" marker-end="url(#arrow)" opacity="0.5"/>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- DATABASE (column 3) -->
+  <!-- ============================================ -->
+  <g font-size="12">
+    <!-- L0 -->
+    <rect x="660" y="140" width="280" height="56" rx="6" fill="url(#g-l0)" stroke="#3fb950" stroke-width="2"/>
+    <text x="800" y="162" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">L0  ·  l0_artifacts</text>
+    <text x="800" y="180" text-anchor="middle" fill="#cef" font-size="11">59 rows  ·  immutable  ·  sha256-deduped</text>
+
+    <!-- L1 ext_runs + events -->
+    <rect x="660" y="220" width="280" height="56" rx="6" fill="url(#g-l1)" stroke="#3fb950" stroke-width="2"/>
+    <text x="800" y="242" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">L1  ·  l1_extraction_runs</text>
+    <text x="800" y="260" text-anchor="middle" fill="#cef" font-size="11">118 rows  ·  per (artifact, facet, extractor)</text>
+
+    <rect x="660" y="284" width="280" height="56" rx="6" fill="url(#g-l1)" stroke="#3fb950" stroke-width="2"/>
+    <text x="800" y="306" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">L1  ·  l1_events</text>
+    <text x="800" y="324" text-anchor="middle" fill="#cef" font-size="11">22,428 rows  ·  universal event shape</text>
+
+    <rect x="660" y="348" width="280" height="40" rx="6" fill="#1c4a2a" stroke="#3fb950" stroke-width="1.5" opacity="0.85"/>
+    <text x="800" y="370" text-anchor="middle" fill="#cef" font-size="11">l1_active_extraction (118)  +  history audit  +  embeddings</text>
+
+    <!-- L2 -->
+    <rect x="660" y="408" width="280" height="56" rx="6" fill="url(#g-l2)" stroke="#d29922" stroke-width="2"/>
+    <text x="800" y="430" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">L2  ·  l2_syntheses</text>
+    <text x="800" y="448" text-anchor="middle" fill="#feb" font-size="11">2 rows  ·  citation gate enforced</text>
+
+    <!-- L3 -->
+    <rect x="660" y="476" width="280" height="56" rx="6" fill="url(#g-l3)" stroke="#cf5e80" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="800" y="498" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">L3  ·  l3_surfaces</text>
+    <text x="800" y="516" text-anchor="middle" fill="#fcd" font-size="11">0 rows  ·  schema only  ·  generator TBD</text>
+
+    <!-- meta -->
+    <rect x="660" y="556" width="280" height="40" rx="6" fill="#21262d" stroke="#6e7681" stroke-width="1"/>
+    <text x="800" y="578" text-anchor="middle" fill="#c9d1d9" font-size="11">llm_call_log (10)  ·  eval_runs (8)  ·  fixtures</text>
+
+    <!-- principals + channels + tenants -->
+    <rect x="660" y="612" width="280" height="40" rx="6" fill="#21262d" stroke="#6e7681" stroke-width="1"/>
+    <text x="800" y="634" text-anchor="middle" fill="#c9d1d9" font-size="11">tenants (1)  ·  principals (9)  ·  channels (9)</text>
+  </g>
+
+  <!-- Streamers → DB arrows -->
+  <g stroke="#4a90c2" stroke-width="1.5" fill="none">
+    <line x1="600" y1="161" x2="660" y2="161" marker-end="url(#arrow-active)"/>
+    <line x1="600" y1="215" x2="660" y2="161" marker-end="url(#arrow-active)" opacity="0.4"/>
+    <line x1="600" y1="269" x2="660" y2="161" marker-end="url(#arrow-active)" opacity="0.4"/>
+    <line x1="600" y1="323" x2="660" y2="161" marker-end="url(#arrow-active)" opacity="0.4"/>
+    <line x1="600" y1="377" x2="660" y2="161" marker-end="url(#arrow-active)" opacity="0.4"/>
+    <line x1="600" y1="431" x2="660" y2="161" marker-end="url(#arrow-active)" opacity="0.4"/>
+    <line x1="600" y1="485" x2="660" y2="161" marker-end="url(#arrow-active)" opacity="0.4"/>
+    <line x1="600" y1="539" x2="660" y2="161" marker-end="url(#arrow-active)" opacity="0.4"/>
+  </g>
+
+  <!-- L0 → L1 arrow inside DB -->
+  <g stroke="#3fb950" stroke-width="2" fill="none">
+    <line x1="800" y1="196" x2="800" y2="220" marker-end="url(#arrow)"/>
+    <line x1="800" y1="276" x2="800" y2="284" marker-end="url(#arrow)"/>
+    <line x1="800" y1="340" x2="800" y2="408" marker-end="url(#arrow)" stroke="#d29922"/>
+    <line x1="800" y1="464" x2="800" y2="476" marker-end="url(#arrow)" stroke="#cf5e80" stroke-dasharray="4,3"/>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- PROCESSORS (column 4) -->
+  <!-- ============================================ -->
+  <g font-size="12">
+    <!-- extractors -->
+    <rect x="980" y="220" width="280" height="80" rx="6" fill="#0e2a1a" stroke="#2ea043" stroke-width="2"/>
+    <text x="1120" y="244" text-anchor="middle" fill="#e6edf3" font-weight="600">extractors  ·  L0 → L1 events</text>
+    <text x="1120" y="262" text-anchor="middle" fill="#7ee787" font-size="10">📍 in-process w/ streamer · pure functions</text>
+    <text x="1120" y="280" text-anchor="middle" fill="#7ee787" font-size="10">claudeCodeJsonl ✓ · whatsapp · audio · email · pdf</text>
+    <text x="1120" y="294" text-anchor="middle" fill="#9aa5b1" font-size="9">packages/runtime/src/extractors/</text>
+
+    <!-- synthesizers -->
+    <rect x="980" y="378" width="280" height="80" rx="6" fill="#3a2d1a" stroke="#d29922" stroke-width="2"/>
+    <text x="1120" y="402" text-anchor="middle" fill="#e6edf3" font-weight="600">synthesizers  ·  L1 → L2</text>
+    <text x="1120" y="420" text-anchor="middle" fill="#fbbf24" font-size="10">📍 local CLI ✓  →  Trigger.dev (scheduled)</text>
+    <text x="1120" y="438" text-anchor="middle" fill="#fbbf24" font-size="10">scopers: day ✓ · meeting · person · concept · thread</text>
+    <text x="1120" y="452" text-anchor="middle" fill="#9aa5b1" font-size="9">packages/runtime/src/synthesizers/</text>
+
+    <!-- indexers TO BUILD -->
+    <rect x="980" y="476" width="280" height="80" rx="6" fill="#3a1a2d" stroke="#cf5e80" stroke-width="2" stroke-dasharray="6,4"/>
+    <text x="1120" y="500" text-anchor="middle" fill="#e6edf3" font-weight="600">indexers  ·  L2 → L3  (TO BUILD)</text>
+    <text x="1120" y="518" text-anchor="middle" fill="#f472b6" font-size="10">📍 Trigger.dev triggered on L2 insert</text>
+    <text x="1120" y="536" text-anchor="middle" fill="#f472b6" font-size="10">surfaces: _now · _decisions · _quotes · _people</text>
+    <text x="1120" y="550" text-anchor="middle" fill="#9aa5b1" font-size="9">packages/runtime/src/indexers/  (NOT YET)</text>
+
+    <!-- eval / cost-enrich -->
+    <rect x="980" y="612" width="280" height="60" rx="6" fill="#21262d" stroke="#6e7681" stroke-width="1.5"/>
+    <text x="1120" y="634" text-anchor="middle" fill="#e6edf3" font-weight="500" font-size="11">eval-l2-models ✓  ·  cost-enrich</text>
+    <text x="1120" y="652" text-anchor="middle" fill="#9aa5b1" font-size="10">📍 local CLI / Trigger.dev / Edge Function</text>
+    <text x="1120" y="666" text-anchor="middle" fill="#7d8590" font-size="9">scripts/eval-l2-models.ts</text>
+  </g>
+
+  <!-- DB ↔ Processor arrows -->
+  <g stroke="#3fb950" stroke-width="1.5" fill="none">
+    <line x1="940" y1="161" x2="980" y2="220" marker-end="url(#arrow)"/>
+    <line x1="940" y1="312" x2="980" y2="280" marker-end="url(#arrow)" stroke="#fbbf24"/>
+  </g>
+  <g stroke="#fbbf24" stroke-width="1.5" fill="none">
+    <line x1="980" y1="280" x2="940" y2="306" marker-end="url(#arrow)"/>
+    <line x1="980" y1="418" x2="940" y2="436" marker-end="url(#arrow)"/>
+  </g>
+  <g stroke="#cf5e80" stroke-width="1.5" fill="none" stroke-dasharray="4,3">
+    <line x1="940" y1="436" x2="980" y2="516" marker-end="url(#arrow)"/>
+    <line x1="980" y1="516" x2="940" y2="504" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- CONSUMERS (column 5) -->
+  <!-- ============================================ -->
+  <g font-size="12">
+    <rect x="1300" y="220" width="280" height="64" rx="6" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="1440" y="244" text-anchor="middle" fill="#e6edf3" font-weight="500">apps/web · /today · /quotes</text>
+    <text x="1440" y="262" text-anchor="middle" fill="#8b949e" font-size="10">📍 Vercel · simple L3 surface render</text>
+    <text x="1440" y="276" text-anchor="middle" fill="#9aa5b1" font-size="9">future</text>
+
+    <rect x="1300" y="378" width="280" height="64" rx="6" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="1440" y="402" text-anchor="middle" fill="#e6edf3" font-weight="500">apps/web · /api/chat (SSE)</text>
+    <text x="1440" y="420" text-anchor="middle" fill="#8b949e" font-size="10">📍 Vercel Fluid Compute · 800s · streaming</text>
+    <text x="1440" y="434" text-anchor="middle" fill="#9aa5b1" font-size="9">future</text>
+
+    <rect x="1300" y="476" width="280" height="64" rx="6" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="1440" y="500" text-anchor="middle" fill="#e6edf3" font-weight="500">vita-mcp server</text>
+    <text x="1440" y="518" text-anchor="middle" fill="#8b949e" font-size="10">📍 Railway · persistent · MCP tools</text>
+    <text x="1440" y="532" text-anchor="middle" fill="#9aa5b1" font-size="9">future</text>
+
+    <rect x="1300" y="556" width="280" height="50" rx="6" fill="#0e1f2e" stroke="#4a90c2" stroke-width="1.5"/>
+    <text x="1440" y="578" text-anchor="middle" fill="#e6edf3" font-weight="500">Claude Code · this session</text>
+    <text x="1440" y="594" text-anchor="middle" fill="#79c0ff" font-size="10">📍 reads vita Supabase via Supabase MCP</text>
+
+    <rect x="1300" y="616" width="280" height="50" rx="6" fill="#0e2a1a" stroke="#2ea043" stroke-width="1.5"/>
+    <text x="1440" y="638" text-anchor="middle" fill="#e6edf3" font-weight="500">Mordechai · CLI today</text>
+    <text x="1440" y="654" text-anchor="middle" fill="#7ee787" font-size="10">tsx scripts/synthesize.ts ✓</text>
+  </g>
+
+  <!-- DB → Consumers arrows -->
+  <g stroke="#9aa5b1" stroke-width="1" fill="none" opacity="0.5">
+    <line x1="1260" y1="262" x2="1300" y2="252" marker-end="url(#arrow)"/>
+    <line x1="1260" y1="418" x2="1300" y2="410" marker-end="url(#arrow)"/>
+    <line x1="1260" y1="500" x2="1300" y2="508" marker-end="url(#arrow)"/>
+  </g>
+  <g stroke="#4a90c2" stroke-width="1.5" fill="none">
+    <path d="M 940 580 Q 1100 580, 1300 581" marker-end="url(#arrow-active)"/>
+  </g>
+  <g stroke="#2ea043" stroke-width="1.5" fill="none">
+    <path d="M 940 632 Q 1100 632, 1300 641" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- LEGEND (bottom) -->
+  <!-- ============================================ -->
+  <rect x="40" y="720" width="1520" height="320" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="60" y="752" font-size="14" font-weight="600" fill="#e6edf3">Code structure  ·  packages/runtime is the universal core; everything else imports it</text>
+
+  <g font-size="11" fill="#c9d1d9" font-family="ui-monospace, 'SF Mono', monospace">
+    <text x="60" y="784">vita/</text>
+    <text x="60" y="804">├── packages/runtime/src/        ← THE CORE — pure functions, callable from anywhere</text>
+    <text x="60" y="822">│   ├── extractors/             ← L0 → L1  (claudeCodeJsonl ✓ · whatsapp · audio · email · pdf)</text>
+    <text x="60" y="840">│   ├── synthesizers/           ← L1 → L2  (scopers + prompts + LLM client + rubric)</text>
+    <text x="60" y="858">│   ├── indexers/   (TO BUILD)  ← L2 → L3  (per-surface composers)</text>
+    <text x="60" y="876">│   ├── runner.ts · resolver.ts · db.ts · utils/redact.ts · types.ts</text>
+    <text x="60" y="900">├── adapters/                   ← streamers + external interfaces (file-watcher ✓ · imap · browser · mcp)</text>
+    <text x="60" y="918">├── apps/web/                   ← Vita app  (Next.js · Vercel)</text>
+    <text x="60" y="936">├── infra/supabase/             ← migrations · edge functions (cost-enrich · webhook receivers)</text>
+    <text x="60" y="954">├── manifests/                  ← per-source-type configs (versioned)</text>
+    <text x="60" y="972">└── scripts/                    ← one-shot CLI (backfill ✓ · synthesize ✓ · eval-l2-models ✓)</text>
+  </g>
+
+  <!-- Runtime palette legend (right side) -->
+  <g font-size="12">
+    <text x="940" y="752" fill="#e6edf3" font-weight="600">Runtime targets</text>
+
+    <rect x="940" y="770" width="14" height="14" rx="2" fill="#0e2a1a" stroke="#2ea043" stroke-width="1.5"/>
+    <text x="962" y="782" fill="#e6edf3">Mac launchd  ·  daemons near source files  (file-watcher ✓)</text>
+
+    <rect x="940" y="794" width="14" height="14" rx="2" fill="#1c2128" stroke="#7a5a3a" stroke-width="1.5"/>
+    <text x="962" y="806" fill="#e6edf3">Trigger.dev  ·  scheduled · retries · long LLM jobs · L3 indexer</text>
+
+    <rect x="940" y="818" width="14" height="14" rx="2" fill="#1c2128" stroke="#5a3a7a" stroke-width="1.5"/>
+    <text x="962" y="830" fill="#e6edf3">Supabase Edge Function  ·  short auth-tied · webhooks · cost-enrich</text>
+
+    <rect x="940" y="842" width="14" height="14" rx="2" fill="#1c2128" stroke="#3a7a7a" stroke-width="1.5"/>
+    <text x="962" y="854" fill="#e6edf3">Railway  ·  persistent · stateful · MCP server · Playwright</text>
+
+    <rect x="940" y="866" width="14" height="14" rx="2" fill="#1c2128" stroke="#7a3a5a" stroke-width="1.5"/>
+    <text x="962" y="878" fill="#e6edf3">Vercel + Fluid Compute  ·  UI · /api/chat SSE · 800s ceiling</text>
+
+    <rect x="940" y="890" width="14" height="14" rx="2" fill="#0e1f2e" stroke="#4a90c2" stroke-width="1.5"/>
+    <text x="962" y="902" fill="#e6edf3">Local CLI (tsx)  ·  dev / one-shot · today's synthesize + eval</text>
+  </g>
+
+  <!-- Status legend -->
+  <g font-size="12">
+    <text x="940" y="938" fill="#e6edf3" font-weight="600">Box / arrow conventions</text>
+
+    <rect x="940" y="956" width="14" height="14" rx="2" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+    <text x="962" y="968" fill="#e6edf3">solid green  =  shipped, live today (✓)</text>
+
+    <rect x="940" y="980" width="14" height="14" rx="2" fill="#1c2128" stroke="#444c56" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="962" y="992" fill="#e6edf3">dashed grey  =  future / not built yet</text>
+
+    <rect x="940" y="1004" width="14" height="14" rx="2" fill="#1c2128" stroke="#cf5e80" stroke-width="2" stroke-dasharray="5,3"/>
+    <text x="962" y="1016" fill="#e6edf3">dashed pink  =  schema exists, generator/code not yet built</text>
+  </g>
+
+</svg>
