@@ -14,6 +14,10 @@
       "types": "./dist/extractors/index.d.ts",
       "default": "./dist/extractors/index.js"
     },
+    "./synthesizers": {
+      "types": "./dist/synthesizers/index.d.ts",
+      "default": "./dist/synthesizers/index.js"
+    },
     "./types": {
       "types": "./dist/types.d.ts",
       "default": "./dist/types.js"
@@ -25,6 +29,7 @@
     "test": "tsx --test 'src/**/*.test.ts'"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
     "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
