@@ -10,13 +10,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { claudeCodeJsonl } from './claudeCodeJsonl.ts';
+import { claudeCodeJsonl } from './claudeCodeJsonl.js';
 import type {
   ExtractionRun,
   ExtractorContext,
   L0Artifact,
   L1EventInsert,
-} from '../types.ts';
+} from '../types.js';
 
 // ────────────────────────────────────────────────────────────────────
 // Fixture — synthetic JSONL covering the cases we care about

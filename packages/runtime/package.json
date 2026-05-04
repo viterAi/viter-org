@@ -24,6 +24,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test 'src/**/*.test.ts'"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  },
   "devDependencies": {
     "@types/node": "^22.7.4",
     "tsx": "^4.19.0",

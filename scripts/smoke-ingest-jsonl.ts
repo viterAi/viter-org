@@ -20,13 +20,13 @@
 import { readFile, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 
-import { claudeCodeJsonl } from '../packages/runtime/src/extractors/claudeCodeJsonl.ts';
+import { claudeCodeJsonl } from '../packages/runtime/src/extractors/claudeCodeJsonl.js';
 import type {
   ExtractionRun,
   ExtractorContext,
   L0Artifact,
   L1EventInsert,
-} from '../packages/runtime/src/types.ts';
+} from '../packages/runtime/src/types.js';
 
 // ────────────────────────────────────────────────────────────────────
 // Hardcoded ID map (smoke-test only; production runner queries Supabase)
