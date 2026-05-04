@@ -10,15 +10,17 @@
  * extraction over).
  */
 
-import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createWriteStream, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 import { schemaTask } from '@trigger.dev/sdk';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import StreamZip from 'node-stream-zip';
 
 const UploadZipPayload = z.object({
   tenant_slug: z.string(),
@@ -31,7 +33,9 @@ export const uploadZip = schemaTask({
   id: 'upload-zip',
   schema: UploadZipPayload,
   retry: { maxAttempts: 2, factor: 2, minTimeoutInMs: 5000 },
-  machine: { preset: 'small-1x' },
+  // Streaming download + per-entry zip iteration → peak RAM is one file at a
+  // time (typically <5 MB), independent of zip size. small-2x = 1 GB is comfy.
+  machine: { preset: 'small-2x' },
   maxDuration: 600,                        // 10 min — generous for big zips
 
   run: async (payload) => {
@@ -60,23 +64,25 @@ export const uploadZip = schemaTask({
     if (!channel) throw new Error(`channel 'whatsapp:${payload.chat_slug}' not found`);
     const channelId = channel.id as string;
 
-    // Download zip
+    // 1. Stream the zip from Supabase Storage to /tmp without ever holding it
+    //    in memory. blob.stream() returns a Web ReadableStream; convert to
+    //    Node Readable and pipe to disk.
+    const tmpDir = mkdtempSync(join(tmpdir(), 'vita-zip-'));
+    const zipPath = join(tmpDir, 'in.zip');
+
     const { data: zipBlob, error: zipErr } = await supabase.storage
       .from(payload.inbox_bucket)
       .download(payload.inbox_path);
     if (zipErr || !zipBlob) throw new Error(`zip download: ${zipErr?.message}`);
-    const zipBytes = Buffer.from(await zipBlob.arrayBuffer());
 
-    // Unzip in container /tmp. The base image installs unzip via the aptGet
-    // build extension; on dev macs the system unzip is on PATH already.
-    const tmpDir = mkdtempSync(join(tmpdir(), 'vita-zip-'));
-    const zipPath = join(tmpDir, 'in.zip');
-    writeFileSync(zipPath, zipBytes);
-    const unzipBin = process.env.UNZIP_PATH ?? 'unzip';
-    const r = spawnSync(unzipBin, ['-q', zipPath, '-d', tmpDir]);
-    if (r.status !== 0) throw new Error(`unzip ${r.status}: ${r.stderr?.toString().slice(0, 300) ?? 'spawn failed'}`);
+    const webStream = (zipBlob as Blob).stream() as ReadableStream<Uint8Array>;
+    await pipeline(Readable.fromWeb(webStream as never), createWriteStream(zipPath));
 
-    const files = readdirSync(tmpDir).filter((f) => f !== 'in.zip');
+    // 2. Open zip and iterate entries. Reads only the central directory at
+    //    open time (~tens of KB), then streams one entry buffer at a time.
+    const zip = new StreamZip.async({ file: zipPath });
+    const entriesMap = await zip.entries();
+    const fileEntries = Object.values(entriesMap).filter((e) => !e.isDirectory);
 
     let nUploaded = 0;
     let nSkippedDup = 0;
@@ -87,12 +93,10 @@ export const uploadZip = schemaTask({
       id: string; filename: string; mime: string; remote_path: string; origin_at: string; channel_id: string; actor_id: null;
     }> = [];
 
-    for (const filename of files) {
-      const localPath = join(tmpDir, filename);
-      const fStat = statSync(localPath);
-      if (!fStat.isFile()) continue;
-
-      const buf = readFileSync(localPath);
+    for (const entry of fileEntries) {
+      const filename = entry.name;
+      // node-stream-zip extracts one entry into a Buffer — bounded by single-file size.
+      const buf: Buffer = await zip.entryData(entry.name);
       const mime = inferMimeType(filename);
       const isChat = filename === '_chat.txt';
       const remotePath = `${payload.tenant_slug}/${payload.chat_slug}/${filename}`;
@@ -154,7 +158,9 @@ export const uploadZip = schemaTask({
         continue;
       }
 
-      const originAt = parseOriginAtFromFilename(filename) ?? new Date(fStat.mtime).toISOString();
+      // node-stream-zip exposes the entry's mtime in `entry.time` (ms since epoch).
+      const entryMtime = entry.time ? new Date(entry.time) : new Date();
+      const originAt = parseOriginAtFromFilename(filename) ?? entryMtime.toISOString();
       const kind = inferKind(mime);
 
       const { data: ins, error: insErr } = await supabase
@@ -194,12 +200,13 @@ export const uploadZip = schemaTask({
       });
     }
 
+    await zip.close();
     rmSync(tmpDir, { recursive: true, force: true });
 
     return {
       tenant_id: tenantId,
       channel_id: channelId,
-      counts: { nUploaded, nSkippedDup, nL0Inserted, nL0Existing, nErrors, files: files.length },
+      counts: { nUploaded, nSkippedDup, nL0Inserted, nL0Existing, nErrors, files: fileEntries.length },
       newArtifactIds,
     };
   },
