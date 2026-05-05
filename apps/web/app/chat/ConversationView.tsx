@@ -5,6 +5,7 @@
  * sender labels on first-of-run, attaches transcript companions to voice.
  */
 
+import { Composer } from './Composer';
 import { MessageBubble } from './MessageBubble';
 import { RealtimeStream } from './RealtimeStream';
 import { groupByDay, groupConsecutive, loadMessages } from '@/lib/chat/queries';
@@ -99,13 +100,7 @@ export async function ConversationView({ channel }: ConversationViewProps) {
         )}
       </div>
 
-      {/* Composer placeholder — Phase 1 read-only */}
-      <div className="shrink-0 border-t border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex items-center gap-2 rounded-full bg-zinc-100 px-4 py-2 text-sm text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-          <span>💬</span>
-          <span className="italic">Composer arrives in Phase 3 — wa-send Trigger.dev task.</span>
-        </div>
-      </div>
+      <Composer channelId={channel.id} targetLabel={cleanName} />
     </div>
   );
 }
