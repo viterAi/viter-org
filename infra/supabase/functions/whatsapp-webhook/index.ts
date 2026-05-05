@@ -37,6 +37,7 @@ const WEBHOOK_SECRET = Deno.env.get('GOWA_WEBHOOK_SECRET') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const GOWA_BASIC_AUTH = Deno.env.get('GOWA_BASIC_AUTH') ?? '';
+const GOWA_BASE_URL = (Deno.env.get('GOWA_BASE_URL') ?? '').replace(/\/+$/, '');
 const MEDIA_BUCKET = 'l0-whatsapp';
 
 // ────────────────────────────────────────────────────────────────────
@@ -102,17 +103,27 @@ interface MessageData {
   type?: string;                     // alt
   body?: string;                     // GOWA's text field
   text?: string;                     // alt
-  media?: {
-    url?: string;
-    mime_type?: string;
-    filename?: string;
-    bytes?: number;
-    sha256?: string;
-    caption?: string;
-    duration_seconds?: number;
-  };
+  media?: GowaMediaPayload;
+  // GOWA v8 with WHATSAPP_AUTO_DOWNLOAD_MEDIA=true puts media under
+  // type-specific keys instead of `media`. We normalize all of them.
+  image?: GowaMediaPayload;
+  audio?: GowaMediaPayload;
+  video?: GowaMediaPayload;
+  document?: GowaMediaPayload;
+  sticker?: GowaMediaPayload;
+  video_note?: GowaMediaPayload;
   quoted_message_id?: string;
   mentions?: string[];
+}
+
+interface GowaMediaPayload {
+  url?: string;
+  mime_type?: string;
+  filename?: string;
+  bytes?: number;
+  sha256?: string;
+  caption?: string;
+  duration_seconds?: number;
 }
 
 interface DeviceConnectionData {
@@ -255,8 +266,14 @@ async function downloadAndStoreMedia(
   msg: MessageData,
   chatSlug: string,
 ): Promise<StoredMedia | null> {
-  const url = msg.media?.url;
-  if (!url) return null;
+  const rawUrl = msg.media?.url;
+  if (!rawUrl) return null;
+  // GOWA with AUTO_DOWNLOAD_MEDIA=true may return a relative path (e.g.
+  // '/statics/media/abc.jpg') or just a filename. Prepend GOWA_BASE_URL.
+  const url = /^https?:\/\//i.test(rawUrl)
+    ? rawUrl
+    : `${GOWA_BASE_URL}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+
   const mimeType = msg.media?.mime_type ?? 'application/octet-stream';
   const ext = mimeToExt(mimeType);
   const filename = msg.media?.filename ?? `${msg.id}.${ext}`;
@@ -321,6 +338,11 @@ async function handleMessage(
   // 1b. Update device.channel_id on first inbound from this chat (idempotent)
   if (!device.channel_id) {
     await db.from('whatsapp_devices').update({ channel_id: channelId }).eq('id', device.id);
+  }
+
+  // Log unknown-type payloads so we can audit what GOWA actually sends.
+  if (msg.message_type === 'unknown') {
+    console.warn(`[wa-webhook] unknown message_type for ${msg.id} payload=${JSON.stringify(msg).slice(0, 600)}`);
   }
 
   // 2. Insert l0_artifact (idempotent on (tenant_id, gowa_message_id) per migration 012)
@@ -614,14 +636,41 @@ Deno.serve(async (req: Request): Promise<Response> => {
     switch (envelope.event) {
       case 'message': {
         const raw = eventData as unknown as MessageData;
-        // Normalize GOWA's field variants to the ones handleMessage expects.
+        // GOWA v8 (WHATSAPP_AUTO_DOWNLOAD_MEDIA=true) puts media under
+        // type-specific keys (image, audio, video, document, sticker,
+        // video_note) instead of `media`. Lift whichever is present and
+        // map it to a single message_type + media object.
+        const mediaKinds: { key: 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'video_note'; type: string }[] = [
+          { key: 'image', type: 'image' },
+          { key: 'audio', type: 'audio' },
+          { key: 'video', type: 'video' },
+          { key: 'document', type: 'document' },
+          { key: 'sticker', type: 'sticker' },
+          { key: 'video_note', type: 'video' },
+        ];
+        let inferredType: string | null = null;
+        let inferredMedia: GowaMediaPayload | null = raw.media ?? null;
+        for (const k of mediaKinds) {
+          const m = raw[k.key];
+          if (m && (m.url || m.filename || m.mime_type)) {
+            inferredType = k.type;
+            inferredMedia = m;
+            break;
+          }
+        }
+
         const msg: MessageData = {
           ...raw,
           from_id: raw.from_id ?? raw.from ?? raw.from_lid ?? '',
           push_name: raw.push_name ?? raw.from_name,
           from_me: raw.from_me ?? raw.is_from_me ?? false,
-          message_type: raw.message_type ?? raw.type ?? (raw.body ? 'text' : (raw.media ? 'media' : 'unknown')),
+          message_type:
+            raw.message_type
+            ?? raw.type
+            ?? inferredType
+            ?? (raw.body ? 'text' : 'unknown'),
           text: raw.text ?? raw.body,
+          media: inferredMedia ?? undefined,
         };
         const result = await handleMessage(db, device, msg, webhookReceivedAt);
         return jsonResp({ ok: result.ok, ...result });
