@@ -6,6 +6,7 @@
  */
 
 import { MessageBubble } from './MessageBubble';
+import { RealtimeStream } from './RealtimeStream';
 import { groupByDay, groupConsecutive, loadMessages } from '@/lib/chat/queries';
 import type { Channel, MessageEvent } from '@/lib/chat/types';
 
@@ -60,8 +61,11 @@ export async function ConversationView({ channel }: ConversationViewProps) {
       {/* Scrollable message stream */}
       <div className="chat-bg chat-scroll min-h-0 flex-1 overflow-y-auto">
         {blocks.length === 0 ? (
-          <div className="flex h-full items-center justify-center px-8 text-center text-sm text-zinc-700 dark:text-zinc-400">
-            No messages in this channel yet.
+          <div className="mx-auto max-w-3xl px-4 py-6">
+            <div className="rounded-md bg-white/60 px-4 py-6 text-center text-sm text-zinc-700 shadow-sm dark:bg-zinc-900/60 dark:text-zinc-400">
+              No messages in this channel yet — waiting for the first WhatsApp event.
+            </div>
+            <RealtimeStream channelId={channel.id} initialIds={[]} />
           </div>
         ) : (
           <div className="mx-auto max-w-3xl space-y-1 px-4 py-6">
@@ -87,6 +91,10 @@ export async function ConversationView({ channel }: ConversationViewProps) {
                 ))}
               </div>
             ))}
+            <RealtimeStream
+              channelId={channel.id}
+              initialIds={renderable.map((m) => m.id)}
+            />
           </div>
         )}
       </div>
