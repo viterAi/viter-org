@@ -89,17 +89,18 @@ export async function sendMagicLink(email: string, _next?: string): Promise<Magi
 }
 
 /**
- * Verify the 6-digit code from the email. This bypasses the magic-link
- * Gmail-prefetch problem (Gmail's anti-phishing scanner fetches the URL
- * before the user clicks, burning the OTP). The same email contains both
- * the link AND the 6-digit code; the code is single-use but only on
- * server-side submission.
+ * Verify the OTP code from the email. Supabase's admin.generateLink
+ * (which we use to bypass the Magic-Link template) returns an 8-digit
+ * OTP, not 6 — different from signInWithOtp's flow. Accept any 6-10
+ * digit code rather than hard-coding length.
  */
 export async function verifyEmailCode(email: string, token: string, next?: string): Promise<VerifyResult> {
   const cleanedEmail = email.trim().toLowerCase();
   const cleanedToken = token.replace(/\D/g, '');
   if (!cleanedEmail || !cleanedToken) return { ok: false, error: 'email + code required' };
-  if (cleanedToken.length !== 6) return { ok: false, error: 'enter the 6-digit code' };
+  if (cleanedToken.length < 6 || cleanedToken.length > 10) {
+    return { ok: false, error: 'enter the code from your email' };
+  }
 
   const sb = await getAuthClient();
   const { error } = await sb.auth.verifyOtp({
