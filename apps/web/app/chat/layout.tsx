@@ -32,6 +32,15 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
           <Link href="/settings/whatsapp" className="rounded px-2 py-1 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-800">
             Devices
           </Link>
+          <form action="/auth/signout" method="post" className="contents">
+            <button
+              type="submit"
+              className="rounded px-2 py-1 text-emerald-100 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-800"
+              title="Sign out"
+            >
+              Sign out
+            </button>
+          </form>
         </nav>
       </header>
 
