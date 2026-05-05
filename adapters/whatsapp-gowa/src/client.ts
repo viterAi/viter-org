@@ -22,6 +22,33 @@ import {
   type GowaSendTextRequest,
 } from './types.js';
 
+/**
+ * GOWA's actual /send/* response shape:
+ *   { code: 'SUCCESS' | 'XXX', message: string, results: { message_id, status } }
+ * Our public type expects the flat shape from types.ts. Normalize here so
+ * callers don't have to know the envelope.
+ */
+function normalizeSendResponse(raw: unknown): GowaSendResponse {
+  // Already-flat shape (in case the server changes back) — try first.
+  const flat = GowaSendResponseSchema.safeParse(raw);
+  if (flat.success) return flat.data;
+
+  if (raw && typeof raw === 'object') {
+    const r = raw as { code?: string; message?: string; results?: { message_id?: string; status?: string }; error?: string };
+    const ok = r.code === 'SUCCESS';
+    const msgId = r.results?.message_id;
+    if (msgId) {
+      return {
+        message_id: msgId,
+        status: ok ? 'sent' : 'failed',
+        timestamp: new Date().toISOString(),
+        ...(ok ? {} : { error: r.message ?? r.error ?? r.code ?? 'unknown' }),
+      };
+    }
+  }
+  throw new Error(`unexpected GOWA send response: ${JSON.stringify(raw).slice(0, 200)}`);
+}
+
 export interface GowaClientConfig {
   /** Base URL of the GOWA service, e.g. `https://gowa.viter.ai` */
   baseUrl: string;
@@ -137,7 +164,7 @@ export class GowaClient {
   async sendText(deviceId: string, req: GowaSendTextRequest): Promise<GowaSendResponse> {
     const validated = GowaSendTextRequestSchema.parse(req);
     const raw = await this.request<unknown>('POST', '/send/message', { deviceId, body: validated });
-    return GowaSendResponseSchema.parse(raw);
+    return normalizeSendResponse(raw);
   }
 
   async sendImage(
@@ -145,7 +172,7 @@ export class GowaClient {
     args: { phone: string; imageUrl: string; caption?: string },
   ): Promise<GowaSendResponse> {
     const raw = await this.request<unknown>('POST', '/send/image', { deviceId, body: args });
-    return GowaSendResponseSchema.parse(raw);
+    return normalizeSendResponse(raw);
   }
 
   async sendDocument(
@@ -153,7 +180,7 @@ export class GowaClient {
     args: { phone: string; documentUrl: string; filename: string; caption?: string },
   ): Promise<GowaSendResponse> {
     const raw = await this.request<unknown>('POST', '/send/file', { deviceId, body: args });
-    return GowaSendResponseSchema.parse(raw);
+    return normalizeSendResponse(raw);
   }
 
   // ─── Chats / search ───────────────────────────────────────────
