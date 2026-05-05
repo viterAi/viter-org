@@ -15,11 +15,19 @@ interface ConversationViewProps {
   channel: Channel;
 }
 
-/** Build a lookup: artifact_id → transcription event for the same artifact. */
-function buildTranscriptIndex(messages: MessageEvent[]): Map<string, MessageEvent> {
+/**
+ * Build a lookup: artifact_id → derived L1 event (transcription /
+ * image_caption / doc_text). These L1s are *derived* from an L0 (vs the
+ * source L1 that IS the message). They render as companions to their
+ * parent media bubble, never standalone.
+ */
+function buildDerivedL1Index(messages: MessageEvent[]): Map<string, MessageEvent> {
   const idx = new Map<string, MessageEvent>();
   for (const m of messages) {
-    if (m.facet === 'transcription' && m.artifact_id) {
+    if (
+      (m.facet === 'transcription' || m.facet === 'image_caption' || m.facet === 'doc_text') &&
+      m.artifact_id
+    ) {
       idx.set(m.artifact_id, m);
     }
   }
@@ -27,13 +35,16 @@ function buildTranscriptIndex(messages: MessageEvent[]): Map<string, MessageEven
 }
 
 function pickRenderable(messages: MessageEvent[]): MessageEvent[] {
-  // Drop transcription rows here — they appear as companions under their voice bubbles, not standalone.
-  return messages.filter((m) => m.facet !== 'transcription');
+  // Drop derived-L1 rows — they appear as companions under their parent
+  // media bubble, not as standalone bubbles.
+  return messages.filter((m) =>
+    m.facet !== 'transcription' && m.facet !== 'image_caption' && m.facet !== 'doc_text',
+  );
 }
 
 export async function ConversationView({ channel }: ConversationViewProps) {
   const messages = await loadMessages(channel.id);
-  const transcriptIdx = buildTranscriptIndex(messages);
+  const derivedIdx = buildDerivedL1Index(messages);
   const renderable = pickRenderable(messages);
   const blocks = groupByDay(renderable);
 
@@ -85,7 +96,7 @@ export async function ConversationView({ channel }: ConversationViewProps) {
                         message={m}
                         showSender={i === 0}
                         isTail={i === run.length - 1}
-                        transcript={m.artifact_id ? transcriptIdx.get(m.artifact_id) : undefined}
+                        transcript={m.artifact_id ? derivedIdx.get(m.artifact_id) : undefined}
                       />
                     ))}
                   </div>
