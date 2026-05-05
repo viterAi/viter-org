@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="panelA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#312e81"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="panelB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#172554"/>
+      <stop offset="100%" stop-color="#0c1a3a"/>
+    </linearGradient>
+    <linearGradient id="panelC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#422006"/>
+      <stop offset="100%" stop-color="#291404"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.5"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+
+  <!-- Top bar -->
+  <text x="80" y="80" font-size="24" font-weight="800" fill="#f8fafc" letter-spacing="-0.5">vita</text>
+  <text x="80" y="105" font-size="13" fill="#64748b" letter-spacing="3">VITER · BUILD CHRONICLE · 2026-05-04</text>
+  <g transform="translate(1520, 70)">
+    <rect x="-50" y="-25" width="100" height="42" rx="21" fill="none" stroke="#334155"/>
+    <text x="0" y="5" font-size="14" font-weight="700" fill="#94a3b8" text-anchor="middle">2 / 6</text>
+  </g>
+
+  <!-- Title block -->
+  <text x="80" y="180" font-size="56" font-weight="800" fill="#f8fafc" letter-spacing="-1">The 24-hour shock</text>
+  <text x="80" y="218" font-size="20" fill="#94a3b8">A broadcast, a decision, a scaffold — twenty-four hours, three dominoes.</text>
+
+  <!-- ============ PANEL A — THE BROADCAST ============ -->
+  <g filter="url(#shadow)">
+    <rect x="60" y="270" width="700" height="240" rx="18" fill="url(#panelA)" stroke="#7c3aed" stroke-width="2"/>
+  </g>
+  <g transform="translate(60, 270)">
+    <!-- corner badge -->
+    <rect x="24" y="22" width="120" height="28" rx="14" fill="#7c3aed"/>
+    <text x="84" y="41" font-size="13" font-weight="800" fill="#f8fafc" text-anchor="middle" letter-spacing="2">DOMINO 1</text>
+    <text x="160" y="42" font-size="14" font-weight="700" fill="#c4b5fd" letter-spacing="2">2026-05-03 · 23:39 → 00:43 IDT</text>
+
+    <text x="24" y="100" font-size="38" font-weight="800" fill="#f8fafc">The broadcast</text>
+
+    <text x="24" y="140" font-size="16" fill="#cbd5e1">Shaul drops his entire 99MB Claude.ai export — 207 conversations,</text>
+    <text x="24" y="162" font-size="16" fill="#cbd5e1">3,429 messages, Feb→May — into the workspace. No accompanying note.</text>
+    <text x="24" y="184" font-size="16" fill="#cbd5e1">Then he hits send on the directive.</text>
+
+    <line x1="24" y1="200" x2="48" y2="200" stroke="#a78bfa" stroke-width="3"/>
+    <text x="60" y="207" font-size="17" font-style="italic" fill="#e9d5ff">"no more personal app — everything onto the platform"</text>
+  </g>
+
+  <!-- Connector A→B -->
+  <g fill="none" stroke="#475569" stroke-width="3" stroke-dasharray="6 6">
+    <path d="M 760 470 Q 800 480, 820 540"/>
+  </g>
+  <polygon points="815,540 824,548 829,536" fill="#475569"/>
+
+  <!-- ============ PANEL B — THE DECISION ============ -->
+  <g filter="url(#shadow)">
+    <rect x="450" y="510" width="700" height="240" rx="18" fill="url(#panelB)" stroke="#3b82f6" stroke-width="2"/>
+  </g>
+  <g transform="translate(450, 510)">
+    <rect x="24" y="22" width="120" height="28" rx="14" fill="#3b82f6"/>
+    <text x="84" y="41" font-size="13" font-weight="800" fill="#f8fafc" text-anchor="middle" letter-spacing="2">DOMINO 2</text>
+    <text x="160" y="42" font-size="14" font-weight="700" fill="#93c5fd" letter-spacing="2">2026-05-03 · same day</text>
+
+    <text x="24" y="100" font-size="38" font-weight="800" fill="#f8fafc">The decision</text>
+
+    <text x="24" y="140" font-size="16" fill="#cbd5e1">Mordechai authors <tspan font-family="ui-monospace, SF Mono, monospace" fill="#fbbf24">00-stack-decision.pdf</tspan> — TypeScript monorepo,</text>
+    <text x="24" y="162" font-size="16" fill="#cbd5e1">Vercel, Railway, Supabase. The YC-consensus stack of 2026.</text>
+    <text x="24" y="184" font-size="16" fill="#cbd5e1">But the punch line is upstairs from the infra:</text>
+
+    <line x1="24" y1="200" x2="48" y2="200" stroke="#60a5fa" stroke-width="3"/>
+    <text x="60" y="207" font-size="17" font-style="italic" fill="#bfdbfe">"Infra is commodity in 2026. Your moat is two layers up."</text>
+  </g>
+
+  <!-- Connector B→C -->
+  <g fill="none" stroke="#475569" stroke-width="3" stroke-dasharray="6 6">
+    <path d="M 1150 710 Q 1190 720, 1210 780"/>
+  </g>
+  <polygon points="1205,780 1214,788 1219,776" fill="#475569"/>
+
+  <!-- ============ PANEL C — THE BUILD ============ -->
+  <g filter="url(#shadow)">
+    <rect x="840" y="750" width="700" height="240" rx="18" fill="url(#panelC)" stroke="#fbbf24" stroke-width="2"/>
+  </g>
+  <g transform="translate(840, 750)">
+    <rect x="24" y="22" width="120" height="28" rx="14" fill="#fbbf24"/>
+    <text x="84" y="41" font-size="13" font-weight="800" fill="#1c1917" text-anchor="middle" letter-spacing="2">DOMINO 3</text>
+    <text x="160" y="42" font-size="14" font-weight="700" fill="#fcd34d" letter-spacing="2">2026-05-04 · 12:11 IDT</text>
+
+    <text x="24" y="100" font-size="38" font-weight="800" fill="#f8fafc">The scaffold</text>
+
+    <text x="24" y="140" font-size="16" fill="#cbd5e1">Twelve hours after the broadcast: <tspan font-family="ui-monospace, SF Mono, monospace" fill="#fde047">git init</tspan>, monorepo</text>
+    <text x="24" y="162" font-size="16" fill="#cbd5e1">scaffolded, README written. <tspan font-style="italic">"v0.1 scaffold — created 2026-05-04</tspan></text>
+    <text x="24" y="184" font-size="16" fill="#cbd5e1"><tspan font-style="italic">in response to Code Red."</tspan> — straight from the README.</text>
+
+    <line x1="24" y1="200" x2="48" y2="200" stroke="#fbbf24" stroke-width="3"/>
+    <text x="60" y="207" font-size="17" font-style="italic" fill="#fef3c7">By midnight, the prosthetic was Postgres.</text>
+  </g>
+
+  <!-- ============ FOOTER PUNCH LINE ============ -->
+  <text x="800" y="1035" font-size="20" fill="#cbd5e1" text-anchor="middle" font-style="italic">
+    Shaul didn't just demand a platform. He sent his own thinking through it — and Mordechai built the receiver in a day.
+  </text>
+
+  <!-- Series TOC -->
+  <line x1="80" y1="1060" x2="1520" y2="1060" stroke="#1e293b"/>
+  <g font-size="12" fill="#475569">
+    <text x="80"   y="1085">1 · Cover</text>
+    <text x="240"  y="1085" fill="#f8fafc" font-weight="700">2 · The 24h shock</text>
+    <text x="430"  y="1085">3 · Thesis transferred</text>
+    <text x="650"  y="1085">4 · The day, in four stages</text>
+    <text x="930"  y="1085">5 · One trace</text>
+    <text x="1100" y="1085">6 · What's live, what's next</text>
+  </g>
+  <text x="1520" y="1085" font-size="11" fill="#475569" text-anchor="end">Mordechai Potash · viter · Asia/Jerusalem</text>
+</svg>

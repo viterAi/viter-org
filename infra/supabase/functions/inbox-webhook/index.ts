@@ -5,38 +5,32 @@
  * Validates the path shape (`inbox/<tenant>/<chat>/<filename>.zip`) and
  * triggers the Trigger.dev `ingest-zip` orchestrator.
  *
- * That's it. ~50ms of work. Doesn't touch the bytes; doesn't touch the DB.
- *
- * Wire-up (Supabase dashboard):
- *   Storage → Webhooks → New webhook
- *     - Name: inbox-zip-fires-trigger
- *     - Events: ObjectCreated:*
- *     - Bucket: inbox
- *     - Filter: *.zip
- *     - HTTP endpoint: this function's URL
+ * verify_jwt is intentionally disabled — Supabase's database webhook
+ * dispatcher does not include the user JWT, only an internal auth header.
+ * The function validates the payload shape (table=objects, bucket_id=inbox)
+ * before doing any work; the trigger.dev side is gated by the secret key.
  *
  * Env required (function secrets):
- *   TRIGGER_SECRET_KEY    — from cloud.trigger.dev → project → API keys (env: dev|prod)
- *   TRIGGER_PROJECT_REF   — defaults to "test-JeHj"
+ *   TRIGGER_SECRET_KEY  — cloud.trigger.dev → project → API keys (env: dev|prod)
  */
 
-import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 const TRIGGER_API_BASE = 'https://api.trigger.dev/api/v1';
 
 interface StorageWebhookPayload {
-  type: 'OBJECT_CREATED' | 'OBJECT_UPDATED' | 'OBJECT_DELETED' | string;
-  table: 'objects';
-  schema: 'storage';
-  record: {
-    bucket_id: string;
-    name: string;          // path within bucket, e.g. "viter/shaul-direct/2026-05-04T22.zip"
-    owner: string | null;
+  type?: string;
+  table?: string;
+  schema?: string;
+  record?: {
+    bucket_id?: string;
+    name?: string;
+    owner?: string | null;
     metadata?: Record<string, unknown>;
   };
 }
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
   let payload: StorageWebhookPayload;
@@ -46,9 +40,17 @@ serve(async (req) => {
     return new Response('Invalid JSON', { status: 400 });
   }
 
-  if (payload.record?.bucket_id !== 'inbox') {
-    return jsonResp({ skipped: true, reason: 'wrong-bucket', bucket: payload.record?.bucket_id });
+  // Reject non-storage-objects events (the webhook should be filtered to
+  // storage.objects but be defensive).
+  if (payload.schema !== 'storage' || payload.table !== 'objects') {
+    return jsonResp({ skipped: true, reason: 'not-storage-objects', got: { schema: payload.schema, table: payload.table } });
   }
+
+  const bucketId = payload.record?.bucket_id;
+  if (bucketId !== 'inbox') {
+    return jsonResp({ skipped: true, reason: 'wrong-bucket', bucket: bucketId });
+  }
+
   const objectPath = payload.record?.name ?? '';
   if (!objectPath.toLowerCase().endsWith('.zip')) {
     return jsonResp({ skipped: true, reason: 'not-a-zip', path: objectPath });
@@ -80,7 +82,6 @@ serve(async (req) => {
         inbox_bucket: 'inbox',
       },
       options: {
-        // Idempotency: same zip path → same run; re-uploads dedupe naturally
         idempotencyKey: `inbox:${objectPath}`,
       },
     }),

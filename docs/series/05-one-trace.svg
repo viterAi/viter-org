@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <!-- Layer colors — same contract as frame 3 -->
+    <linearGradient id="L0" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="L1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#0e7490"/>
+    </linearGradient>
+    <linearGradient id="L2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="L3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ec4899"/><stop offset="100%" stop-color="#9d174d"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.4"/>
+    </filter>
+    <marker id="arrowFlow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+
+  <!-- Top bar -->
+  <text x="80" y="80" font-size="24" font-weight="800" fill="#f8fafc" letter-spacing="-0.5">vita</text>
+  <text x="80" y="105" font-size="13" fill="#64748b" letter-spacing="3">VITER · BUILD CHRONICLE · 2026-05-04</text>
+  <g transform="translate(1520, 70)">
+    <rect x="-50" y="-25" width="100" height="42" rx="21" fill="none" stroke="#334155"/>
+    <text x="0" y="5" font-size="14" font-weight="700" fill="#94a3b8" text-anchor="middle">5 / 6</text>
+  </g>
+
+  <!-- Title -->
+  <text x="80" y="180" font-size="56" font-weight="800" fill="#f8fafc" letter-spacing="-1">One trace</text>
+  <text x="80" y="218" font-size="20" fill="#94a3b8">Follow Shaul's 09:34:45 voice note all the way through the substrate built today.</text>
+
+  <!-- Card layout: 6 cards, 220w × 660h, gap 24, starting x=82 -->
+
+  <!-- ============ CARD 1 — RECORDING ============ -->
+  <g transform="translate(82, 270)">
+    <g filter="url(#shadow)">
+      <rect x="0" y="0" width="220" height="660" rx="14" fill="#0a1f17" stroke="#10b981" stroke-width="1.5"/>
+    </g>
+    <rect x="0" y="0" width="220" height="36" rx="14" fill="url(#L0)"/>
+    <text x="14" y="24" font-size="12" font-weight="800" fill="#022c22" letter-spacing="2">L0 · ORIGIN</text>
+
+    <text x="14" y="68" font-size="13" font-weight="800" fill="#34d399" letter-spacing="1">09:34:45 IDT</text>
+    <text x="14" y="92" font-size="18" font-weight="800" fill="#f8fafc">Shaul records</text>
+    <text x="14" y="113" font-size="12" fill="#94a3b8">on his phone · WhatsApp</text>
+
+    <!-- Audio waveform stub -->
+    <g transform="translate(14, 160)" fill="#10b981">
+      <rect x="0"   y="20" width="3" height="20"/>
+      <rect x="6"   y="14" width="3" height="32"/>
+      <rect x="12"  y="8"  width="3" height="44"/>
+      <rect x="18"  y="2"  width="3" height="56"/>
+      <rect x="24"  y="10" width="3" height="40"/>
+      <rect x="30"  y="18" width="3" height="24"/>
+      <rect x="36"  y="6"  width="3" height="48"/>
+      <rect x="42"  y="0"  width="3" height="60"/>
+      <rect x="48"  y="12" width="3" height="36"/>
+      <rect x="54"  y="22" width="3" height="16"/>
+      <rect x="60"  y="8"  width="3" height="44"/>
+      <rect x="66"  y="14" width="3" height="32"/>
+      <rect x="72"  y="2"  width="3" height="56"/>
+      <rect x="78"  y="20" width="3" height="20"/>
+      <rect x="84"  y="10" width="3" height="40"/>
+      <rect x="90"  y="6"  width="3" height="48"/>
+      <rect x="96"  y="16" width="3" height="28"/>
+      <rect x="102" y="22" width="3" height="16"/>
+      <rect x="108" y="14" width="3" height="32"/>
+      <rect x="114" y="8"  width="3" height="44"/>
+      <rect x="120" y="20" width="3" height="20"/>
+      <rect x="126" y="24" width="3" height="12"/>
+      <rect x="132" y="22" width="3" height="16"/>
+      <rect x="138" y="26" width="3" height="8"/>
+      <rect x="144" y="28" width="3" height="4"/>
+      <rect x="150" y="28" width="3" height="4"/>
+      <rect x="156" y="29" width="3" height="2"/>
+      <rect x="162" y="29" width="3" height="2"/>
+      <rect x="168" y="29" width="3" height="2"/>
+      <rect x="174" y="29" width="3" height="2"/>
+      <rect x="180" y="29" width="3" height="2"/>
+    </g>
+    <text x="14"  y="240" font-size="10" fill="#64748b" font-family="ui-monospace, SF Mono, monospace">00:00 ━━━━━━━━ 00:03</text>
+
+    <text x="14" y="290" font-size="11" font-weight="700" fill="#10b981" letter-spacing="2">FILE</text>
+    <text x="14" y="312" font-size="11" fill="#cbd5e1" font-family="ui-monospace, SF Mono, monospace">d72…0566-AUDIO</text>
+    <text x="14" y="328" font-size="11" fill="#cbd5e1" font-family="ui-monospace, SF Mono, monospace">-2026-05-04-09</text>
+    <text x="14" y="344" font-size="11" fill="#cbd5e1" font-family="ui-monospace, SF Mono, monospace">-34-45.opus</text>
+
+    <text x="14" y="380" font-size="11" font-weight="700" fill="#10b981" letter-spacing="2">FORMAT</text>
+    <text x="14" y="402" font-size="13" fill="#e2e8f0">OPUS · ~3 sec</text>
+
+    <text x="14" y="438" font-size="11" font-weight="700" fill="#10b981" letter-spacing="2">SIZE</text>
+    <text x="14" y="460" font-size="13" fill="#e2e8f0">~47 KB</text>
+
+    <line x1="14" y1="500" x2="206" y2="500" stroke="#0a1f17" stroke-width="1"/>
+    <text x="14" y="528" font-size="11" font-style="italic" fill="#6ee7b7">Just bytes.</text>
+    <text x="14" y="546" font-size="11" font-style="italic" fill="#6ee7b7">No meaning yet.</text>
+    <text x="14" y="564" font-size="11" font-style="italic" fill="#6ee7b7">No structure.</text>
+
+    <text x="14" y="620" font-size="10" fill="#475569" letter-spacing="1">SOURCE OF TRUTH</text>
+    <text x="14" y="640" font-size="10" fill="#64748b">forever immutable</text>
+  </g>
+
+  <!-- ============ CARD 2 — L0 INGEST ============ -->
+  <g transform="translate(326, 270)">
+    <g filter="url(#shadow)">
+      <rect x="0" y="0" width="220" height="660" rx="14" fill="#0a1f17" stroke="#10b981" stroke-width="1.5"/>
+    </g>
+    <rect x="0" y="0" width="220" height="36" rx="14" fill="url(#L0)"/>
+    <text x="14" y="24" font-size="12" font-weight="800" fill="#022c22" letter-spacing="2">L0 · CAPTURED</text>
+
+    <text x="14" y="68" font-size="13" font-weight="800" fill="#34d399" letter-spacing="1">10:06 IDT</text>
+    <text x="14" y="92" font-size="18" font-weight="800" fill="#f8fafc">Bytes pinned</text>
+    <text x="14" y="113" font-size="12" fill="#94a3b8">in Supabase Storage</text>
+
+    <!-- Hash visualization -->
+    <g transform="translate(14, 150)">
+      <text x="0" y="0" font-size="11" font-weight="700" fill="#10b981" letter-spacing="2">SHA-256</text>
+      <rect x="0" y="12" width="192" height="78" rx="6" fill="#022c22" stroke="#065f46" stroke-width="1"/>
+      <text x="10" y="32" font-size="10" fill="#34d399" font-family="ui-monospace, SF Mono, monospace">4e7a8b3f9c2d</text>
+      <text x="10" y="48" font-size="10" fill="#34d399" font-family="ui-monospace, SF Mono, monospace">a1b8e6f5d4c3</text>
+      <text x="10" y="64" font-size="10" fill="#34d399" font-family="ui-monospace, SF Mono, monospace">9b7e2f1a8d6c</text>
+      <text x="10" y="80" font-size="10" fill="#34d399" font-family="ui-monospace, SF Mono, monospace">5e4f3a2b1c0d</text>
+    </g>
+
+    <text x="14" y="278" font-size="11" font-weight="700" fill="#10b981" letter-spacing="2">TABLE</text>
+    <text x="14" y="300" font-size="12" fill="#e2e8f0" font-family="ui-monospace, SF Mono, monospace">l0_artifacts</text>
+    <text x="14" y="318" font-size="11" fill="#94a3b8">+ 1 row inserted</text>
+
+    <text x="14" y="356" font-size="11" font-weight="700" fill="#10b981" letter-spacing="2">BUCKET</text>
+    <text x="14" y="378" font-size="11" fill="#e2e8f0" font-family="ui-monospace, SF Mono, monospace">shaul-me-attachments</text>
+
+    <text x="14" y="416" font-size="11" font-weight="700" fill="#10b981" letter-spacing="2">DEDUP</text>
+    <text x="14" y="438" font-size="13" fill="#e2e8f0">idempotent</text>
+    <text x="14" y="456" font-size="11" fill="#94a3b8">re-upload = no-op</text>
+
+    <line x1="14" y1="500" x2="206" y2="500" stroke="#0a1f17" stroke-width="1"/>
+    <text x="14" y="528" font-size="11" font-style="italic" fill="#6ee7b7">Same bytes.</text>
+    <text x="14" y="546" font-size="11" font-style="italic" fill="#6ee7b7">Now queryable.</text>
+    <text x="14" y="564" font-size="11" font-style="italic" fill="#6ee7b7">Multi-tenant.</text>
+
+    <text x="14" y="620" font-size="10" fill="#475569" letter-spacing="1">L0 · IMMUTABLE LAYER</text>
+    <text x="14" y="640" font-size="10" fill="#64748b">59 such rows live</text>
+  </g>
+
+  <!-- ============ CARD 3 — L0→L1 TRANSCRIBE ============ -->
+  <g transform="translate(570, 270)">
+    <g filter="url(#shadow)">
+      <rect x="0" y="0" width="220" height="660" rx="14" fill="#062a36" stroke="#06b6d4" stroke-width="1.5"/>
+    </g>
+    <rect x="0" y="0" width="220" height="36" rx="14" fill="url(#L1)"/>
+    <text x="14" y="24" font-size="12" font-weight="800" fill="#0c1c34" letter-spacing="2">L0 → L1 · TEXT</text>
+
+    <text x="14" y="68" font-size="13" font-weight="800" fill="#67e8f9" letter-spacing="1">+0.7s</text>
+    <text x="14" y="92" font-size="18" font-weight="800" fill="#f8fafc">Whisper extracts</text>
+    <text x="14" y="113" font-size="12" fill="#94a3b8">audio → text</text>
+
+    <!-- Transcript -->
+    <g transform="translate(14, 145)">
+      <rect x="0" y="0" width="192" height="120" rx="6" fill="#062a36" stroke="#0e7490" stroke-width="1"/>
+      <text x="10" y="22" font-size="10" font-weight="700" fill="#06b6d4" letter-spacing="2">TRANSCRIPT</text>
+      <text x="10" y="50" font-size="14" font-weight="600" fill="#f8fafc">"At what time</text>
+      <text x="10" y="72" font-size="14" font-weight="600" fill="#f8fafc">do you wanna</text>
+      <text x="10" y="94" font-size="14" font-weight="600" fill="#f8fafc">meet?"</text>
+    </g>
+
+    <text x="14" y="305" font-size="11" font-weight="700" fill="#06b6d4" letter-spacing="2">MODEL</text>
+    <text x="14" y="327" font-size="11" fill="#e2e8f0" font-family="ui-monospace, SF Mono, monospace">openai/whisper</text>
+    <text x="14" y="343" font-size="11" fill="#e2e8f0" font-family="ui-monospace, SF Mono, monospace">-large-v3</text>
+    <text x="14" y="361" font-size="10" fill="#94a3b8">via OpenRouter</text>
+
+    <text x="14" y="395" font-size="11" font-weight="700" fill="#06b6d4" letter-spacing="2">COST</text>
+    <text x="14" y="417" font-size="14" fill="#e2e8f0">$0.0009</text>
+
+    <text x="14" y="450" font-size="11" font-weight="700" fill="#06b6d4" letter-spacing="2">LATENCY</text>
+    <text x="14" y="472" font-size="14" fill="#e2e8f0">0.7 sec</text>
+
+    <line x1="14" y1="500" x2="206" y2="500" stroke="#062a36" stroke-width="1"/>
+    <text x="14" y="528" font-size="11" font-style="italic" fill="#67e8f9">9 words.</text>
+    <text x="14" y="546" font-size="11" font-style="italic" fill="#67e8f9">A logistics ping.</text>
+    <text x="14" y="564" font-size="11" font-style="italic" fill="#67e8f9">Indexable now.</text>
+
+    <text x="14" y="620" font-size="10" fill="#475569" letter-spacing="1">EXTRACTOR · L1 RUN</text>
+    <text x="14" y="640" font-size="10" fill="#64748b">audit-trailed forever</text>
+  </g>
+
+  <!-- ============ CARD 4 — L1 EVENT ============ -->
+  <g transform="translate(814, 270)">
+    <g filter="url(#shadow)">
+      <rect x="0" y="0" width="220" height="660" rx="14" fill="#062a36" stroke="#06b6d4" stroke-width="1.5"/>
+    </g>
+    <rect x="0" y="0" width="220" height="36" rx="14" fill="url(#L1)"/>
+    <text x="14" y="24" font-size="12" font-weight="800" fill="#0c1c34" letter-spacing="2">L1 · EVENT</text>
+
+    <text x="14" y="68" font-size="13" font-weight="800" fill="#67e8f9" letter-spacing="1">JOINABLE</text>
+    <text x="14" y="92" font-size="18" font-weight="800" fill="#f8fafc">SQL row inserted</text>
+    <text x="14" y="113" font-size="12" fill="#94a3b8">l1_events table</text>
+
+    <!-- Row preview -->
+    <g transform="translate(14, 145)">
+      <rect x="0" y="0" width="192" height="220" rx="6" fill="#062a36" stroke="#0e7490" stroke-width="1"/>
+      <g font-family="ui-monospace, SF Mono, monospace" font-size="10" fill="#cbd5e1">
+        <text x="10" y="22" fill="#06b6d4">{</text>
+        <text x="20" y="40">ts:      </text><text x="80" y="40" fill="#67e8f9">"09:34:45"</text>
+        <text x="20" y="58">actor:   </text><text x="80" y="58" fill="#67e8f9">"shaul"</text>
+        <text x="20" y="76">channel: </text><text x="80" y="76" fill="#67e8f9">"shaul-me"</text>
+        <text x="20" y="94">type:    </text><text x="80" y="94" fill="#67e8f9">"voice"</text>
+        <text x="20" y="112">body:    </text><text x="80" y="112" fill="#67e8f9">"At what…"</text>
+        <text x="20" y="130">parent:  </text><text x="80" y="130" fill="#67e8f9">&lt;sha&gt;</text>
+        <text x="20" y="148">extractor:</text><text x="80" y="148" fill="#67e8f9">"whatsapp"</text>
+        <text x="20" y="166">run_id:  </text><text x="80" y="166" fill="#67e8f9">&lt;uuid&gt;</text>
+        <text x="20" y="184">cost_usd:</text><text x="80" y="184" fill="#67e8f9">0.0009</text>
+        <text x="10" y="204" fill="#06b6d4">}</text>
+      </g>
+    </g>
+
+    <text x="14" y="395" font-size="11" font-weight="700" fill="#06b6d4" letter-spacing="2">CITES</text>
+    <text x="14" y="417" font-size="12" fill="#e2e8f0">→ L0 artifact (sha)</text>
+
+    <text x="14" y="450" font-size="11" font-weight="700" fill="#06b6d4" letter-spacing="2">JOINS WITH</text>
+    <text x="14" y="472" font-size="12" fill="#e2e8f0">22,427 other events</text>
+
+    <line x1="14" y1="500" x2="206" y2="500" stroke="#062a36" stroke-width="1"/>
+    <text x="14" y="528" font-size="11" font-style="italic" fill="#67e8f9">Now part of</text>
+    <text x="14" y="546" font-size="11" font-style="italic" fill="#67e8f9">a structured corpus.</text>
+    <text x="14" y="564" font-size="11" font-style="italic" fill="#67e8f9">Embeddable.</text>
+
+    <text x="14" y="620" font-size="10" fill="#475569" letter-spacing="1">L1 · UNIVERSAL SHAPE</text>
+    <text x="14" y="640" font-size="10" fill="#64748b">22,428 rows live</text>
+  </g>
+
+  <!-- ============ CARD 5 — L2 SYNTHESIS ============ -->
+  <g transform="translate(1058, 270)">
+    <g filter="url(#shadow)">
+      <rect x="0" y="0" width="220" height="660" rx="14" fill="#1f1303" stroke="#f59e0b" stroke-width="1.5"/>
+    </g>
+    <rect x="0" y="0" width="220" height="36" rx="14" fill="url(#L2)"/>
+    <text x="14" y="24" font-size="12" font-weight="800" fill="#451a03" letter-spacing="2">L2 · SYNTHESIS</text>
+
+    <text x="14" y="68" font-size="13" font-weight="800" fill="#fcd34d" letter-spacing="1">END-OF-DAY</text>
+    <text x="14" y="92" font-size="18" font-weight="800" fill="#f8fafc">Day-scope LLM</text>
+    <text x="14" y="113" font-size="12" fill="#94a3b8">cited, graded, stored</text>
+
+    <!-- Synthesis quote with footnote -->
+    <g transform="translate(14, 150)">
+      <rect x="0" y="0" width="192" height="170" rx="6" fill="#1f1303" stroke="#b45309" stroke-width="1"/>
+      <text x="10" y="22" font-size="10" font-weight="700" fill="#f59e0b" letter-spacing="2">SYNTHESIZED LINE</text>
+
+      <text x="10" y="50" font-size="12" fill="#fef3c7" font-style="italic">Shaul's 09:34</text>
+      <text x="10" y="70" font-size="12" fill="#fef3c7" font-style="italic">logistics ping</text>
+      <text x="10" y="90" font-size="12" fill="#fef3c7" font-style="italic">inverted yesterday's</text>
+      <text x="10" y="110" font-size="12" fill="#fef3c7" font-style="italic">plan — he wants</text>
+      <text x="10" y="130" font-size="12" fill="#fef3c7" font-style="italic">Mordechai</text>
+      <text x="10" y="150" font-size="12" fill="#fef3c7" font-style="italic">in person.<tspan fill="#f59e0b" font-weight="700">[¹]</tspan></text>
+    </g>
+
+    <text x="14" y="358" font-size="11" font-weight="700" fill="#f59e0b" letter-spacing="2">[¹] FOOTNOTE</text>
+    <text x="14" y="380" font-size="11" fill="#e2e8f0">→ L1 event UUID</text>
+    <text x="14" y="396" font-size="10" fill="#94a3b8">verifiable, auditable</text>
+
+    <text x="14" y="430" font-size="11" font-weight="700" fill="#f59e0b" letter-spacing="2">RUBRIC SCORE</text>
+    <text x="14" y="452" font-size="14" fill="#e2e8f0">graded · 11 points</text>
+
+    <text x="14" y="486" font-size="11" font-weight="700" fill="#f59e0b" letter-spacing="2">COST LOGGED</text>
+    <text x="14" y="500" font-size="11" fill="#94a3b8" font-family="ui-monospace, SF Mono, monospace">llm_call_log</text>
+
+    <line x1="14" y1="520" x2="206" y2="520" stroke="#1f1303" stroke-width="1"/>
+    <text x="14" y="548" font-size="11" font-style="italic" fill="#fcd34d">Judgment is on the page.</text>
+    <text x="14" y="566" font-size="11" font-style="italic" fill="#fcd34d">Source is one click away.</text>
+
+    <text x="14" y="620" font-size="10" fill="#475569" letter-spacing="1">L2 · CITATION GATE</text>
+    <text x="14" y="640" font-size="10" fill="#64748b">2 rows live · today's first</text>
+  </g>
+
+  <!-- ============ CARD 6 — L3 SURFACE (FUTURE) ============ -->
+  <g transform="translate(1302, 270)">
+    <g filter="url(#shadow)">
+      <rect x="0" y="0" width="220" height="660" rx="14" fill="#1f0913" stroke="#ec4899" stroke-width="1.5" stroke-dasharray="6 4"/>
+    </g>
+    <rect x="0" y="0" width="220" height="36" rx="14" fill="url(#L3)"/>
+    <text x="14" y="24" font-size="12" font-weight="800" fill="#500724" letter-spacing="2">L3 · SURFACE</text>
+
+    <text x="14" y="68" font-size="13" font-weight="800" fill="#f9a8d4" letter-spacing="1">FUTURE · TOMORROW</text>
+    <text x="14" y="92" font-size="18" font-weight="800" fill="#f8fafc">Cross-day fusion</text>
+    <text x="14" y="113" font-size="12" fill="#94a3b8">_now.md · _people/shaul</text>
+
+    <!-- _now.md preview -->
+    <g transform="translate(14, 150)">
+      <rect x="0" y="0" width="192" height="170" rx="6" fill="#1f0913" stroke="#9d174d" stroke-width="1" stroke-dasharray="3 3"/>
+      <text x="10" y="22" font-size="10" font-weight="700" fill="#ec4899" letter-spacing="2">_NOW.MD (FUTURE)</text>
+
+      <text x="10" y="56" font-size="11" fill="#fce7f3"># Where you are now</text>
+      <text x="10" y="86" font-size="11" fill="#fbcfe8" font-style="italic">## Today's signals</text>
+      <text x="10" y="110" font-size="11" fill="#f9a8d4">→ Shaul wants</text>
+      <text x="10" y="130" font-size="11" fill="#f9a8d4">  in-person</text>
+      <text x="10" y="150" font-size="11" fill="#f9a8d4">  meeting today</text>
+    </g>
+
+    <text x="14" y="358" font-size="11" font-weight="700" fill="#ec4899" letter-spacing="2">INDEXER</text>
+    <text x="14" y="380" font-size="12" fill="#e2e8f0">not yet built</text>
+    <text x="14" y="396" font-size="10" fill="#94a3b8">Trigger.dev on L2 insert</text>
+
+    <text x="14" y="430" font-size="11" font-weight="700" fill="#ec4899" letter-spacing="2">CONSUMERS</text>
+    <text x="14" y="452" font-size="11" fill="#e2e8f0">Mordechai · Shaul</text>
+    <text x="14" y="468" font-size="11" fill="#e2e8f0">Jeffrey · Yitzchak</text>
+    <text x="14" y="486" font-size="10" fill="#94a3b8">via vita-mcp · /api/chat</text>
+
+    <line x1="14" y1="510" x2="206" y2="510" stroke="#1f0913" stroke-width="1"/>
+    <text x="14" y="538" font-size="11" font-style="italic" fill="#f9a8d4">Same shape today's L3</text>
+    <text x="14" y="556" font-size="11" font-style="italic" fill="#f9a8d4">already takes in markdown.</text>
+    <text x="14" y="574" font-size="11" font-style="italic" fill="#f9a8d4">Indexer ships next.</text>
+
+    <text x="14" y="620" font-size="10" fill="#475569" letter-spacing="1">L3 · SCHEMA ONLY</text>
+    <text x="14" y="640" font-size="10" fill="#64748b">0 rows · indexer TBD</text>
+  </g>
+
+  <!-- ============ FLOW ARROWS BETWEEN CARDS ============ -->
+  <g stroke="#475569" stroke-width="2.5" fill="none">
+    <line x1="304"  y1="600" x2="324"  y2="600" marker-end="url(#arrowFlow)"/>
+    <line x1="548"  y1="600" x2="568"  y2="600" marker-end="url(#arrowFlow)"/>
+    <line x1="792"  y1="600" x2="812"  y2="600" marker-end="url(#arrowFlow)"/>
+    <line x1="1036" y1="600" x2="1056" y2="600" marker-end="url(#arrowFlow)"/>
+    <line x1="1280" y1="600" x2="1300" y2="600" marker-end="url(#arrowFlow)" stroke-dasharray="6 4"/>
+  </g>
+
+  <!-- ============ FOOTER PUNCH ============ -->
+  <text x="800" y="990" font-size="20" fill="#cbd5e1" text-anchor="middle" font-style="italic">
+    A 3-second voice note becomes a row, becomes an event, becomes a cited line, becomes a state-shift surface.
+  </text>
+  <text x="800" y="1018" font-size="14" fill="#64748b" text-anchor="middle">
+    Five transformations · all visible · all auditable · all today.
+  </text>
+
+  <!-- Series TOC -->
+  <line x1="80" y1="1060" x2="1520" y2="1060" stroke="#1e293b"/>
+  <g font-size="12" fill="#475569">
+    <text x="80"   y="1085">1 · Cover</text>
+    <text x="240"  y="1085">2 · The 24h shock</text>
+    <text x="430"  y="1085">3 · Thesis transferred</text>
+    <text x="650"  y="1085">4 · The day, in four stages</text>
+    <text x="930"  y="1085" fill="#f8fafc" font-weight="700">5 · One trace</text>
+    <text x="1100" y="1085">6 · What's live, what's next</text>
+  </g>
+  <text x="1520" y="1085" font-size="11" fill="#475569" text-anchor="end">Mordechai Potash · viter · Asia/Jerusalem</text>
+</svg>

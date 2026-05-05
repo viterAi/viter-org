@@ -37,3 +37,26 @@ __pycache__/
 *.pyc
 .venv/
 .vercel
+
+# local Claude Code workspace state — not for the team repo
+.claude/
+**/.claude/
+HANDOVER.md
+.mcp.json
+
+# bench / transcript outputs (large + may contain sensitive content)
+scripts/transcribe-benchmark-out/
+*.m4a
+*.mp4
+*.mp3
+*.wav
+*.opus
+*.ogg
+
+# meeting / synthesis output — sensitive content, kept local
+docs/l2-simulations/
+Ahiya HaShiloni Street*.md
+
+# one-shot scripts that reference specific personal data
+scripts/insert-ahiya-meeting-l1.ts
+scripts/test-extractor-logging.ts

@@ -50,8 +50,33 @@ importers:
 
   adapters/mcp: {}
 
+  adapters/whatsapp-gowa:
+    dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.45.0
+        version: 2.105.1
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.7.4
+        version: 22.19.17
+      tsx:
+        specifier: ^4.19.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   apps/web:
     dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.45.0
+        version: 2.105.1
+      '@vita/adapter-whatsapp-gowa':
+        specifier: workspace:*
+        version: link:../../adapters/whatsapp-gowa
       next:
         specifier: 16.2.4
         version: 16.2.4(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -100,6 +125,9 @@ importers:
       '@trigger.dev/sdk':
         specifier: ^4.4.5
         version: 4.4.5(zod@4.4.3)
+      '@vita/adapter-whatsapp-gowa':
+        specifier: workspace:*
+        version: link:../../adapters/whatsapp-gowa
       '@vita/runtime':
         specifier: workspace:*
         version: link:../runtime
@@ -4914,7 +4942,7 @@ snapshots:
 
   '@types/node-fetch@2.6.13':
     dependencies:
-      '@types/node': 22.19.17
+      '@types/node': 25.6.0
       form-data: 4.0.5
 
   '@types/node@18.19.130':
@@ -4947,7 +4975,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 22.19.17
+      '@types/node': 25.6.0
 
   '@typescript-eslint/eslint-plugin@8.59.1(@typescript-eslint/parser@8.59.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:

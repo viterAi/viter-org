@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 1080" font-family="-apple-system, Helvetica, Arial, sans-serif">
+  <rect width="1480" height="1080" fill="#ffffff"/>
+
+  <text x="740" y="36" text-anchor="middle" font-size="22" font-weight="700" fill="#111">vita · WhatsApp zip ingestion (cloud-native)</text>
+  <text x="740" y="58" text-anchor="middle" font-size="13" fill="#555">Bird's-eye view · zip lands in Supabase Storage <tspan font-family="ui-monospace,Menlo,monospace">inbox/viter/shaul-direct/2026-05-04T223400Z.zip</tspan> → fan-out done</text>
+
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333"/>
+    </marker>
+    <marker id="arrThin" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
+    </marker>
+  </defs>
+
+  <!-- ─────────── LANE 0 · DROP + TRIGGER ─────────── -->
+  <text x="40" y="100" font-size="11" font-weight="700" fill="#888" letter-spacing="1">0 · DROP &amp; TRIGGER  (Supabase + Edge Function)</text>
+  <line x1="40" y1="108" x2="1440" y2="108" stroke="#eee"/>
+
+  <!-- client -->
+  <rect x="50" y="125" width="200" height="80" rx="10" fill="#fff7e6" stroke="#e0a800" stroke-width="1.5"/>
+  <text x="150" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#7a5500">📦 Client uploads zip</text>
+  <text x="150" y="172" text-anchor="middle" font-size="11" fill="#5a4400">apps/web → Storage SDK</text>
+  <text x="150" y="189" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#5a4400">≤ 300 MB · zip MIME</text>
+
+  <line x1="250" y1="165" x2="320" y2="165" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- inbox bucket -->
+  <rect x="320" y="125" width="320" height="80" rx="10" fill="#fff" stroke="#3066d0" stroke-width="1.5"/>
+  <text x="480" y="148" text-anchor="middle" font-size="13" font-weight="700" fill="#1a3d80">🪣 Storage bucket  inbox  (private, RLS)</text>
+  <text x="480" y="168" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#1a3d80">&lt;tenant_slug&gt;/&lt;chat_slug&gt;/&lt;filename&gt;.zip</text>
+  <text x="480" y="186" text-anchor="middle" font-size="10" fill="#444">RLS: <tspan font-family="ui-monospace,Menlo,monospace">user_can_read_channel(channels.id)</tspan></text>
+  <text x="480" y="200" text-anchor="middle" font-size="10" fill="#444">migration: 20260504230000_inbox_bucket.sql</text>
+
+  <line x1="640" y1="165" x2="710" y2="165" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="675" y="158" text-anchor="middle" font-size="9" fill="#666">object-created</text>
+  <text x="675" y="180" text-anchor="middle" font-size="9" fill="#666">webhook</text>
+
+  <!-- edge function -->
+  <rect x="710" y="125" width="350" height="80" rx="10" fill="#f0f7ee" stroke="#4a8c3a" stroke-width="1.5"/>
+  <text x="885" y="148" text-anchor="middle" font-size="13" font-weight="700" fill="#234d18">⚡ Edge Function  inbox-webhook  (Deno)</text>
+  <text x="885" y="167" text-anchor="middle" font-size="10" fill="#234d18">verify schema=storage · table=objects · bucket=inbox</text>
+  <text x="885" y="182" text-anchor="middle" font-size="10" fill="#234d18">split path → tenant_slug, chat_slug · check .zip suffix</text>
+  <text x="885" y="197" text-anchor="middle" font-size="10" fill="#234d18">POST trigger.dev (idempotencyKey: inbox:&lt;path&gt;)</text>
+
+  <line x1="1060" y1="165" x2="1130" y2="165" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- trigger.dev -->
+  <rect x="1130" y="125" width="300" height="80" rx="10" fill="#f0f7ee" stroke="#4a8c3a" stroke-width="1.5"/>
+  <text x="1280" y="148" text-anchor="middle" font-size="13" font-weight="700" fill="#234d18">🔄 Trigger.dev  ingest-zip</text>
+  <text x="1280" y="167" text-anchor="middle" font-size="10" fill="#234d18">orchestrator task · maxDuration 30 min</text>
+  <text x="1280" y="182" text-anchor="middle" font-size="10" fill="#234d18">retry: 1 (children own retries)</text>
+  <text x="1280" y="197" text-anchor="middle" font-size="10" fill="#234d18">3 phases, observable in dashboard</text>
+
+  <!-- ─────────── LANE 1 · UPLOAD ─────────── -->
+  <line x1="1280" y1="205" x2="1280" y2="240" stroke="#333" stroke-width="1.5"/>
+  <line x1="1280" y1="240" x2="240" y2="240" stroke="#333" stroke-width="1.5"/>
+  <line x1="240" y1="240" x2="240" y2="270" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <text x="40" y="265" font-size="11" font-weight="700" fill="#888" letter-spacing="1">PHASE 1 · upload-zip  (small-2x · 1 GB · 10 min · retry 2×)</text>
+  <line x1="40" y1="273" x2="1440" y2="273" stroke="#eee"/>
+
+  <rect x="60" y="290" width="380" height="220" rx="10" fill="#f0f7ee" stroke="#4a8c3a" stroke-width="1.5"/>
+  <text x="250" y="315" text-anchor="middle" font-size="13" font-weight="700" fill="#234d18">🐳 Trigger.dev container</text>
+  <text x="80" y="340" font-size="11" fill="#234d18">1. resolve <tspan font-family="ui-monospace,Menlo,monospace">tenants.slug</tspan> → tenant_id</text>
+  <text x="80" y="358" font-size="11" fill="#234d18">2. resolve <tspan font-family="ui-monospace,Menlo,monospace">channels(kind=whatsapp, identifier)</tspan></text>
+  <text x="80" y="376" font-size="11" fill="#234d18">3. <tspan font-weight="700">stream</tspan> zip Blob → Node Readable → /tmp</text>
+  <text x="80" y="394" font-size="11" fill="#234d18">4. <tspan font-family="ui-monospace,Menlo,monospace">node-stream-zip</tspan> per-entry iteration</text>
+  <text x="80" y="412" font-size="11" fill="#234d18">    <tspan font-weight="700">peak RAM = one file at a time</tspan> (commit db12099)</text>
+  <text x="80" y="430" font-size="11" fill="#234d18">5. for each entry:</text>
+  <text x="80" y="448" font-size="11" fill="#234d18">    • <tspan font-family="ui-monospace,Menlo,monospace">_chat.txt</tspan> → mergeChatTxt() with existing</text>
+  <text x="80" y="466" font-size="11" fill="#234d18">    • attachment → sha256 → upload (upsert=false)</text>
+  <text x="80" y="484" font-size="11" fill="#234d18">    • dup-by-sha256 in <tspan font-family="ui-monospace,Menlo,monospace">l0_artifacts</tspan> → skip insert</text>
+  <text x="80" y="502" font-size="11" fill="#234d18">6. return <tspan font-family="ui-monospace,Menlo,monospace">newArtifactIds[]</tspan></text>
+
+  <!-- arrows out: storage + table -->
+  <line x1="440" y1="380" x2="540" y2="380" stroke="#333" stroke-width="1.2" marker-end="url(#arr)"/>
+  <line x1="440" y1="455" x2="540" y2="455" stroke="#333" stroke-width="1.2" marker-end="url(#arr)"/>
+  <line x1="440" y1="425" x2="540" y2="425" stroke="#333" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- l0-whatsapp bucket -->
+  <rect x="540" y="320" width="380" height="55" rx="6" fill="#fff" stroke="#3066d0" stroke-width="1.4"/>
+  <text x="730" y="340" text-anchor="middle" font-size="12" font-weight="700" fill="#1a3d80">🪣 Storage  l0-whatsapp</text>
+  <text x="730" y="358" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#222">&lt;tenant&gt;/&lt;chat&gt;/&lt;filename&gt;</text>
+
+  <rect x="540" y="395" width="380" height="40" rx="6" fill="#fff" stroke="#3066d0" stroke-width="1.4"/>
+  <text x="730" y="420" text-anchor="middle" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#1a3d80">l0-whatsapp/&lt;t&gt;/&lt;c&gt;/_chat.txt   ← merged</text>
+
+  <rect x="540" y="445" width="380" height="55" rx="6" fill="#fff" stroke="#3066d0" stroke-width="1.4"/>
+  <text x="730" y="465" text-anchor="middle" font-size="12" font-weight="700" fill="#1a3d80">🗃 table  l0_artifacts</text>
+  <text x="730" y="483" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#222">source_type='whatsapp_attachment' · sha256-uniq</text>
+
+  <!-- counts panel -->
+  <rect x="940" y="320" width="490" height="180" rx="10" fill="#fafafa" stroke="#aaa" stroke-dasharray="4,3"/>
+  <text x="1185" y="343" text-anchor="middle" font-size="12" font-weight="700" fill="#444">return value (to ingest-zip orchestrator)</text>
+  <text x="960" y="368" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#222">{ tenant_id, channel_id,</text>
+  <text x="960" y="384" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#222">  counts: { uploaded, skippedDup, l0Inserted,</text>
+  <text x="960" y="400" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#222">           l0Existing, errors },</text>
+  <text x="960" y="416" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#222">  newArtifactIds: [{ id, filename, mime,</text>
+  <text x="960" y="432" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#222">     remote_path, origin_at, channel_id }, …] }</text>
+  <text x="960" y="464" font-size="10" fill="#666">Idempotency: sha256 of file bytes — re-running on the</text>
+  <text x="960" y="480" font-size="10" fill="#666">same zip skips every attachment that already exists.</text>
+
+  <!-- ─────────── LANE 2 · PARSE ─────────── -->
+  <line x1="250" y1="510" x2="250" y2="555" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <text x="40" y="550" font-size="11" font-weight="700" fill="#888" letter-spacing="1">PHASE 2 · parse-chat  (small-1x · 5 min · retry 2×)</text>
+  <line x1="40" y1="558" x2="1440" y2="558" stroke="#eee"/>
+
+  <rect x="60" y="575" width="380" height="180" rx="10" fill="#f0f7ee" stroke="#4a8c3a" stroke-width="1.5"/>
+  <text x="250" y="600" text-anchor="middle" font-size="13" font-weight="700" fill="#234d18">🐳 parseChat task</text>
+  <text x="80" y="625" font-size="11" fill="#234d18">1. download merged <tspan font-family="ui-monospace,Menlo,monospace">_chat.txt</tspan> from l0-whatsapp</text>
+  <text x="80" y="643" font-size="11" fill="#234d18">2. regex: <tspan font-family="ui-monospace,Menlo,monospace">[DD/MM/YYYY, HH:MM:SS] sender: body</tspan></text>
+  <text x="80" y="661" font-size="11" fill="#234d18">3. hash msg = sha256(ts_raw | sender | body)</text>
+  <text x="80" y="679" font-size="11" fill="#234d18">4. resolve sender_raw → <tspan font-family="ui-monospace,Menlo,monospace">principals.id</tspan></text>
+  <text x="80" y="697" font-size="11" fill="#234d18">5. link <tspan font-family="ui-monospace,Menlo,monospace">&lt;attached: …&gt;</tspan> → l0_artifacts.id (uploaded P1)</text>
+  <text x="80" y="715" font-size="11" fill="#234d18">6. write l0_artifacts(whatsapp_message),</text>
+  <text x="80" y="733" font-size="11" fill="#234d18">    l1_extraction_runs, l1_events</text>
+
+  <line x1="440" y1="640" x2="540" y2="640" stroke="#333" stroke-width="1.2" marker-end="url(#arr)"/>
+  <line x1="440" y1="685" x2="540" y2="685" stroke="#333" stroke-width="1.2" marker-end="url(#arr)"/>
+  <line x1="440" y1="725" x2="540" y2="725" stroke="#333" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <rect x="540" y="615" width="380" height="50" rx="6" fill="#fff" stroke="#3066d0" stroke-width="1.4"/>
+  <text x="730" y="635" text-anchor="middle" font-size="12" font-weight="700" fill="#1a3d80">🗃 l0_artifacts (whatsapp_message)</text>
+  <text x="730" y="652" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#222">one row per parsed message · sha256-uniq</text>
+
+  <rect x="540" y="660" width="380" height="50" rx="6" fill="#fff" stroke="#3066d0" stroke-width="1.4"/>
+  <text x="730" y="680" text-anchor="middle" font-size="12" font-weight="700" fill="#1a3d80">🗃 l1_extraction_runs</text>
+  <text x="730" y="697" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#222">facet='message_parse' · is_deterministic=true</text>
+
+  <rect x="540" y="705" width="380" height="50" rx="6" fill="#fff" stroke="#3066d0" stroke-width="1.4"/>
+  <text x="730" y="725" text-anchor="middle" font-size="12" font-weight="700" fill="#1a3d80">🗃 l1_events</text>
+  <text x="730" y="742" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#222">modality='text' · actor_id · channel_id · event_at</text>
+
+  <!-- ─────────── LANE 3 · FAN-OUT EXTRACT ─────────── -->
+  <line x1="250" y1="755" x2="250" y2="800" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <text x="40" y="795" font-size="11" font-weight="700" fill="#888" letter-spacing="1">PHASE 3 · extract-attachment  ·  batchTriggerAndWait  ·  one task per attachment</text>
+  <line x1="40" y1="803" x2="1440" y2="803" stroke="#eee"/>
+
+  <rect x="60" y="820" width="380" height="200" rx="10" fill="#f0f7ee" stroke="#4a8c3a" stroke-width="1.5"/>
+  <text x="250" y="845" text-anchor="middle" font-size="13" font-weight="700" fill="#234d18">🐳 extractAttachment ×N (concurrency 8)</text>
+  <text x="80" y="868" font-size="11" fill="#234d18">retry 3× backoff 2s→30s · maxDuration 5 min</text>
+  <text x="80" y="888" font-size="11" fill="#234d18">1. inferFacet(mime) → transcription / image_caption / doc_text</text>
+  <text x="80" y="906" font-size="11" fill="#234d18">2. skip if l1_extraction_runs(status=ok) exists</text>
+  <text x="80" y="924" font-size="11" fill="#234d18">3. download bytes from l0-whatsapp</text>
+  <text x="80" y="942" font-size="11" fill="#234d18">4. <tspan font-family="ui-monospace,Menlo,monospace">dispatchExtract({ buf, filename, mime })</tspan></text>
+  <text x="80" y="960" font-size="11" fill="#234d18">5. insert l1_extraction_runs + l1_events</text>
+  <text x="80" y="978" font-size="11" fill="#234d18">6. multi-page docs → l1_doc_chunks</text>
+  <text x="80" y="996" font-size="11" fill="#234d18">7. upsert l1_active_extraction (auto-promote)</text>
+
+  <!-- dispatcher -->
+  <rect x="465" y="820" width="335" height="200" rx="10" fill="#fdf2f8" stroke="#b83280" stroke-width="1.5"/>
+  <text x="632" y="845" text-anchor="middle" font-size="13" font-weight="700" fill="#7a1a52">@vita/runtime/extractors-attachments</text>
+  <text x="632" y="862" text-anchor="middle" font-size="10" fill="#7a1a52">dispatchExtract — routes by mime</text>
+  <line x1="480" y1="870" x2="785" y2="870" stroke="#b83280" stroke-dasharray="3,3"/>
+
+  <text x="480" y="892" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#222">audio/*</text>
+  <text x="785" y="892" text-anchor="end" font-size="11" fill="#222">→ whisper (OpenRouter)</text>
+
+  <text x="480" y="914" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#222">image/*</text>
+  <text x="785" y="914" text-anchor="end" font-size="11" fill="#222">→ gemini-3.1-flash-lite-preview</text>
+
+  <text x="480" y="936" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#222">application/pdf</text>
+  <text x="785" y="936" text-anchor="end" font-size="11" fill="#222">→ doc_text (page chunks)</text>
+
+  <text x="480" y="958" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#222">.docx .xlsx .html .md .json</text>
+  <text x="785" y="958" text-anchor="end" font-size="11" fill="#222">→ doc_text</text>
+
+  <text x="480" y="980" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#222">video/*</text>
+  <text x="785" y="980" text-anchor="end" font-size="11" fill="#222">→ video_transcript</text>
+
+  <text x="480" y="1002" font-size="10" fill="#7a1a52">unsupported mime → return { skipped: true } (not error)</text>
+
+  <line x1="800" y1="900" x2="860" y2="900" stroke="#333" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- writes -->
+  <rect x="860" y="820" width="570" height="50" rx="6" fill="#fff" stroke="#3066d0" stroke-width="1.4"/>
+  <text x="1145" y="840" text-anchor="middle" font-size="12" font-weight="700" fill="#1a3d80">🗃 l1_extraction_runs</text>
+  <text x="1145" y="858" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#222">extractor · version · facet · status='ok' · metrics.wall_ms</text>
+
+  <rect x="860" y="875" width="570" height="50" rx="6" fill="#fff" stroke="#3066d0" stroke-width="1.4"/>
+  <text x="1145" y="895" text-anchor="middle" font-size="12" font-weight="700" fill="#1a3d80">🗃 l1_events</text>
+  <text x="1145" y="913" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#222">modality=voice|image|video|file · content (text) · segments[]</text>
+
+  <rect x="860" y="930" width="280" height="50" rx="6" fill="#fff" stroke="#3066d0" stroke-width="1.4"/>
+  <text x="1000" y="950" text-anchor="middle" font-size="12" font-weight="700" fill="#1a3d80">🗃 l1_doc_chunks</text>
+  <text x="1000" y="968" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#222">multi-page only</text>
+
+  <rect x="1150" y="930" width="280" height="50" rx="6" fill="#fff" stroke="#3066d0" stroke-width="1.4"/>
+  <text x="1290" y="950" text-anchor="middle" font-size="12" font-weight="700" fill="#1a3d80">🗃 l1_active_extraction</text>
+  <text x="1290" y="968" text-anchor="middle" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#222">auto-promoted run pointer</text>
+
+  <rect x="860" y="985" width="570" height="35" rx="6" fill="#fff5f7" stroke="#b83280" stroke-width="1.2"/>
+  <text x="1145" y="1007" text-anchor="middle" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#7a1a52">llm_call_log  ←  every OpenRouter / Gemini call (cost · tokens · latency)</text>
+
+  <!-- legend -->
+  <line x1="40" y1="1040" x2="1440" y2="1040" stroke="#eee"/>
+  <text x="60" y="1062" font-size="11" fill="#555"><tspan font-weight="700">Legend:</tspan>  green = compute (Edge / Trigger.dev tasks)   ·   blue = Supabase artifacts (Storage + Postgres tables)   ·   pink = LLM dispatch + log</text>
+  <text x="60" y="1078" font-size="11" fill="#555"><tspan font-weight="700">Idempotency keys:</tspan>  inbox path → trigger run · sha256 → l0_artifacts · sha256(ts|sender|body) → l0_messages · (artifact_id, facet, status=ok) → l1_extraction_runs</text>
+</svg>

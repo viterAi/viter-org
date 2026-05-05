@@ -18,6 +18,10 @@
       "types": "./dist/extractors/attachments/dispatcher.d.ts",
       "default": "./src/extractors/attachments/dispatcher.ts"
     },
+    "./llm-log": {
+      "types": "./dist/llm-log/index.d.ts",
+      "default": "./src/llm-log/index.ts"
+    },
     "./synthesizers": {
       "types": "./dist/synthesizers/index.d.ts",
       "default": "./dist/synthesizers/index.js"

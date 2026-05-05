@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <!-- Stage palette: morning / afternoon / evening / night -->
+    <linearGradient id="morn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047"/><stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="aft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+    <linearGradient id="eve" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c4b5fd"/><stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6ee7b7"/><stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+
+  <!-- Top bar -->
+  <text x="80" y="80" font-size="24" font-weight="800" fill="#f8fafc" letter-spacing="-0.5">vita</text>
+  <text x="80" y="105" font-size="13" fill="#64748b" letter-spacing="3">VITER · BUILD CHRONICLE · 2026-05-04</text>
+  <g transform="translate(1520, 70)">
+    <rect x="-50" y="-25" width="100" height="42" rx="21" fill="none" stroke="#334155"/>
+    <text x="0" y="5" font-size="14" font-weight="700" fill="#94a3b8" text-anchor="middle">4 / 6</text>
+  </g>
+
+  <!-- Title -->
+  <text x="80" y="180" font-size="56" font-weight="800" fill="#f8fafc" letter-spacing="-1">The day, in four stages</text>
+  <text x="80" y="218" font-size="20" fill="#94a3b8">Each stage converts a piece of the thesis into running code.</text>
+
+  <!-- Connecting rail behind the cards -->
+  <line x1="240" y1="320" x2="1380" y2="320" stroke="#1e293b" stroke-width="2"/>
+
+  <!-- ============ STAGE 1 — FOUNDATION ============ -->
+  <g filter="url(#shadow)">
+    <rect x="80" y="280" width="340" height="660" rx="16" fill="#1c1505" stroke="#fbbf24" stroke-width="2"/>
+  </g>
+  <g transform="translate(80, 280)">
+    <rect x="0" y="0" width="340" height="80" rx="16" fill="url(#morn)"/>
+    <text x="20" y="34" font-size="13" font-weight="800" fill="#451a03" letter-spacing="2">STAGE 1 · MORNING</text>
+    <text x="20" y="62" font-size="22" font-weight="800" fill="#1c1917">12:11 → 12:20</text>
+
+    <text x="20" y="120" font-size="26" font-weight="800" fill="#fde047">Foundation</text>
+    <text x="20" y="155" font-size="14" fill="#fef3c7" font-style="italic">The answer to Code Red lands as a repo, not a doc.</text>
+
+    <line x1="20" y1="180" x2="60" y2="180" stroke="#fbbf24" stroke-width="2"/>
+
+    <text x="20" y="210" font-size="12" font-weight="800" fill="#fbbf24" letter-spacing="2">CONVERSIONS</text>
+    <text x="20" y="232" font-size="13" fill="#e2e8f0">stack-decision PDF →</text>
+    <text x="20" y="250" font-size="13" fill="#e2e8f0">working monorepo</text>
+
+    <text x="20" y="280" font-size="13" fill="#e2e8f0">"v0.1 in response to Code Red"</text>
+    <text x="20" y="298" font-size="13" fill="#e2e8f0">→ committed to the README</text>
+
+    <text x="20" y="340" font-size="12" font-weight="800" fill="#fbbf24" letter-spacing="2">COMMITS</text>
+    <g font-family="ui-monospace, SF Mono, monospace" font-size="11" fill="#cbd5e1">
+      <text x="20" y="364"><tspan fill="#fbbf24">887b210</tspan> Initial commit</text>
+      <text x="20" y="384"><tspan fill="#fbbf24">e9e382e</tspan> scaffold: vita TS monorepo</text>
+      <text x="20" y="404"><tspan fill="#fbbf24">7ec0ea2</tspan> apps/web: Next.js 16 + React 19</text>
+      <text x="20" y="424"><tspan fill="#fbbf24">7f054e6</tspan> pnpm-lock + node 22.x pin</text>
+    </g>
+
+    <text x="20" y="470" font-size="12" font-weight="800" fill="#fbbf24" letter-spacing="2">SHIPPED</text>
+    <text x="20" y="494" font-size="13" fill="#e2e8f0">· TS monorepo · pnpm + Turborepo</text>
+    <text x="20" y="514" font-size="13" fill="#e2e8f0">· Next.js 16 / React 19 / Tailwind v4</text>
+    <text x="20" y="534" font-size="13" fill="#e2e8f0">· Versions pinned for Vercel deploys</text>
+    <text x="20" y="554" font-size="13" fill="#e2e8f0">· 8-package skeleton in place</text>
+
+    <line x1="20" y1="585" x2="320" y2="585" stroke="#451a03" stroke-width="1"/>
+    <text x="20" y="612" font-size="12" font-style="italic" fill="#fcd34d">"Don't fight infra choices.</text>
+    <text x="20" y="630" font-size="12" font-style="italic" fill="#fcd34d">Fight where it actually matters."</text>
+    <text x="20" y="648" font-size="11" fill="#92400e" letter-spacing="1">— stack-decision.pdf</text>
+  </g>
+
+  <!-- ============ STAGE 2 — PLUMBING ============ -->
+  <g filter="url(#shadow)">
+    <rect x="440" y="280" width="340" height="660" rx="16" fill="#0a1430" stroke="#3b82f6" stroke-width="2"/>
+  </g>
+  <g transform="translate(440, 280)">
+    <rect x="0" y="0" width="340" height="80" rx="16" fill="url(#aft)"/>
+    <text x="20" y="34" font-size="13" font-weight="800" fill="#0c1c3a" letter-spacing="2">STAGE 2 · AFTERNOON</text>
+    <text x="20" y="62" font-size="22" font-weight="800" fill="#0b1736">14:09 → 15:30</text>
+
+    <text x="20" y="120" font-size="26" font-weight="800" fill="#7dd3fc">Plumbing</text>
+    <text x="20" y="155" font-size="14" fill="#dbeafe" font-style="italic">L0→L3 stops being a folder structure. It becomes Postgres.</text>
+
+    <line x1="20" y1="180" x2="60" y2="180" stroke="#60a5fa" stroke-width="2"/>
+
+    <text x="20" y="210" font-size="12" font-weight="800" fill="#60a5fa" letter-spacing="2">CONVERSIONS</text>
+    <text x="20" y="232" font-size="13" fill="#e2e8f0">8 migrations land →</text>
+    <text x="20" y="250" font-size="13" fill="#e2e8f0">substrate is queryable</text>
+
+    <text x="20" y="280" font-size="13" fill="#e2e8f0">file-watcher daemon →</text>
+    <text x="20" y="298" font-size="13" fill="#e2e8f0">memory ingests itself 24/7</text>
+
+    <text x="20" y="340" font-size="12" font-weight="800" fill="#60a5fa" letter-spacing="2">COMMITS</text>
+    <g font-family="ui-monospace, SF Mono, monospace" font-size="11" fill="#cbd5e1">
+      <text x="20" y="364"><tspan fill="#60a5fa">f26c11a</tspan> 001 L0 · 002 L1 · 003 L2/L3</text>
+      <text x="20" y="384"><tspan fill="#60a5fa">0081dc7</tspan> seed tenant + 9/9 + extractor</text>
+      <text x="20" y="404"><tspan fill="#60a5fa">3373d38</tspan> 11 tests green</text>
+      <text x="20" y="424"><tspan fill="#60a5fa">eb03c17</tspan> runner + backfill + watcher</text>
+      <text x="20" y="444"><tspan fill="#60a5fa">5a90b73</tspan> launchd .plist installed</text>
+      <text x="20" y="464"><tspan fill="#60a5fa">d8714c0</tspan> L2 day-scope synthesizer</text>
+    </g>
+
+    <text x="20" y="500" font-size="12" font-weight="800" fill="#60a5fa" letter-spacing="2">SHIPPED</text>
+    <text x="20" y="524" font-size="13" fill="#e2e8f0">· l0_artifacts · l1_events · l2_syntheses</text>
+    <text x="20" y="544" font-size="13" fill="#e2e8f0">· claudeCodeJsonl extractor (11 tests)</text>
+    <text x="20" y="564" font-size="13" fill="#e2e8f0">· file-watcher under launchd · live</text>
+
+    <line x1="20" y1="595" x2="320" y2="595" stroke="#0c1c3a" stroke-width="1"/>
+    <text x="20" y="622" font-size="12" font-style="italic" fill="#bfdbfe">"L0 is immutable. Each layer is</text>
+    <text x="20" y="640" font-size="12" font-style="italic" fill="#bfdbfe">a pure function of the one below."</text>
+    <text x="20" y="658" font-size="11" fill="#3b82f6" letter-spacing="1">— viter-workspace governing rule</text>
+  </g>
+
+  <!-- ============ STAGE 3 — INTELLIGENCE ============ -->
+  <g filter="url(#shadow)">
+    <rect x="800" y="280" width="340" height="660" rx="16" fill="#170d2e" stroke="#a78bfa" stroke-width="2"/>
+  </g>
+  <g transform="translate(800, 280)">
+    <rect x="0" y="0" width="340" height="80" rx="16" fill="url(#eve)"/>
+    <text x="20" y="34" font-size="13" font-weight="800" fill="#1e1043" letter-spacing="2">STAGE 3 · EVENING</text>
+    <text x="20" y="62" font-size="22" font-weight="800" fill="#1e1043">18:03 → 20:36</text>
+
+    <text x="20" y="120" font-size="26" font-weight="800" fill="#c4b5fd">Intelligence</text>
+    <text x="20" y="155" font-size="14" fill="#ede9fe" font-style="italic">LLM judgment becomes verifiable, citable, and graded.</text>
+
+    <line x1="20" y1="180" x2="60" y2="180" stroke="#a78bfa" stroke-width="2"/>
+
+    <text x="20" y="210" font-size="12" font-weight="800" fill="#a78bfa" letter-spacing="2">CONVERSIONS</text>
+    <text x="20" y="232" font-size="13" fill="#e2e8f0">"trust me bro" synthesis →</text>
+    <text x="20" y="250" font-size="13" fill="#e2e8f0">11-point rubric + eval runs</text>
+
+    <text x="20" y="280" font-size="13" fill="#e2e8f0">"who can see what" →</text>
+    <text x="20" y="298" font-size="13" fill="#e2e8f0">channel-level access (Palantir)</text>
+
+    <text x="20" y="340" font-size="12" font-weight="800" fill="#a78bfa" letter-spacing="2">COMMITS</text>
+    <g font-family="ui-monospace, SF Mono, monospace" font-size="11" fill="#cbd5e1">
+      <text x="20" y="364"><tspan fill="#a78bfa">efb219c</tspan> llm_call_log + 11-point rubric</text>
+      <text x="20" y="384"><tspan fill="#a78bfa">8616b4a</tspan> store raw model_used (fix)</text>
+      <text x="20" y="404"><tspan fill="#a78bfa">49b4752</tspan> architecture.svg — L0→L3 visual</text>
+      <text x="20" y="424"><tspan fill="#a78bfa">0224fa2</tspan> 008 channel-level access</text>
+    </g>
+
+    <text x="20" y="470" font-size="12" font-weight="800" fill="#a78bfa" letter-spacing="2">SHIPPED</text>
+    <text x="20" y="494" font-size="13" fill="#e2e8f0">· llm_call_log + eval_fixtures/runs</text>
+    <text x="20" y="514" font-size="13" fill="#e2e8f0">· 11-point rubric + eval CLI</text>
+    <text x="20" y="534" font-size="13" fill="#e2e8f0">· Architecture diagram drawn end-to-end</text>
+    <text x="20" y="554" font-size="13" fill="#e2e8f0">· Channel ACLs · multi-tenant ready</text>
+
+    <line x1="20" y1="585" x2="320" y2="585" stroke="#1e1043" stroke-width="1"/>
+    <text x="20" y="612" font-size="12" font-style="italic" fill="#ddd6fe">"Cite or die. Borrowed from</text>
+    <text x="20" y="630" font-size="12" font-style="italic" fill="#ddd6fe">the strictness of Torah."</text>
+    <text x="20" y="648" font-size="11" fill="#7c3aed" letter-spacing="1">— Decision: Cite-or-Die LAW 2</text>
+  </g>
+
+  <!-- ============ STAGE 4 — REACH ============ -->
+  <g filter="url(#shadow)">
+    <rect x="1160" y="280" width="340" height="660" rx="16" fill="#022c22" stroke="#34d399" stroke-width="2"/>
+  </g>
+  <g transform="translate(1160, 280)">
+    <rect x="0" y="0" width="340" height="80" rx="16" fill="url(#night)"/>
+    <text x="20" y="34" font-size="13" font-weight="800" fill="#052e1a" letter-spacing="2">STAGE 4 · NIGHT</text>
+    <text x="20" y="62" font-size="22" font-weight="800" fill="#052e1a">20:46 → 22:48</text>
+
+    <text x="20" y="120" font-size="26" font-weight="800" fill="#6ee7b7">Reach</text>
+    <text x="20" y="155" font-size="14" fill="#d1fae5" font-style="italic">Other people's signals stop being opaque blobs.</text>
+
+    <line x1="20" y1="180" x2="60" y2="180" stroke="#34d399" stroke-width="2"/>
+
+    <text x="20" y="210" font-size="12" font-weight="800" fill="#34d399" letter-spacing="2">CONVERSIONS</text>
+    <text x="20" y="232" font-size="13" fill="#e2e8f0">WhatsApp zip → bytes → text</text>
+    <text x="20" y="250" font-size="13" fill="#e2e8f0">Voice notes → transcripts</text>
+
+    <text x="20" y="280" font-size="13" fill="#e2e8f0">PDFs · DOCX · XLSX → searchable</text>
+    <text x="20" y="298" font-size="13" fill="#e2e8f0">Re-exports → merge, never lose</text>
+
+    <text x="20" y="340" font-size="12" font-weight="800" fill="#34d399" letter-spacing="2">COMMITS</text>
+    <g font-family="ui-monospace, SF Mono, monospace" font-size="11" fill="#cbd5e1">
+      <text x="20" y="364"><tspan fill="#34d399">cf86412</tspan> phase 0+1: bytes in supabase</text>
+      <text x="20" y="384"><tspan fill="#34d399">00c6867</tspan> phase 2: _chat.txt → events</text>
+      <text x="20" y="404"><tspan fill="#34d399">d6852e5</tspan> phase 3: voice → whisper</text>
+      <text x="20" y="424"><tspan fill="#34d399">ea83f14</tspan> phase 4: PDF/DOCX/XLSX</text>
+      <text x="20" y="444"><tspan fill="#34d399">811f6e5</tspan> merge across re-exports</text>
+    </g>
+
+    <text x="20" y="490" font-size="12" font-weight="800" fill="#34d399" letter-spacing="2">SHIPPED</text>
+    <text x="20" y="514" font-size="13" fill="#e2e8f0">· Shaul-direct WhatsApp ingest live</text>
+    <text x="20" y="534" font-size="13" fill="#e2e8f0">· Voice notes → OpenRouter Whisper</text>
+    <text x="20" y="554" font-size="13" fill="#e2e8f0">· 6 attachment formats extracted</text>
+
+    <line x1="20" y1="585" x2="320" y2="585" stroke="#052e1a" stroke-width="1"/>
+    <text x="20" y="612" font-size="12" font-style="italic" fill="#a7f3d0">"Everything onto the platform."</text>
+    <text x="20" y="630" font-size="12" font-style="italic" fill="#a7f3d0">— Tonight's ingest is the receipt.</text>
+    <text x="20" y="648" font-size="11" fill="#10b981" letter-spacing="1">— echoing Shaul's broadcast</text>
+  </g>
+
+  <!-- ============ COMPRESSION STRIP ============ -->
+  <rect x="80" y="970" width="1440" height="60" rx="10" fill="#0b1220" stroke="#1e293b"/>
+  <g text-anchor="middle">
+    <text x="200" y="998" font-size="12" font-weight="800" fill="#fbbf24" letter-spacing="2">FOUNDATION</text>
+    <text x="200" y="1018" font-size="13" fill="#cbd5e1">9 minutes</text>
+
+    <text x="600" y="998" font-size="12" font-weight="800" fill="#60a5fa" letter-spacing="2">PLUMBING</text>
+    <text x="600" y="1018" font-size="13" fill="#cbd5e1">81 minutes · 11 commits</text>
+
+    <text x="1000" y="998" font-size="12" font-weight="800" fill="#a78bfa" letter-spacing="2">INTELLIGENCE</text>
+    <text x="1000" y="1018" font-size="13" fill="#cbd5e1">153 minutes · 4 commits</text>
+
+    <text x="1400" y="998" font-size="12" font-weight="800" fill="#34d399" letter-spacing="2">REACH</text>
+    <text x="1400" y="1018" font-size="13" fill="#cbd5e1">122 minutes · 5 commits</text>
+  </g>
+
+  <!-- Series TOC -->
+  <line x1="80" y1="1060" x2="1520" y2="1060" stroke="#1e293b"/>
+  <g font-size="12" fill="#475569">
+    <text x="80"   y="1085">1 · Cover</text>
+    <text x="240"  y="1085">2 · The 24h shock</text>
+    <text x="430"  y="1085">3 · Thesis transferred</text>
+    <text x="650"  y="1085" fill="#f8fafc" font-weight="700">4 · The day, in four stages</text>
+    <text x="930"  y="1085">5 · One trace</text>
+    <text x="1100" y="1085">6 · What's live, what's next</text>
+  </g>
+  <text x="1520" y="1085" font-size="11" fill="#475569" text-anchor="end">Mordechai Potash · viter · Asia/Jerusalem</text>
+</svg>
