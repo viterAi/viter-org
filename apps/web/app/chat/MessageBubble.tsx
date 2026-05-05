@@ -24,7 +24,11 @@ interface BubbleProps {
 }
 
 function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Jerusalem',
+  });
 }
 
 function modalityLabel(m: MessageEvent): string | null {
@@ -63,12 +67,20 @@ export function MessageBubble({ message, showSender, isTail, transcript }: Bubbl
   const caption = (message.metadata.caption as string | undefined)
     ?? (hasText ? null : (message.content || null));
 
+  // 2-col layout: media on the left, L1-derived text companion on the right.
+  // Voice → audio + transcript. Image → image + caption (or future OCR/L1
+  // image_caption facet). Bubble grows wider when companion is present.
+  const companionText = (showAudio && transcript?.content) || (showImage && caption)
+    ? (showAudio ? transcript!.content : caption)
+    : null;
+  const isTwoCol = !!companionText;
+
   return (
     <div className={`flex w-full ${fromMe ? 'justify-end' : 'justify-start'}`}>
-      <div className="flex max-w-[75%] flex-col gap-0.5">
-        {showSender && !fromMe && (
+      <div className={`flex flex-col gap-0.5 ${isTwoCol ? 'max-w-[92%]' : 'max-w-[75%]'}`}>
+        {showSender && !fromMe && message.push_name && (
           <span className="ml-3 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-            {message.push_name ?? 'unknown'}
+            {message.push_name}
           </span>
         )}
 
@@ -82,56 +94,95 @@ export function MessageBubble({ message, showSender, isTail, transcript }: Bubbl
               : ''}
           `}
         >
-          {showImage && (
-            <a
-              href={`/api/media/${mediaId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block -mx-1 -mt-1 mb-1"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/api/media/${mediaId}`}
-                alt={filename ?? 'image'}
-                className="max-h-80 w-full rounded-lg object-cover"
-                loading="lazy"
-              />
-            </a>
-          )}
+          {isTwoCol ? (
+            <div className="grid grid-cols-[180px_1fr] gap-3 sm:grid-cols-[220px_1fr]">
+              {/* Left: media */}
+              <div className="min-w-0">
+                {showImage && (
+                  <a href={`/api/media/${mediaId}`} target="_blank" rel="noopener noreferrer" className="block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/media/${mediaId}`}
+                      alt={filename ?? 'image'}
+                      className="h-44 w-full rounded-lg object-cover"
+                      loading="lazy"
+                    />
+                  </a>
+                )}
+                {showAudio && (
+                  <audio src={`/api/media/${mediaId}`} controls preload="none" className="w-full" />
+                )}
+              </div>
 
-          {showAudio && (
-            <audio
-              src={`/api/media/${mediaId}`}
-              controls
-              preload="none"
-              className="my-0.5 w-full max-w-xs"
-            />
-          )}
-
-          {showFile && (
-            <a
-              href={`/api/media/${mediaId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="my-0.5 flex items-center gap-2 rounded-md bg-zinc-100 px-2 py-1.5 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
-            >
-              <span className="text-base">📎</span>
-              <span className="truncate text-xs">{filename ?? 'File'}</span>
-            </a>
-          )}
-
-          {hasText && (
-            <p className="whitespace-pre-wrap break-words">{message.content}</p>
-          )}
-
-          {!hasText && (showImage || showFile) && caption && (
-            <p className="mt-1 whitespace-pre-wrap break-words text-zinc-800 dark:text-zinc-100">{caption}</p>
-          )}
-
-          {!hasText && !showImage && !showAudio && !showFile && placeholderLabel && (
-            <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-200">
-              <span className="text-base">{placeholderLabel}</span>
+              {/* Right: L1 text companion */}
+              <div className="min-w-0 self-start border-l border-black/5 pl-3 dark:border-white/10">
+                <div className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  {showAudio ? (
+                    <>
+                      <span>📝 transcript</span>
+                      {transcript?.metadata.model_used && (
+                        <span className="ml-auto opacity-60">{(transcript.metadata.model_used as string).split('/').pop()}</span>
+                      )}
+                    </>
+                  ) : (
+                    <span>💬 caption</span>
+                  )}
+                </div>
+                <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-zinc-800 dark:text-zinc-100">
+                  {companionText}
+                </p>
+              </div>
             </div>
+          ) : (
+            <>
+              {showImage && (
+                <a
+                  href={`/api/media/${mediaId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block -mx-1 -mt-1 mb-1"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/media/${mediaId}`}
+                    alt={filename ?? 'image'}
+                    className="max-h-80 w-full rounded-lg object-cover"
+                    loading="lazy"
+                  />
+                </a>
+              )}
+
+              {showAudio && (
+                <audio
+                  src={`/api/media/${mediaId}`}
+                  controls
+                  preload="none"
+                  className="my-0.5 w-full max-w-xs"
+                />
+              )}
+
+              {showFile && (
+                <a
+                  href={`/api/media/${mediaId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="my-0.5 flex items-center gap-2 rounded-md bg-zinc-100 px-2 py-1.5 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
+                >
+                  <span className="text-base">📎</span>
+                  <span className="truncate text-xs">{filename ?? 'File'}</span>
+                </a>
+              )}
+
+              {hasText && (
+                <p className="whitespace-pre-wrap break-words">{message.content}</p>
+              )}
+
+              {!hasText && !showImage && !showAudio && !showFile && placeholderLabel && (
+                <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-200">
+                  <span className="text-base">{placeholderLabel}</span>
+                </div>
+              )}
+            </>
           )}
 
           {/* Footer: time + ack ticks */}
@@ -147,18 +198,6 @@ export function MessageBubble({ message, showSender, isTail, transcript }: Bubbl
             )}
           </div>
         </div>
-
-        {/* Transcript chip — appears as a small inset under voice bubbles */}
-        {transcript && transcript.content && (
-          <div
-            className={`mx-2 -mt-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs italic text-amber-900 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-100 ${
-              fromMe ? 'self-end' : 'self-start'
-            }`}
-          >
-            <span className="mr-1 font-semibold not-italic">📝 transcript:</span>
-            {transcript.content}
-          </div>
-        )}
       </div>
     </div>
   );
