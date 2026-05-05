@@ -139,6 +139,15 @@ export async function loadMessages(channelId: string, limit = 200): Promise<Mess
   const rows = (data ?? []).reverse();
   return rows.map((e) => {
     const meta = (e.metadata ?? {}) as Record<string, unknown>;
+    const fromMe = (meta as { from_me?: boolean }).from_me === true;
+    // Sender resolution waterfall:
+    //   1. push_name (live GOWA pattern)
+    //   2. sender_raw (zip-ingest pattern, the WhatsApp display name)
+    //   3. 'Mordechai' when from_me=true (zip-ingest often drops sender on outbound)
+    //   4. null → bubble shows nothing rather than "unknown"
+    const rawPush = (meta as { push_name?: string }).push_name ?? null;
+    const senderRaw = (meta as { sender_raw?: string }).sender_raw ?? null;
+    const pushName = rawPush ?? senderRaw ?? (fromMe ? 'Mordechai' : null);
     return {
       id: e.id as string,
       event_at: e.event_at as string,
@@ -148,8 +157,8 @@ export async function loadMessages(channelId: string, limit = 200): Promise<Mess
       channel_id: e.channel_id as string,
       artifact_id: e.artifact_id as string | null,
       metadata: meta,
-      from_me: (meta as { from_me?: boolean }).from_me === true,
-      push_name: (meta as { push_name?: string }).push_name ?? null,
+      from_me: fromMe,
+      push_name: pushName,
     };
   });
 }
@@ -174,7 +183,11 @@ export function groupByDay(messages: MessageEvent[], tz = 'Asia/Jerusalem'): Mes
       const dayLabel =
         dayKey === today ? 'Today' :
         dayKey === yesterday ? 'Yesterday' :
-        d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+        d.toLocaleDateString('en-GB', {
+          weekday: 'short', day: 'numeric', month: 'short',
+          year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+          timeZone: tz,
+        });
       block = { dayKey, dayLabel, messages: [] };
       blocks.push(block);
     }
