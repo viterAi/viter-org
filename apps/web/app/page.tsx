@@ -148,6 +148,12 @@ export default async function Dashboard() {
               💬 Open chat
             </Link>
             <Link
+              href="/meetings"
+              className="rounded-md border border-zinc-300 px-3 py-1.5 font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              🎙️ Meetings
+            </Link>
+            <Link
               href="/settings/whatsapp"
               className="rounded-md border border-zinc-300 px-3 py-1.5 font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
             >

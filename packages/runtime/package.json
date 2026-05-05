@@ -18,6 +18,10 @@
       "types": "./dist/extractors/attachments/dispatcher.d.ts",
       "default": "./src/extractors/attachments/dispatcher.ts"
     },
+    "./extractors-meeting": {
+      "types": "./dist/extractors/meeting/index.d.ts",
+      "default": "./src/extractors/meeting/index.ts"
+    },
     "./llm-log": {
       "types": "./dist/llm-log/index.d.ts",
       "default": "./src/llm-log/index.ts"

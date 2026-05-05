@@ -8,3 +8,4 @@ export { ingestZip } from './trigger/ingest-zip';
 export { uploadZip } from './trigger/upload-zip';
 export { parseChat } from './trigger/parse-chat';
 export { extractAttachment } from './trigger/extract-attachment';
+export { ingestMeeting } from './trigger/ingest-meeting';
