@@ -324,6 +324,7 @@ async function handleMessage(
   device: ResolvedDevice,
   msg: MessageData,
   webhookReceivedAt: string,
+  rawEvent: Record<string, unknown>,
 ): Promise<{ ok: true; l0_id: string; l1_id?: string; mediaJob?: string } | { ok: false; error: string }> {
   // 1. Resolve channel
   const channelId = await resolveOrCreateChannel(db, {
@@ -340,9 +341,9 @@ async function handleMessage(
     await db.from('whatsapp_devices').update({ channel_id: channelId }).eq('id', device.id);
   }
 
-  // Log unknown-type payloads so we can audit what GOWA actually sends.
+  // Log unknown-type payloads with the raw GOWA event for audit.
   if (msg.message_type === 'unknown') {
-    console.warn(`[wa-webhook] unknown message_type for ${msg.id} payload=${JSON.stringify(msg).slice(0, 600)}`);
+    console.warn(`[wa-webhook] unknown event ${msg.id} raw=${JSON.stringify(rawEvent).slice(0, 1500)}`);
   }
 
   // 2. Insert l0_artifact (idempotent on (tenant_id, gowa_message_id) per migration 012)
@@ -379,6 +380,9 @@ async function handleMessage(
         media: msg.media ?? null,
         quoted_message_id: msg.quoted_message_id ?? null,
         mentions: msg.mentions ?? [],
+        // Capture the raw GOWA event for unknown types so we can audit
+        // exactly what arrived via SQL.
+        raw_event: msg.message_type === 'unknown' ? rawEvent : null,
       },
     })
     .select('id')
@@ -635,11 +639,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
   try {
     switch (envelope.event) {
       case 'message': {
-        const raw = eventData as unknown as MessageData;
-        // GOWA v8 (WHATSAPP_AUTO_DOWNLOAD_MEDIA=true) puts media under
-        // type-specific keys (image, audio, video, document, sticker,
-        // video_note) instead of `media`. Lift whichever is present and
-        // map it to a single message_type + media object.
+        // GOWA v8.4.0 webhook shape (verified from src code, NOT guessed):
+        //   - No top-level 'media' field. Per-type keys: image/audio/video/
+        //     document/sticker/video_note.
+        //   - With WHATSAPP_AUTO_DOWNLOAD_MEDIA=true (our setting):
+        //     * payload.image (no caption)   → bare string path
+        //     * payload.image (with caption) → { path, caption }
+        //     * payload.audio                → bare string path (always)
+        //     * payload.sticker              → bare string path (always)
+        //     * payload.video / video_note   → string OR { path, caption }
+        //     * payload.document             → string OR { path, caption }
+        //   - With AUTO_DOWNLOAD=false: payload.image: { url, caption } etc.
+        //   - No 'type' / 'message_type' field. We INFER from which key exists.
+        //   - is_from_me=true outgoing echoes from WhatsApp Web sends arrive
+        //     stripped (no body, no image/audio/etc.). Can't recover content
+        //     from the webhook alone — would need GOWA REST backfill.
+        const raw = eventData as Record<string, unknown> & MessageData;
         const mediaKinds: { key: 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'video_note'; type: string }[] = [
           { key: 'image', type: 'image' },
           { key: 'audio', type: 'audio' },
@@ -650,13 +665,47 @@ Deno.serve(async (req: Request): Promise<Response> => {
         ];
         let inferredType: string | null = null;
         let inferredMedia: GowaMediaPayload | null = raw.media ?? null;
+        let inferredKindKey: string | null = null;
         for (const k of mediaKinds) {
-          const m = raw[k.key];
-          if (m && (m.url || m.filename || m.mime_type)) {
+          const v = (raw as unknown as Record<string, unknown>)[k.key];
+          if (v == null) continue;
+          if (typeof v === 'string') {
+            // Bare path string (auto-download, no caption)
             inferredType = k.type;
-            inferredMedia = m;
+            inferredKindKey = k.key;
+            inferredMedia = { url: v };
             break;
           }
+          if (typeof v === 'object') {
+            const o = v as Record<string, unknown>;
+            const url = (o.url ?? o.path) as string | undefined;
+            if (url || o.caption || o.filename || o.mime_type) {
+              inferredType = k.type;
+              inferredKindKey = k.key;
+              inferredMedia = {
+                url: url,
+                caption: typeof o.caption === 'string' ? o.caption : undefined,
+                filename: typeof o.filename === 'string' ? o.filename : undefined,
+                mime_type: typeof o.mime_type === 'string' ? o.mime_type : undefined,
+                duration_seconds: typeof o.duration_seconds === 'number' ? o.duration_seconds : undefined,
+              };
+              break;
+            }
+          }
+        }
+
+        // If we know the kind but not the mime, default by kind so storage
+        // gets a sensible Content-Type and the bucket extension is right.
+        if (inferredMedia && !inferredMedia.mime_type && inferredKindKey) {
+          const defaults: Record<string, string> = {
+            image: 'image/jpeg',
+            audio: 'audio/ogg',
+            video: 'video/mp4',
+            document: 'application/octet-stream',
+            sticker: 'image/webp',
+            video_note: 'video/mp4',
+          };
+          inferredMedia.mime_type = defaults[inferredKindKey];
         }
 
         const msg: MessageData = {
@@ -672,7 +721,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           text: raw.text ?? raw.body,
           media: inferredMedia ?? undefined,
         };
-        const result = await handleMessage(db, device, msg, webhookReceivedAt);
+        const result = await handleMessage(db, device, msg, webhookReceivedAt, eventData);
         return jsonResp({ ok: result.ok, ...result });
       }
       case 'message.ack': {
