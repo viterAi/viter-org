@@ -1,0 +1,185 @@
+# Manifest: gowa/0.1.0
+#
+# Versioned contract describing the GOWA (go-whatsapp-web-multidevice) adapter.
+# This is the substrate-moat artifact named in 00-stack-decision.pdf:
+# a typed, swap-able definition of an external-system integration that the
+# adapter package + Edge Function + Trigger.dev tasks all consume.
+#
+# Bumping the version here is what triggers an upgrade cycle. Pin upstream
+# `image_tag` to a SHA in production; the floating `:v8.4.0` reference here
+# is the canonical "supported version range".
+
+manifest_version: "1.0"
+adapter_id: gowa
+version: "0.1.0"
+name: "WhatsApp via GOWA (whatsmeow)"
+description: |
+  Self-hosted WhatsApp adapter built on aldinokemal/go-whatsapp-web-multidevice
+  (which wraps tulir/whatsmeow). Replaces UniPile-class third-party services
+  with a Railway-deployed Go binary. Exposes 70+ REST endpoints and emits
+  webhooks per WhatsApp event.
+
+upstream:
+  repo: aldinokemal/go-whatsapp-web-multidevice
+  image: aldinokemal2104/go-whatsapp-web-multidevice
+  image_tag: "v8.4.0"             # Floating tag — pin SHA in deployment env
+  protocol_engine: tulir/whatsmeow
+  license: MIT
+
+deploy:
+  target: railway
+  service_name: adapter-whatsapp-gowa
+  port: 3000
+  volume:
+    mount_path: /app/storages
+    size_gb: 5
+    contains:
+      - "WhatsApp Signal-protocol session keys (SQLite per device)"
+      - "Recently-cached media bytes (pruneable)"
+  custom_domain_recommended: gowa.viter.ai
+  region: us-west2  # Match Supabase us-west-1 region for low webhook latency
+
+env:
+  required:
+    - APP_PORT
+    - APP_BASIC_AUTH                  # admin:secret for the GOWA UI
+    - WHATSAPP_WEBHOOK                # vita's whatsapp-webhook Edge Function URL
+    - WHATSAPP_WEBHOOK_SECRET         # HMAC-SHA256 signing secret
+    - WHATSAPP_WEBHOOK_EVENTS         # comma-separated event filter
+  optional:
+    - CHATWOOT_ENABLED                # default false; not used in vita
+    - WHATSAPP_AUTO_REPLY             # default empty
+    - APP_DEBUG                       # default false
+
+webhook:
+  signature_header: X-Hub-Signature-256
+  signing_algorithm: hmac-sha256
+  retry_policy: exponential_backoff_3_attempts
+  events:
+    inbound:
+      - id: message
+        description: "Inbound WhatsApp message (text / media / system)"
+        produces:
+          source_type: whatsapp_message_live
+          l1_facet: messages
+          extractors_to_dispatch_on_media:
+            - transcription   # audio
+            - image_caption   # image
+            - doc_text        # document
+      - id: message.reaction
+        description: "Reaction added/removed on a previous message"
+        produces:
+          source_type: whatsapp_message_live
+          l1_facet: reaction
+          parent_event_metadata_key: gowa_parent_message_id
+      - id: message.revoke
+        description: "Message deleted by sender"
+        produces:
+          l1_facet: revoke
+          mutates_existing: true
+      - id: message.edited
+        description: "Message text edited by sender"
+        produces:
+          l1_facet: edit
+          mutates_existing: true
+      - id: message.ack
+        description: "Outbound delivery/read receipt for a vita-sent message"
+        produces:
+          updates_table: outbound_message_status
+
+    device_lifecycle:
+      - id: device.connection.update
+        description: "Connection state changed (connected / connecting / disconnected)"
+        updates_field: whatsapp_devices.last_seen_at
+      - id: device.disconnected
+        description: "WebSocket dropped"
+        sets_status: disconnected
+      - id: device.banned
+        description: "WhatsApp flagged the account"
+        sets_status: banned
+      - id: pair.qr.consumed
+        description: "QR was successfully scanned by the phone"
+        sets_status: linked
+
+rest_surface:
+  base_path: /
+  device_management:
+    - { method: POST,   path: /devices,                  description: "Create a new device pair attempt; returns QR" }
+    - { method: GET,    path: /devices,                  description: "List all paired devices" }
+    - { method: GET,    path: /devices/:device_id,       description: "Get one device's status" }
+    - { method: DELETE, path: /devices/:device_id,       description: "Unlink (logs the device out of WhatsApp)" }
+    - { method: POST,   path: /devices/:device_id/login, description: "Re-pair a previously-linked device (returns fresh QR)" }
+  messaging:
+    - { method: POST, path: /send/message,  description: "Send text" }
+    - { method: POST, path: /send/image,    description: "Send image (with optional caption)" }
+    - { method: POST, path: /send/audio,    description: "Send audio / voice note" }
+    - { method: POST, path: /send/file,     description: "Send document" }
+    - { method: POST, path: /send/contact,  description: "Send contact card" }
+    - { method: POST, path: /send/location, description: "Send location" }
+    - { method: POST, path: /send/sticker,  description: "Send sticker" }
+  message_actions:
+    - { method: POST, path: /message/:id/reaction, description: "React to a message" }
+    - { method: POST, path: /message/:id/revoke,   description: "Delete a message you sent" }
+    - { method: POST, path: /message/:id/edit,     description: "Edit a message you sent" }
+    - { method: POST, path: /message/:id/star,     description: "Star a message" }
+  groups:
+    - { method: POST, path: /group,                 description: "Create group" }
+    - { method: GET,  path: /group/:id,             description: "Get group info" }
+    - { method: POST, path: /group/:id/participants, description: "Add/remove participants" }
+  chats:
+    - { method: GET,  path: /chats,           description: "List chats (max 500 per protocol)" }
+    - { method: POST, path: /chat/:id/archive, description: "Archive a chat" }
+    - { method: POST, path: /chat/:id/pin,     description: "Pin a chat" }
+
+# All device-scoped calls require either header X-Device-Id: <id>
+# or query param device_id=<id>. v8 breaking change.
+auth:
+  device_scoping:
+    header: X-Device-Id
+    query_param: device_id
+    required_for: "all messaging, message-action, group, chat endpoints"
+  basic_auth_for_ui:
+    env: APP_BASIC_AUTH
+    format: "username:password"
+    note: "Protects the GOWA admin UI; not required for REST API which uses other auth"
+
+operational_constraints:
+  - "Single-replica deployment only — whatsmeow's SQLite session DBs are not designed for shared access"
+  - "WhatsApp protocol max 500 groups per fetch (paginate above this)"
+  - "Multi-device session lifetime ~14 days; phone re-pair required after"
+  - "Account ban risk: real but low for read-only use; mitigated by orchestrator-level outbound throttling"
+  - "Recently-cached media in /app/storages/media/ should be pruned to entries < 7 days"
+
+vita_integration:
+  edge_function: infra/supabase/functions/whatsapp-webhook
+  adapter_package: adapters/whatsapp-gowa
+  trigger_tasks:
+    - packages/orchestrator/src/trigger/wa-pair-init
+    - packages/orchestrator/src/trigger/wa-pair-poll
+    - packages/orchestrator/src/trigger/wa-send
+    - packages/orchestrator/src/trigger/wa-keepalive
+    - packages/orchestrator/src/trigger/wa-health-check
+  runtime_extractor: packages/runtime/src/extractors/whatsapp-message-live
+  schema:
+    - public.whatsapp_devices             # bridge table
+    - public.whatsapp_device_health       # health roll-up view
+    - public.whatsapp_devices_needing_attention  # alert query
+    - public.l0_source_types              # whatsapp_message_live entry
+  ui:
+    - apps/web/app/settings/whatsapp/page.tsx
+    - apps/web/app/spaces/[slug]/inbox/page.tsx
+
+cost_model:
+  base_railway_pro_plan_usd: 20            # Pro plan flat — covers everything below
+  expected_compute_usd: 3-5
+  expected_volume_usd: 0.50
+  expected_egress_usd: 0.50-1.00
+  total_within_credit: true                # ~$5/mo of usage fits inside the $20 included
+  scale_breakeven_vs_unipile: "month 1, regardless of device count"
+
+reliability_targets:
+  uptime_per_device: "99.5% (auto-pair + auto-reconnect + nightly volume backup)"
+  re_pair_cadence: "every 7-14 days, predictably"
+  protocol_break_recovery: "24-72 hr after upstream whatsmeow patch"
+  account_ban_risk_low_traffic: "<1% per year"
+  account_ban_risk_high_outbound: "3-10% per year — use Cloud API instead"

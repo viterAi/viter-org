@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="heroNext" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.4"/>
+    </filter>
+    <filter id="heroGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+
+  <!-- Top bar -->
+  <text x="80" y="80" font-size="24" font-weight="800" fill="#f8fafc" letter-spacing="-0.5">vita</text>
+  <text x="80" y="105" font-size="13" fill="#64748b" letter-spacing="3">VITER · BUILD CHRONICLE · 2026-05-04</text>
+  <g transform="translate(1520, 70)">
+    <rect x="-50" y="-25" width="100" height="42" rx="21" fill="none" stroke="#334155"/>
+    <text x="0" y="5" font-size="14" font-weight="700" fill="#94a3b8" text-anchor="middle">6 / 6</text>
+  </g>
+
+  <!-- Title -->
+  <text x="80" y="180" font-size="56" font-weight="800" fill="#f8fafc" letter-spacing="-1">What's live · what's next</text>
+  <text x="80" y="218" font-size="20" fill="#94a3b8">An honest scoreboard. The substrate works in one path; the rest is promise.</text>
+
+  <!-- ============ LEGEND ============ -->
+  <g transform="translate(80, 252)" font-size="12">
+    <rect x="0" y="0" width="14" height="14" rx="3" fill="none" stroke="#10b981" stroke-width="2"/>
+    <text x="22" y="11" fill="#cbd5e1" font-weight="700">LIVE</text>
+    <text x="62" y="11" fill="#64748b">shipped today, in production</text>
+
+    <rect x="280" y="0" width="14" height="14" rx="3" fill="none" stroke="#ec4899" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="302" y="11" fill="#cbd5e1" font-weight="700">SCHEMA ONLY</text>
+    <text x="402" y="11" fill="#64748b">table exists, generator pending</text>
+
+    <rect x="640" y="0" width="14" height="14" rx="3" fill="none" stroke="#475569" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="662" y="11" fill="#cbd5e1" font-weight="700">FUTURE</text>
+    <text x="710" y="11" fill="#64748b">on the roadmap</text>
+  </g>
+
+  <!-- ============ ARCHITECTURE GRID — 5 COLUMNS ============ -->
+  <g transform="translate(85, 290)">
+
+    <!-- COLUMN HEADERS -->
+    <g font-size="12" font-weight="800" fill="#94a3b8" letter-spacing="3">
+      <text x="125"  y="0" text-anchor="middle">SOURCES</text>
+      <text x="420"  y="0" text-anchor="middle">STREAMERS</text>
+      <text x="715"  y="0" text-anchor="middle">TABLES</text>
+      <text x="1010" y="0" text-anchor="middle">PROCESSORS</text>
+      <text x="1305" y="0" text-anchor="middle">CONSUMERS</text>
+    </g>
+
+    <!-- COLUMN 1: SOURCES -->
+    <g transform="translate(0, 24)">
+      <!-- Claude Code (live source) -->
+      <rect x="0" y="0" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="20" font-size="12" font-weight="700" fill="#34d399">Claude Code .jsonl</text>
+      <text x="14" y="36" font-size="10" fill="#94a3b8">~/.claude/projects/*</text>
+
+      <rect x="0" y="56" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="76" font-size="12" font-weight="700" fill="#34d399">WhatsApp zip</text>
+      <text x="14" y="92" font-size="10" fill="#94a3b8">manual ingest today</text>
+
+      <rect x="0" y="112" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="132" font-size="12" fill="#94a3b8">Screenpipe DB</text>
+      <text x="14" y="148" font-size="10" fill="#64748b">~/.screenpipe/db.sqlite</text>
+
+      <rect x="0" y="168" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="188" font-size="12" fill="#94a3b8">Email · Gmail / IMAP</text>
+      <text x="14" y="204" font-size="10" fill="#64748b">webhook push</text>
+
+      <rect x="0" y="224" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="244" font-size="12" fill="#94a3b8">Calendar</text>
+      <text x="14" y="260" font-size="10" fill="#64748b">Google Calendar API</text>
+
+      <rect x="0" y="280" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="300" font-size="12" fill="#94a3b8">Plunet · scrape</text>
+      <text x="14" y="316" font-size="10" fill="#64748b">Playwright session</text>
+    </g>
+
+    <!-- COLUMN 2: STREAMERS -->
+    <g transform="translate(295, 24)">
+      <rect x="0" y="0" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="20" font-size="12" font-weight="700" fill="#34d399">file-watcher · launchd</text>
+      <text x="14" y="36" font-size="10" fill="#94a3b8">live since today</text>
+
+      <rect x="0" y="56" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="76" font-size="12" fill="#94a3b8">whatsapp-watcher</text>
+      <text x="14" y="92" font-size="10" fill="#64748b">→ Mac launchd</text>
+
+      <rect x="0" y="112" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="132" font-size="12" fill="#94a3b8">screenpipe-tap</text>
+      <text x="14" y="148" font-size="10" fill="#64748b">reads local sqlite</text>
+
+      <rect x="0" y="168" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="188" font-size="12" fill="#94a3b8">gmail-webhook</text>
+      <text x="14" y="204" font-size="10" fill="#64748b">→ Supabase Edge Fn</text>
+
+      <rect x="0" y="224" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="244" font-size="12" fill="#94a3b8">calendar-poller</text>
+      <text x="14" y="260" font-size="10" fill="#64748b">→ Trigger.dev cron</text>
+
+      <rect x="0" y="280" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="300" font-size="12" fill="#94a3b8">playwright-scraper</text>
+      <text x="14" y="316" font-size="10" fill="#64748b">→ Railway · warm</text>
+    </g>
+
+    <!-- COLUMN 3: TABLES -->
+    <g transform="translate(590, 24)">
+      <rect x="0" y="0" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="20" font-size="12" font-weight="700" fill="#34d399">l0_artifacts</text>
+      <text x="14" y="36" font-size="10" fill="#94a3b8">59 rows · sha256-deduped</text>
+
+      <rect x="0" y="56" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="76" font-size="12" font-weight="700" fill="#34d399">l1_events</text>
+      <text x="14" y="92" font-size="10" fill="#94a3b8">22,428 rows · joinable</text>
+
+      <rect x="0" y="112" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="132" font-size="12" font-weight="700" fill="#34d399">l2_syntheses</text>
+      <text x="14" y="148" font-size="10" fill="#94a3b8">2 rows · citation-gated</text>
+
+      <rect x="0" y="168" width="250" height="46" rx="6" fill="#1f0913" stroke="#ec4899" stroke-width="2" stroke-dasharray="4 3"/>
+      <text x="14" y="188" font-size="12" font-weight="700" fill="#f9a8d4">l3_surfaces</text>
+      <text x="14" y="204" font-size="10" fill="#fbcfe8">0 rows · schema only</text>
+
+      <rect x="0" y="224" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="244" font-size="12" font-weight="700" fill="#34d399">llm_call_log + evals</text>
+      <text x="14" y="260" font-size="10" fill="#94a3b8">10 calls · 8 eval runs</text>
+
+      <rect x="0" y="280" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="300" font-size="12" font-weight="700" fill="#34d399">tenants · principals · channels</text>
+      <text x="14" y="316" font-size="10" fill="#94a3b8">1 · 9 · 9 (seeded)</text>
+    </g>
+
+    <!-- COLUMN 4: PROCESSORS -->
+    <g transform="translate(885, 24)">
+      <rect x="0" y="0" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="20" font-size="12" font-weight="700" fill="#34d399">extractor: claudeCodeJsonl</text>
+      <text x="14" y="36" font-size="10" fill="#94a3b8">11 tests · live in-process</text>
+
+      <rect x="0" y="56" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="76" font-size="12" font-weight="700" fill="#34d399">extractor: whatsapp + attach</text>
+      <text x="14" y="92" font-size="10" fill="#94a3b8">phases 0–4 · all green</text>
+
+      <rect x="0" y="112" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="132" font-size="12" font-weight="700" fill="#34d399">synthesizer · day-scope L2</text>
+      <text x="14" y="148" font-size="10" fill="#94a3b8">cited · graded · CLI</text>
+
+      <rect x="0" y="168" width="250" height="46" rx="6" fill="#1f0913" stroke="#ec4899" stroke-width="2" stroke-dasharray="4 3"/>
+      <text x="14" y="188" font-size="12" font-weight="700" fill="#f9a8d4">indexers · L2 → L3</text>
+      <text x="14" y="204" font-size="10" fill="#fbcfe8">tomorrow's first move</text>
+
+      <rect x="0" y="224" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="244" font-size="12" fill="#94a3b8">scheduled syntheses</text>
+      <text x="14" y="260" font-size="10" fill="#64748b">→ Trigger.dev nightly</text>
+
+      <rect x="0" y="280" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="300" font-size="12" fill="#94a3b8">cost-enrich · auto-redact</text>
+      <text x="14" y="316" font-size="10" fill="#64748b">→ Edge Function</text>
+    </g>
+
+    <!-- COLUMN 5: CONSUMERS -->
+    <g transform="translate(1180, 24)">
+      <rect x="0" y="0" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="20" font-size="12" font-weight="700" fill="#34d399">Mordechai · CLI</text>
+      <text x="14" y="36" font-size="10" fill="#94a3b8">tsx scripts/synthesize.ts</text>
+
+      <rect x="0" y="56" width="250" height="46" rx="6" fill="#0a1f17" stroke="#10b981" stroke-width="2"/>
+      <text x="14" y="76" font-size="12" font-weight="700" fill="#34d399">Claude Code · this session</text>
+      <text x="14" y="92" font-size="10" fill="#94a3b8">via Supabase MCP</text>
+
+      <rect x="0" y="112" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="132" font-size="12" fill="#94a3b8">apps/web · /today</text>
+      <text x="14" y="148" font-size="10" fill="#64748b">→ Vercel · L3 surface UI</text>
+
+      <rect x="0" y="168" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="188" font-size="12" fill="#94a3b8">apps/web · /api/chat (SSE)</text>
+      <text x="14" y="204" font-size="10" fill="#64748b">→ Vercel Fluid · 800s</text>
+
+      <rect x="0" y="224" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="244" font-size="12" fill="#94a3b8">vita-mcp · Jeffrey · Shaul</text>
+      <text x="14" y="260" font-size="10" fill="#64748b">→ Railway · persistent</text>
+
+      <rect x="0" y="280" width="250" height="46" rx="6" fill="#0c111c" stroke="#475569" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="14" y="300" font-size="12" fill="#94a3b8">Yitzchak · Knowledge-Agent port</text>
+      <text x="14" y="316" font-size="10" fill="#64748b">→ packages/orchestrator</text>
+    </g>
+
+  </g>
+
+  <!-- ============ SCORECARD STRIP ============ -->
+  <g transform="translate(80, 670)">
+    <rect x="0" y="0" width="1440" height="60" rx="10" fill="#0b1220" stroke="#1e293b"/>
+    <g text-anchor="middle">
+      <text x="180" y="28" font-size="32" font-weight="800" fill="#10b981">14</text>
+      <text x="180" y="48" font-size="12" fill="#cbd5e1">tiles LIVE</text>
+
+      <text x="540" y="28" font-size="32" font-weight="800" fill="#ec4899">2</text>
+      <text x="540" y="48" font-size="12" fill="#cbd5e1">tiles SCHEMA-ONLY</text>
+
+      <text x="900" y="28" font-size="32" font-weight="800" fill="#94a3b8">14</text>
+      <text x="900" y="48" font-size="12" fill="#cbd5e1">tiles FUTURE</text>
+
+      <text x="1260" y="28" font-size="32" font-weight="800" fill="#fbbf24">47%</text>
+      <text x="1260" y="48" font-size="12" fill="#cbd5e1">of architecture · day one</text>
+    </g>
+  </g>
+
+  <!-- ============ TOMORROW'S FIRST MOVE ============ -->
+  <g transform="translate(80, 760)" filter="url(#shadow)">
+    <rect x="0" y="0" width="1440" height="190" rx="16" fill="url(#heroNext)" stroke="#a78bfa" stroke-width="2"/>
+  </g>
+  <g transform="translate(80, 760)">
+    <rect x="24" y="22" width="180" height="28" rx="14" fill="#7c3aed"/>
+    <text x="114" y="41" font-size="13" font-weight="800" fill="#f8fafc" text-anchor="middle" letter-spacing="2">TOMORROW · DAY 2</text>
+
+    <text x="24" y="92" font-size="32" font-weight="800" fill="#f8fafc">Ship the L2 → L3 indexer.</text>
+    <text x="24" y="124" font-size="16" fill="#cbd5e1">The schema is already there. The Trigger.dev hook fires on every L2 insert and composes</text>
+    <text x="24" y="146" font-size="16" fill="#cbd5e1"><tspan font-family="ui-monospace, SF Mono, monospace" fill="#a78bfa">_now</tspan> · <tspan font-family="ui-monospace, SF Mono, monospace" fill="#a78bfa">_decisions</tspan> · <tspan font-family="ui-monospace, SF Mono, monospace" fill="#a78bfa">_quotes</tspan> · <tspan font-family="ui-monospace, SF Mono, monospace" fill="#a78bfa">_people/*</tspan> · <tspan font-family="ui-monospace, SF Mono, monospace" fill="#a78bfa">_concepts/*</tspan> from the substrate.</text>
+
+    <line x1="24" y1="166" x2="80" y2="166" stroke="#a78bfa" stroke-width="2"/>
+    <text x="24" y="186" font-size="14" font-style="italic" fill="#c4b5fd">That's the moment Jeffrey's "where are we" question becomes a SQL query, not a Slack message.</text>
+
+    <!-- Right-side mini-list of secondary moves -->
+    <g transform="translate(900, 22)">
+      <text x="0" y="14" font-size="11" font-weight="800" fill="#94a3b8" letter-spacing="2">SECONDARY MOVES</text>
+      <text x="0" y="44" font-size="13" fill="#e2e8f0">→ Trigger.dev wraps the local synthesizer CLI</text>
+      <text x="0" y="68" font-size="13" fill="#e2e8f0">→ vita-mcp on Railway → Jeffrey, Shaul, Yitzchak</text>
+      <text x="0" y="92" font-size="13" fill="#e2e8f0">→ Yitzchak's Knowledge-Agent → packages/orchestrator</text>
+      <text x="0" y="116" font-size="13" fill="#e2e8f0">→ Second extractor (gmail) lights up the column</text>
+      <text x="0" y="140" font-size="13" fill="#e2e8f0">→ apps/web /today consumes <tspan font-family="ui-monospace, SF Mono, monospace" fill="#a78bfa">_now</tspan></text>
+    </g>
+  </g>
+
+  <!-- ============ CLOSING MANIFESTO ============ -->
+  <g transform="translate(0, 985)">
+    <text x="800" y="0" font-size="22" font-weight="600" fill="#f8fafc" text-anchor="middle">
+      Today moved the thesis from <tspan font-family="ui-monospace, SF Mono, monospace" fill="#94a3b8">~/viter-workspace/</tspan> to a Postgres database.
+    </text>
+    <text x="800" y="32" font-size="22" font-weight="600" fill="#fbbf24" text-anchor="middle">
+      Tomorrow it moves from there to Jeffrey's screen.
+    </text>
+  </g>
+
+  <!-- Series TOC -->
+  <line x1="80" y1="1060" x2="1520" y2="1060" stroke="#1e293b"/>
+  <g font-size="12" fill="#475569">
+    <text x="80"   y="1085">1 · Cover</text>
+    <text x="240"  y="1085">2 · The 24h shock</text>
+    <text x="430"  y="1085">3 · Thesis transferred</text>
+    <text x="650"  y="1085">4 · The day, in four stages</text>
+    <text x="930"  y="1085">5 · One trace</text>
+    <text x="1100" y="1085" fill="#f8fafc" font-weight="700">6 · What's live, what's next</text>
+  </g>
+  <text x="1520" y="1085" font-size="11" fill="#475569" text-anchor="end">Mordechai Potash · viter · Asia/Jerusalem</text>
+</svg>

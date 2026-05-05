@@ -16,6 +16,7 @@
     "@supabase/supabase-js": "^2.45.0",
     "@trigger.dev/build": "^4.4.5",
     "@trigger.dev/sdk": "^4.4.5",
+    "@vita/adapter-whatsapp-gowa": "workspace:*",
     "@vita/runtime": "workspace:*",
     "mammoth": "^1.10.0",
     "node-stream-zip": "^1.15.0",

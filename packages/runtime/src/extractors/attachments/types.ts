@@ -48,4 +48,26 @@ export interface ExtractorContext {
   openrouterApiKey?: string;
   /** Override default model for this extractor (advanced / eval). */
   modelOverride?: string;
+  /**
+   * Optional LLM call logger — when provided, every OpenRouter call inside
+   * the extractor opens/closes a public.llm_call_log row. Logging is
+   * best-effort and never throws. Constructed by the trigger.dev task or
+   * standalone script with tenant_id + caller + (optional) trigger_run_id.
+   */
+  logger?: import('../../llm-log/index.js').LLMCallLogger;
+  /** Scope tags stamped on every llm_call_log row (e.g. artifact id). */
+  scopeKind?: string;
+  scopeKey?: string;
+  /**
+   * Forwarded to OpenRouter as request-level `metadata` so OR's Broadcast
+   * feature surfaces them as `trace.metadata.*` OTLP attributes — the
+   * openrouter-webhook reads these to UPSERT the right llm_call_log row.
+   * At minimum: tenant_id. Recommended: caller, scope_kind, scope_key,
+   * trigger_run_id.
+   */
+  callerMetadata?: Record<string, string | number | null | undefined>;
+  /** Whisper vocab biasing — seeds the model with proper nouns / domain terms. */
+  biasingPrompt?: string;
+  /** ISO 639-1 language hint (e.g. 'en', 'he'). Improves Whisper accuracy on non-English content. */
+  languageHint?: string;
 }

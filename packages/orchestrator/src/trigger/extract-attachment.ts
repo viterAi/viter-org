@@ -10,11 +10,12 @@
  * OpenRouter response, retries alone, doesn't block the other 104.
  */
 
-import { schemaTask } from '@trigger.dev/sdk';
+import { schemaTask, tags, metadata } from '@trigger.dev/sdk';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 
 import { dispatchExtract } from '@vita/runtime/extractors-attachments';
+import { createLLMCallLogger } from '@vita/runtime/llm-log';
 
 const ExtractAttachmentPayload = z.object({
   tenant_id: z.string().uuid(),
@@ -41,7 +42,7 @@ export const extractAttachment = schemaTask({
   machine: { preset: 'small-1x' },
   maxDuration: 300,                          // 5 min per file is generous
 
-  run: async (payload) => {
+  run: async (payload, { ctx }) => {
     const supabase = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -51,6 +52,14 @@ export const extractAttachment = schemaTask({
     // Skip if a successful extraction run already exists for this artifact + facet.
     // Facet inferred from mime — audio→transcription, others→doc_text/image_caption.
     const facet = inferFacet(payload.mime, payload.filename);
+
+    // Trigger.dev observability: tags make the run filterable in the UI;
+    // metadata accumulates per-run stats (call count, total cost) visible in
+    // the run sidebar without leaving the dashboard.
+    await tags.add(`tenant:${payload.tenant_id}`);
+    await tags.add(`facet:${facet}`);
+    await tags.add(`artifact:${payload.artifact_id}`);
+    metadata.set('llm.calls', 0).set('llm.cost_usd', 0).set('facet', facet);
 
     const { data: existing } = await supabase
       .from('l1_extraction_runs')
@@ -72,11 +81,45 @@ export const extractAttachment = schemaTask({
     if (dErr || !blob) throw new Error(`download failed: ${dErr?.message}`);
     const buf = Buffer.from(await blob.arrayBuffer());
 
+    // Build the LLM call logger — every OpenRouter call inside the extractor
+    // opens/closes a public.llm_call_log row stamped with this trigger run id.
+    const callerForFacet =
+      facet === 'transcription' ? 'extractor.audio'
+      : facet === 'image_caption' ? 'extractor.image'
+      : 'extractor.doc';
+    const llmLogger = createLLMCallLogger({
+      db: supabase,
+      tenantId: payload.tenant_id,
+      caller: callerForFacet,
+      triggerRunId: ctx.run.id,
+      source: 'trigger:extract-attachment',
+    });
+
     // Dispatch
     const t0 = Date.now();
     const result = await dispatchExtract(
       { buf, filename: payload.filename, mime: payload.mime },
-      { openrouterApiKey: process.env.OPENROUTER_API_KEY },
+      {
+        openrouterApiKey: process.env.OPENROUTER_API_KEY,
+        logger: llmLogger,
+        scopeKind: 'l0_artifact',
+        scopeKey: payload.artifact_id,
+        // Forwarded to OpenRouter Broadcast → OTLP → openrouter-webhook
+        // so the webhook can find the matching llm_call_log row to fill in
+        // billing data, even for callers we haven't directly instrumented.
+        callerMetadata: {
+          tenant_id: payload.tenant_id,
+          caller: callerForFacet,
+          scope_kind: 'l0_artifact',
+          scope_key: payload.artifact_id,
+          trigger_run_id: ctx.run.id,
+          trigger_task_id: ctx.task.id,
+          source: 'trigger:extract-attachment',
+          facet,
+          channel_id: payload.channel_id ?? null,
+          actor_id: payload.actor_id ?? null,
+        },
+      },
     );
     const wallMs = Date.now() - t0;
 

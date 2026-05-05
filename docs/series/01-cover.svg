@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="rail" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#7c3aed" stop-opacity="0.7"/>
+      <stop offset="20%" stop-color="#7c3aed"/>
+      <stop offset="35%" stop-color="#fbbf24"/>
+      <stop offset="55%" stop-color="#3b82f6"/>
+      <stop offset="75%" stop-color="#a78bfa"/>
+      <stop offset="95%" stop-color="#10b981"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines for depth -->
+  <g stroke="#1e293b" stroke-width="1" opacity="0.5">
+    <line x1="0" y1="220" x2="1600" y2="220"/>
+    <line x1="0" y1="880" x2="1600" y2="880"/>
+  </g>
+
+  <!-- Top bar: brand + series counter -->
+  <text x="80" y="80" font-size="28" font-weight="800" fill="#f8fafc" letter-spacing="-0.5">vita</text>
+  <text x="80" y="105" font-size="13" fill="#64748b" letter-spacing="3">VITER · BUILD CHRONICLE · 2026-05-04</text>
+
+  <g transform="translate(1520, 70)">
+    <rect x="-50" y="-25" width="100" height="42" rx="21" fill="none" stroke="#334155" stroke-width="1"/>
+    <text x="0" y="5" font-size="14" font-weight="700" fill="#94a3b8" text-anchor="middle">1 / 6</text>
+  </g>
+
+  <!-- =============== HERO BLOCK =============== -->
+  <text x="80" y="340" font-size="84" font-weight="800" fill="#f8fafc" letter-spacing="-3">the day</text>
+  <text x="80" y="430" font-size="84" font-weight="800" fill="#f8fafc" letter-spacing="-3">the prosthetic</text>
+  <text x="80" y="520" font-size="84" font-weight="800" fill="#fbbf24" letter-spacing="-3">became a product.</text>
+
+  <!-- Sub-headline -->
+  <text x="80" y="595" font-size="22" fill="#cbd5e1" font-style="italic">
+    For ~14 days it ran in markdown. In ~11 hours today it became Postgres.
+  </text>
+
+  <!-- =============== 24-HOUR ARC =============== -->
+  <g transform="translate(80, 720)">
+    <text x="0" y="-20" font-size="13" font-weight="800" fill="#64748b" letter-spacing="3">THE 24-HOUR ARC</text>
+
+    <!-- Rail -->
+    <rect x="0" y="20" width="1440" height="6" rx="3" fill="url(#rail)" opacity="0.85"/>
+
+    <!-- Tick marks -->
+    <g stroke="#334155" stroke-width="1">
+      <line x1="0"    y1="14" x2="0"    y2="32"/>
+      <line x1="288"  y1="14" x2="288"  y2="32"/>
+      <line x1="576"  y1="14" x2="576"  y2="32"/>
+      <line x1="864"  y1="14" x2="864"  y2="32"/>
+      <line x1="1152" y1="14" x2="1152" y2="32"/>
+      <line x1="1440" y1="14" x2="1440" y2="32"/>
+    </g>
+    <g font-size="11" fill="#475569" text-anchor="middle">
+      <text x="0"    y="50">00:00</text>
+      <text x="288"  y="50">06:00</text>
+      <text x="576"  y="50">12:00</text>
+      <text x="864"  y="50">18:00</text>
+      <text x="1152" y="50">00:00</text>
+    </g>
+
+    <!-- Event 1 — Shaul broadcast (00:25) -->
+    <g transform="translate(25, 23)">
+      <circle r="14" fill="#7c3aed" filter="url(#glow)"/>
+      <circle r="6" fill="#f8fafc"/>
+      <line x1="0" y1="-14" x2="0" y2="-90" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="3 4"/>
+      <text x="0" y="-100" font-size="12" font-weight="700" fill="#a78bfa" text-anchor="middle">00:25 IDT</text>
+      <text x="0" y="-118" font-size="14" font-weight="700" fill="#e2e8f0" text-anchor="middle">Shaul broadcast</text>
+      <text x="0" y="-135" font-size="11" fill="#94a3b8" text-anchor="middle">"everything onto the platform"</text>
+    </g>
+
+    <!-- Event 2 — Initial commit (12:11) -->
+    <g transform="translate(581, 23)">
+      <circle r="14" fill="#fbbf24" filter="url(#glow)"/>
+      <circle r="6" fill="#1c1917"/>
+      <line x1="0" y1="14" x2="0" y2="80" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3 4"/>
+      <text x="0" y="100" font-size="12" font-weight="700" fill="#fbbf24" text-anchor="middle">12:11</text>
+      <text x="0" y="118" font-size="14" font-weight="700" fill="#e2e8f0" text-anchor="middle">Initial commit</text>
+      <text x="0" y="135" font-size="11" fill="#94a3b8" text-anchor="middle">vita repo born</text>
+    </g>
+
+    <!-- Event 3 — Substrate live (14:09) -->
+    <g transform="translate(693, 23)">
+      <circle r="14" fill="#3b82f6" filter="url(#glow)"/>
+      <circle r="6" fill="#0b1736"/>
+      <line x1="0" y1="-14" x2="0" y2="-90" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="3 4"/>
+      <text x="0" y="-100" font-size="12" font-weight="700" fill="#60a5fa" text-anchor="middle">14:09</text>
+      <text x="0" y="-118" font-size="14" font-weight="700" fill="#e2e8f0" text-anchor="middle">Substrate live</text>
+      <text x="0" y="-135" font-size="11" fill="#94a3b8" text-anchor="middle">L0→L3 in Postgres</text>
+    </g>
+
+    <!-- Event 4 — Evals (18:03) -->
+    <g transform="translate(862, 23)">
+      <circle r="14" fill="#a78bfa" filter="url(#glow)"/>
+      <circle r="6" fill="#1e1043"/>
+      <line x1="0" y1="14" x2="0" y2="80" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="3 4"/>
+      <text x="0" y="100" font-size="12" font-weight="700" fill="#c4b5fd" text-anchor="middle">18:03</text>
+      <text x="0" y="118" font-size="14" font-weight="700" fill="#e2e8f0" text-anchor="middle">Evals + rubric</text>
+      <text x="0" y="135" font-size="11" fill="#94a3b8" text-anchor="middle">self-grading on</text>
+    </g>
+
+    <!-- Event 5 — Last commit (22:48) -->
+    <g transform="translate(1090, 23)">
+      <circle r="14" fill="#10b981" filter="url(#glow)"/>
+      <circle r="6" fill="#052e1a"/>
+      <line x1="0" y1="-14" x2="0" y2="-90" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3 4"/>
+      <text x="0" y="-100" font-size="12" font-weight="700" fill="#34d399" text-anchor="middle">22:48</text>
+      <text x="0" y="-118" font-size="14" font-weight="700" fill="#e2e8f0" text-anchor="middle">WhatsApp ingest</text>
+      <text x="0" y="-135" font-size="11" fill="#94a3b8" text-anchor="middle">phase 1–4 shipped</text>
+    </g>
+  </g>
+
+  <!-- =============== FOOTER =============== -->
+  <line x1="80" y1="970" x2="1520" y2="970" stroke="#1e293b" stroke-width="1"/>
+
+  <text x="80" y="1010" font-size="14" font-weight="800" fill="#94a3b8" letter-spacing="3">SERIES</text>
+  <g font-size="13" fill="#64748b">
+    <text x="80"  y="1040">1 · Cover</text>
+    <text x="240" y="1040" fill="#475569">2 · The 24h shock</text>
+    <text x="430" y="1040" fill="#475569">3 · Thesis transferred</text>
+    <text x="650" y="1040" fill="#475569">4 · The day, in four stages</text>
+    <text x="930" y="1040" fill="#475569">5 · One trace</text>
+    <text x="1100" y="1040" fill="#475569">6 · What's live, what's next</text>
+  </g>
+
+  <text x="1520" y="1040" font-size="12" fill="#475569" text-anchor="end">Mordechai Potash · viter · Asia/Jerusalem</text>
+</svg>

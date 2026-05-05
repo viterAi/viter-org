@@ -48,6 +48,21 @@ function createOpenRouterClient(): LLMClient {
   return async (req: LLMCompletionRequest): Promise<LLMCompletionResult> => {
     const model = req.model || DEFAULT_MODEL_OPENROUTER;
 
+    // OpenRouter accepts a top-level `metadata` field on chat completions
+    // that propagates to its Broadcast OTLP spans as `trace.metadata.*`.
+    // The OpenAI SDK types `metadata` as Record<string,string>; coerce
+    // numeric/null values to strings so the SDK doesn't reject the request.
+    const metadataAsStrings: Record<string, string> = {};
+    if (req.callerMetadata) {
+      for (const [k, v] of Object.entries(req.callerMetadata)) {
+        if (v == null) continue;
+        metadataAsStrings[k] = String(v);
+      }
+    }
+    const extra = Object.keys(metadataAsStrings).length > 0
+      ? { metadata: metadataAsStrings }
+      : {};
+
     const response = await client.chat.completions.create({
       model,
       messages: [
@@ -56,6 +71,7 @@ function createOpenRouterClient(): LLMClient {
       ],
       max_tokens: req.maxTokens ?? 4096,
       temperature: req.temperature ?? 0.2,
+      ...extra,
     });
 
     const choice = response.choices[0];

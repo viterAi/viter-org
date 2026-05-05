@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="morn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="aft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="eve" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6ee7b7"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+
+  <!-- Header -->
+  <text x="80" y="80" font-size="48" font-weight="800" fill="#f8fafc" letter-spacing="-1">vita — Build Day</text>
+  <text x="80" y="118" font-size="20" fill="#94a3b8">Monday · 2026-05-04 · 12:11 → 22:48 · ~11 hours · 25 commits</text>
+
+  <!-- Hero band -->
+  <rect x="80" y="160" width="1440" height="130" rx="14" fill="#0b1220" stroke="#334155"/>
+  <text x="120" y="220" font-size="56" font-weight="800" fill="#fbbf24">In one day</text>
+  <text x="120" y="258" font-size="20" fill="#e2e8f0">empty folder → a system that reads every Claude Code session, ingests every WhatsApp export,</text>
+  <text x="120" y="282" font-size="20" fill="#e2e8f0">transcribes voice notes, extracts attachments, and writes a self-graded daily summary — automatically.</text>
+
+  <!-- Timeline rail -->
+  <line x1="160" y1="430" x2="1520" y2="430" stroke="#475569" stroke-width="3" stroke-dasharray="4 8"/>
+
+  <!-- ============ STAGE CARDS — 4 cols, 320 wide, 60 gap ============ -->
+  <!-- col1 x=80   col2 x=460   col3 x=840   col4 x=1220 -->
+
+  <!-- Card 1 · Morning -->
+  <g filter="url(#shadow)">
+    <rect x="80" y="340" width="320" height="220" rx="16" fill="url(#morn)"/>
+    <text x="110" y="380" font-size="13" font-weight="800" fill="#451a03" letter-spacing="2">MORNING · 12:11</text>
+    <text x="110" y="420" font-size="28" font-weight="800" fill="#1c1917">Foundation</text>
+    <text x="110" y="448" font-size="28" font-weight="800" fill="#1c1917">poured</text>
+    <text x="110" y="488" font-size="14" fill="#1c1917">Empty folder → working app</text>
+    <text x="110" y="510" font-size="14" fill="#1c1917">Versions pinned to deploy clean</text>
+    <text x="110" y="532" font-size="14" fill="#1c1917">Repo + branches initialized</text>
+  </g>
+
+  <!-- Card 2 · Afternoon -->
+  <g filter="url(#shadow)">
+    <rect x="460" y="340" width="320" height="220" rx="16" fill="url(#aft)"/>
+    <text x="490" y="380" font-size="13" font-weight="800" fill="#0c1c3a" letter-spacing="2">AFTERNOON · 14:09</text>
+    <text x="490" y="420" font-size="28" font-weight="800" fill="#0b1736">Plumbing</text>
+    <text x="490" y="448" font-size="28" font-weight="800" fill="#0b1736">in</text>
+    <text x="490" y="488" font-size="14" fill="#0b1736">Filing cabinets live in Supabase</text>
+    <text x="490" y="510" font-size="14" fill="#0b1736">First reader pulls Claude sessions</text>
+    <text x="490" y="532" font-size="14" fill="#0b1736">Daemon watches folder 24/7</text>
+  </g>
+
+  <!-- Card 3 · Evening -->
+  <g filter="url(#shadow)">
+    <rect x="840" y="340" width="320" height="220" rx="16" fill="url(#eve)"/>
+    <text x="870" y="380" font-size="13" font-weight="800" fill="#1e1043" letter-spacing="2">EVENING · 18:03</text>
+    <text x="870" y="420" font-size="28" font-weight="800" fill="#1e1043">Intelligence</text>
+    <text x="870" y="448" font-size="28" font-weight="800" fill="#1e1043">layer</text>
+    <text x="870" y="488" font-size="14" fill="#1e1043">Daily summary writer w/ footnotes</text>
+    <text x="870" y="510" font-size="14" fill="#1e1043">Self-grader on 11-point rubric</text>
+    <text x="870" y="532" font-size="14" fill="#1e1043">Architecture drawn end-to-end</text>
+  </g>
+
+  <!-- Card 4 · Night -->
+  <g filter="url(#shadow)">
+    <rect x="1220" y="340" width="320" height="220" rx="16" fill="url(#night)"/>
+    <text x="1250" y="380" font-size="13" font-weight="800" fill="#052e1a" letter-spacing="2">NIGHT · 20:46</text>
+    <text x="1250" y="420" font-size="28" font-weight="800" fill="#052e1a">Reach</text>
+    <text x="1250" y="448" font-size="28" font-weight="800" fill="#052e1a">extended</text>
+    <text x="1250" y="488" font-size="14" fill="#052e1a">WhatsApp exports flow in</text>
+    <text x="1250" y="510" font-size="14" fill="#052e1a">Voice notes → text · Docs → text</text>
+    <text x="1250" y="532" font-size="14" fill="#052e1a">Re-exports merge, never lose data</text>
+  </g>
+
+  <!-- Connector arrows between cards (above timeline rail level) -->
+  <g fill="#64748b">
+    <polygon points="402,448 432,438 402,428"/>
+    <polygon points="782,448 812,438 782,428"/>
+    <polygon points="1162,448 1192,438 1162,428"/>
+  </g>
+
+  <!-- ============ CALLOUT ROW ============ -->
+  <text x="80" y="640" font-size="14" font-weight="800" fill="#94a3b8" letter-spacing="3">WHY EACH MATTERS — IN PLAIN ENGLISH</text>
+  <line x1="80" y1="655" x2="1520" y2="655" stroke="#334155"/>
+
+  <!-- Callout 1 · centered under card 1 (cx=240) -->
+  <g>
+    <circle cx="125" cy="710" r="18" fill="#fbbf24"/>
+    <text x="125" y="717" font-size="18" font-weight="800" fill="#1c1917" text-anchor="middle">1</text>
+    <text x="160" y="700" font-size="17" font-weight="700" fill="#fbbf24">The room is real</text>
+    <text x="160" y="725" font-size="14" fill="#cbd5e1">Foundation is invisible to the eye —</text>
+    <text x="160" y="745" font-size="14" fill="#cbd5e1">but everything else sits on it.</text>
+    <text x="160" y="775" font-size="13" font-style="italic" fill="#94a3b8">Like pouring the slab.</text>
+  </g>
+
+  <!-- Callout 2 -->
+  <g>
+    <circle cx="505" cy="710" r="18" fill="#60a5fa"/>
+    <text x="505" y="717" font-size="18" font-weight="800" fill="#0b1736" text-anchor="middle">2</text>
+    <text x="540" y="700" font-size="17" font-weight="700" fill="#60a5fa">Memory stops leaking</text>
+    <text x="540" y="725" font-size="14" fill="#cbd5e1">Sessions ingest themselves into a</text>
+    <text x="540" y="745" font-size="14" fill="#cbd5e1">permanent home — even while you sleep.</text>
+    <text x="540" y="775" font-size="13" font-style="italic" fill="#94a3b8">No more copy-paste. No more remembering.</text>
+  </g>
+
+  <!-- Callout 3 -->
+  <g>
+    <circle cx="885" cy="710" r="18" fill="#a78bfa"/>
+    <text x="885" y="717" font-size="18" font-weight="800" fill="#1e1043" text-anchor="middle">3</text>
+    <text x="920" y="700" font-size="17" font-weight="700" fill="#a78bfa">Citations are not optional</text>
+    <text x="920" y="725" font-size="14" fill="#cbd5e1">Every AI-written summary points back</text>
+    <text x="920" y="745" font-size="14" fill="#cbd5e1">to its source — and a grader checks it.</text>
+    <text x="920" y="775" font-size="13" font-style="italic" fill="#94a3b8">Borrowed from Torah strictness.</text>
+  </g>
+
+  <!-- Callout 4 -->
+  <g>
+    <circle cx="1265" cy="710" r="18" fill="#34d399"/>
+    <text x="1265" y="717" font-size="18" font-weight="800" fill="#052e1a" text-anchor="middle">4</text>
+    <text x="1300" y="700" font-size="17" font-weight="700" fill="#34d399">Nothing falls on the floor</text>
+    <text x="1300" y="725" font-size="14" fill="#cbd5e1">A voice note Shaul sends becomes</text>
+    <text x="1300" y="745" font-size="14" fill="#cbd5e1">searchable text. A PDF stops being a blob.</text>
+    <text x="1300" y="775" font-size="13" font-style="italic" fill="#94a3b8">Every input format is now first-class.</text>
+  </g>
+
+  <!-- ============ STATS ROW ============ -->
+  <rect x="80" y="830" width="1440" height="160" rx="14" fill="#0b1220" stroke="#334155"/>
+  <text x="110" y="865" font-size="14" font-weight="800" fill="#94a3b8" letter-spacing="3">BY THE NUMBERS</text>
+
+  <!-- 5 stat columns evenly spaced across 1440 width -->
+  <g text-anchor="middle">
+    <text x="220" y="935" font-size="56" font-weight="800" fill="#fbbf24">25</text>
+    <text x="220" y="965" font-size="14" fill="#cbd5e1">commits today</text>
+
+    <text x="500" y="935" font-size="56" font-weight="800" fill="#60a5fa">2</text>
+    <text x="500" y="965" font-size="14" fill="#cbd5e1">data streams live</text>
+    <text x="500" y="982" font-size="12" fill="#64748b">Claude Code · WhatsApp</text>
+
+    <text x="800" y="935" font-size="56" font-weight="800" fill="#a78bfa">6</text>
+    <text x="800" y="965" font-size="14" fill="#cbd5e1">attachment types extracted</text>
+    <text x="800" y="982" font-size="12" fill="#64748b">PDF · DOCX · XLSX · HTML · MD · JSON</text>
+
+    <text x="1100" y="935" font-size="56" font-weight="800" fill="#34d399">11</text>
+    <text x="1100" y="965" font-size="14" fill="#cbd5e1">tests · 11-point rubric</text>
+
+    <text x="1400" y="935" font-size="56" font-weight="800" fill="#f472b6">0</text>
+    <text x="1400" y="965" font-size="14" fill="#cbd5e1">manual steps in steady state</text>
+  </g>
+
+  <!-- Footer punch line -->
+  <text x="800" y="1050" font-size="22" font-style="italic" fill="#e2e8f0" text-anchor="middle">
+    Not a prototype. A substrate.
+  </text>
+  <text x="800" y="1080" font-size="16" fill="#94a3b8" text-anchor="middle">
+    The L0→L3 thesis from viter-workspace now has a runtime.
+  </text>
+</svg>

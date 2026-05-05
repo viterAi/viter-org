@@ -13,6 +13,12 @@ const COMMON_HEADERS = {
   'X-OpenRouter-Title': 'vita extract-attachment',
 };
 
+function stripUndef(o: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(o)) if (o[k] !== undefined && o[k] !== null) out[k] = o[k];
+  return out;
+}
+
 export interface OpenRouterTranscriptionResponse {
   text?: string;
   language?: string;
@@ -21,6 +27,9 @@ export interface OpenRouterTranscriptionResponse {
   model?: string;
   provider?: string;
   id?: string;
+  // Whisper bills per audio-second (no tokens). Both fields are returned
+  // by the OR /audio/transcriptions endpoint per shootout 2026-05-02.
+  usage?: { seconds?: number; cost?: number };
   error?: { message?: string; code?: string } | string;
 }
 
@@ -29,7 +38,26 @@ export async function postTranscription(args: {
   model: string;
   audioB64: string;
   format: 'wav' | 'mp3' | 'opus' | 'm4a' | 'flac';
+  /**
+   * Caller metadata forwarded to OpenRouter as request-level `metadata`. OR's
+   * Broadcast feature surfaces these as `trace.metadata.*` OTLP attributes —
+   * the openrouter-webhook reads them to stamp the llm_call_log row with
+   * tenant_id / caller / scope / trigger_run_id. Pass at minimum tenant_id.
+   */
+  callerMetadata?: Record<string, string | number | null | undefined>;
+  /** Whisper vocab biasing — seeds Whisper with proper nouns (best on noisy mixed-language audio). */
+  prompt?: string;
+  /** ISO 639-1 language hint, e.g. 'en' or 'he'. */
+  language?: string;
 }): Promise<OpenRouterTranscriptionResponse> {
+  const body: Record<string, unknown> = {
+    model: args.model,
+    input_audio: { data: args.audioB64, format: args.format },
+    response_format: 'verbose_json',
+  };
+  if (args.prompt) body.prompt = args.prompt;
+  if (args.language) body.language = args.language;
+  if (args.callerMetadata) body.metadata = stripUndef(args.callerMetadata);
   const res = await fetch(`${OPENROUTER_BASE}/audio/transcriptions`, {
     method: 'POST',
     headers: {
@@ -37,10 +65,7 @@ export async function postTranscription(args: {
       'Content-Type': 'application/json',
       ...COMMON_HEADERS,
     },
-    body: JSON.stringify({
-      model: args.model,
-      input_audio: { data: args.audioB64, format: args.format },
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`openrouter ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = (await res.json()) as OpenRouterTranscriptionResponse;
@@ -64,7 +89,10 @@ export async function postChatCompletion(args: {
   apiKey: string;
   model: string;
   body: Record<string, unknown>;
+  callerMetadata?: Record<string, string | number | null | undefined>;
 }): Promise<OpenRouterChatResponse> {
+  const fullBody: Record<string, unknown> = { model: args.model, ...args.body };
+  if (args.callerMetadata) fullBody.metadata = stripUndef(args.callerMetadata);
   const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -72,7 +100,7 @@ export async function postChatCompletion(args: {
       'Content-Type': 'application/json',
       ...COMMON_HEADERS,
     },
-    body: JSON.stringify({ model: args.model, ...args.body }),
+    body: JSON.stringify(fullBody),
   });
   if (!res.ok) throw new Error(`openrouter ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = (await res.json()) as OpenRouterChatResponse;

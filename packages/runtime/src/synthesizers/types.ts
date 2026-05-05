@@ -44,6 +44,15 @@ export interface LLMCompletionRequest {
   userPrompt: string;
   maxTokens?: number;
   temperature?: number;
+  /**
+   * Forwarded to OpenRouter as request-level `metadata` so OR's Broadcast
+   * feature surfaces them as `trace.metadata.*` OTLP attributes — the
+   * openrouter-webhook reads these to UPSERT the right llm_call_log row
+   * with full tokens / cost / provider data even when the caller-side
+   * logger missed something. Recommended fields: tenant_id, caller,
+   * scope_kind, scope_key, trigger_run_id.
+   */
+  callerMetadata?: Record<string, string | number | null | undefined>;
 }
 
 export interface LLMCompletionResult {
