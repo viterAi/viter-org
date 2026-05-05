@@ -11,6 +11,7 @@
  */
 
 import type { MessageEvent } from '@/lib/chat/types';
+import { ExpandableText } from './ExpandableText';
 
 interface BubbleProps {
   message: MessageEvent;
@@ -67,17 +68,18 @@ export function MessageBubble({ message, showSender, isTail, transcript }: Bubbl
   const caption = (message.metadata.caption as string | undefined)
     ?? (hasText ? null : (message.content || null));
 
-  // 2-col layout: media on the left, L1-derived text companion on the right.
-  // Voice → audio + transcript. Image → image + caption (or future OCR/L1
-  // image_caption facet). Bubble grows wider when companion is present.
-  const companionText = (showAudio && transcript?.content) || (showImage && caption)
-    ? (showAudio ? transcript!.content : caption)
-    : null;
-  const isTwoCol = !!companionText;
+  // Voice notes: 2-col with the transcript on the right (transcripts are
+  // usually 1–3 lines, fits naturally). Images: stacked — image on top
+  // full-width, caption below with ExpandableText so long captions don't
+  // sprawl down the page.
+  const transcriptText = showAudio && transcript?.content ? transcript.content : null;
+  const captionText = showImage ? (caption?.trim() || null) : null;
+  const useTwoCol = !!transcriptText;
+  const wideBubble = useTwoCol || showImage;
 
   return (
     <div className={`flex w-full ${fromMe ? 'justify-end' : 'justify-start'}`}>
-      <div className={`flex flex-col gap-0.5 ${isTwoCol ? 'max-w-[92%]' : 'max-w-[75%]'}`}>
+      <div className={`flex flex-col gap-0.5 ${wideBubble ? 'max-w-[80%]' : 'max-w-[75%]'}`}>
         {showSender && !fromMe && message.push_name && (
           <span className="ml-3 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
             {message.push_name}
@@ -94,64 +96,54 @@ export function MessageBubble({ message, showSender, isTail, transcript }: Bubbl
               : ''}
           `}
         >
-          {isTwoCol ? (
-            <div className="grid grid-cols-[180px_1fr] gap-3 sm:grid-cols-[220px_1fr]">
-              {/* Left: media */}
-              <div className="min-w-0">
-                {showImage && (
-                  <a href={`/api/media/${mediaId}`} target="_blank" rel="noopener noreferrer" className="block">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`/api/media/${mediaId}`}
-                      alt={filename ?? 'image'}
-                      className="h-44 w-full rounded-lg object-cover"
-                      loading="lazy"
-                    />
-                  </a>
-                )}
-                {showAudio && (
-                  <audio src={`/api/media/${mediaId}`} controls preload="none" className="w-full" />
-                )}
+          {useTwoCol ? (
+            // Voice + transcript: 2-col, audio left, transcript right.
+            <div className="grid grid-cols-[200px_1fr] gap-3 sm:grid-cols-[240px_1fr]">
+              <div className="min-w-0 self-center">
+                <audio src={`/api/media/${mediaId}`} controls preload="none" className="w-full" />
               </div>
-
-              {/* Right: L1 text companion */}
-              <div className="min-w-0 self-start border-l border-black/5 pl-3 dark:border-white/10">
-                <div className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                  {showAudio ? (
-                    <>
-                      <span>📝 transcript</span>
-                      {transcript?.metadata.model_used && (
-                        <span className="ml-auto opacity-60">{(transcript.metadata.model_used as string).split('/').pop()}</span>
-                      )}
-                    </>
-                  ) : (
-                    <span>💬 caption</span>
+              <div className="min-w-0 self-center border-l border-black/5 pl-3 dark:border-white/10">
+                <div className="mb-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  <span>transcript</span>
+                  {typeof transcript?.metadata.model_used === 'string' && (
+                    <span className="ml-auto opacity-60">{transcript.metadata.model_used.split('/').pop()}</span>
                   )}
                 </div>
-                <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-zinc-800 dark:text-zinc-100">
-                  {companionText}
-                </p>
+                <ExpandableText
+                  text={transcriptText!}
+                  maxChars={300}
+                  className="text-xs leading-relaxed text-zinc-800 dark:text-zinc-100"
+                />
               </div>
+            </div>
+          ) : showImage ? (
+            // Image: stacked. Image on top full-width, caption below
+            // (ExpandableText caps long captions).
+            <div className="flex flex-col gap-1.5">
+              <a
+                href={`/api/media/${mediaId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block -mx-1 -mt-1"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/media/${mediaId}`}
+                  alt={filename ?? 'image'}
+                  className="max-h-96 w-full rounded-lg object-contain"
+                  loading="lazy"
+                />
+              </a>
+              {captionText && (
+                <ExpandableText
+                  text={captionText}
+                  maxChars={240}
+                  className="text-xs leading-relaxed text-zinc-800 dark:text-zinc-100"
+                />
+              )}
             </div>
           ) : (
             <>
-              {showImage && (
-                <a
-                  href={`/api/media/${mediaId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block -mx-1 -mt-1 mb-1"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`/api/media/${mediaId}`}
-                    alt={filename ?? 'image'}
-                    className="max-h-80 w-full rounded-lg object-cover"
-                    loading="lazy"
-                  />
-                </a>
-              )}
-
               {showAudio && (
                 <audio
                   src={`/api/media/${mediaId}`}
@@ -177,7 +169,7 @@ export function MessageBubble({ message, showSender, isTail, transcript }: Bubbl
                 <p className="whitespace-pre-wrap break-words">{message.content}</p>
               )}
 
-              {!hasText && !showImage && !showAudio && !showFile && placeholderLabel && (
+              {!hasText && !showAudio && !showFile && placeholderLabel && (
                 <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-200">
                   <span className="text-base">{placeholderLabel}</span>
                 </div>
