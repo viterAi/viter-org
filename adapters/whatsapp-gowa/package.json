@@ -3,24 +3,34 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "RECOVERY.md"
+  ],
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./client": {
       "types": "./dist/client.d.ts",
-      "default": "./src/client.ts"
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
     },
     "./types": {
       "types": "./dist/types.d.ts",
-      "default": "./src/types.ts"
+      "import": "./dist/types.js",
+      "default": "./dist/types.js"
     },
     "./auth": {
       "types": "./dist/auth.d.ts",
-      "default": "./src/auth.ts"
+      "import": "./dist/auth.js",
+      "default": "./dist/auth.js"
     }
   },
   "scripts": {
