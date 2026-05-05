@@ -142,6 +142,12 @@ export default async function Dashboard() {
           </div>
           <nav className="flex flex-wrap items-center gap-2 text-sm">
             <Link
+              href="/chat"
+              className="rounded-md bg-emerald-700 px-3 py-1.5 font-medium text-white shadow-sm hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+            >
+              💬 Open chat
+            </Link>
+            <Link
               href="/settings/whatsapp"
               className="rounded-md border border-zinc-300 px-3 py-1.5 font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
             >
@@ -240,7 +246,7 @@ export default async function Dashboard() {
                         <span className="flex items-center gap-2">
                           <span className="font-medium text-zinc-700 dark:text-zinc-300">{sender}</span>
                           {ch && (
-                            <Link href={`/spaces/${ch.identifier}/inbox`} className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700">
+                            <Link href={`/chat/${ch.identifier}`} className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700">
                               {ch.display_name?.replace(/^WhatsApp · /, '') ?? ch.identifier}
                             </Link>
                           )}
@@ -275,7 +281,7 @@ export default async function Dashboard() {
               {channels.map((c) => (
                 <Link
                   key={c.id}
-                  href={`/spaces/${c.identifier}/inbox`}
+                  href={`/chat/${c.identifier}`}
                   className="rounded-lg border border-zinc-200 bg-white p-3 text-sm transition hover:border-zinc-400 hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600"
                 >
                   <p className="truncate font-medium">{c.display_name ?? c.identifier}</p>
