@@ -23,13 +23,39 @@ export function getServiceRoleClient(): SupabaseClient {
   return cached;
 }
 
-/** Resolve which tenant the current page should display.
- *  v0.1: hardcode to viter (single-tenant during scaffold).
- *  v0.2: pull from auth session.
+/**
+ * Resolve which tenant the current page should display.
+ *
+ * v0.2: lookup waterfall
+ *   1. auth session → tenant_members (first row, ordered admin > member)
+ *   2. fallback to env VITA_DEFAULT_TENANT_SLUG (defaults to 'viter')
+ *
+ * Webhook + cron paths run without an auth session — they fall through
+ * to the env-default. Page renders run with the cookie session.
  */
 export async function getCurrentTenantId(): Promise<string> {
   const db = getServiceRoleClient();
-  const { data, error } = await db.from('tenants').select('id').eq('slug', 'viter').single();
-  if (error || !data) throw new Error(`tenant 'viter' not found: ${error?.message}`);
+
+  // Prefer the signed-in user's tenant.
+  try {
+    const { getCurrentUser } = await import('./server-auth');
+    const user = await getCurrentUser();
+    if (user) {
+      const { data: membership } = await db
+        .from('tenant_members')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .order('role', { ascending: true })  // 'admin' < 'member' < 'viewer' alphabetically
+        .limit(1)
+        .maybeSingle();
+      if (membership) return membership.tenant_id as string;
+    }
+  } catch {
+    // No request context (background job / webhook). Fall through.
+  }
+
+  const slug = process.env.VITA_DEFAULT_TENANT_SLUG ?? 'viter';
+  const { data, error } = await db.from('tenants').select('id').eq('slug', slug).single();
+  if (error || !data) throw new Error(`default tenant '${slug}' not found: ${error?.message}`);
   return data.id as string;
 }
