@@ -44,7 +44,7 @@ export async function sendChatMessage(channelId: string, text: string): Promise<
   // 2. Pick a linked device to send from. v0.1: any device for this tenant.
   const { data: device } = await db
     .from('whatsapp_devices')
-    .select('id, gowa_device_id, phone_number')
+    .select('id, gowa_device_id, phone_number, metadata')
     .eq('tenant_id', tenantId)
     .eq('status', 'linked')
     .order('last_seen_at', { ascending: false, nullsFirst: false })
@@ -52,11 +52,18 @@ export async function sendChatMessage(channelId: string, text: string): Promise<
     .maybeSingle();
   if (!device) return { ok: false, error: 'no linked WhatsApp device — pair one in /settings/whatsapp' };
 
+  // gowa_device_id stores the JID (used for webhook lookup); REST API needs
+  // the GOWA UUID, kept in metadata.gowa_uuid. Older rows may have UUID in
+  // gowa_device_id directly.
+  const dmeta = (device.metadata ?? {}) as { gowa_uuid?: string };
+  const gowaRestId = dmeta.gowa_uuid ?? (isUuid(device.gowa_device_id as string) ? (device.gowa_device_id as string) : null);
+  if (!gowaRestId) return { ok: false, error: 'device has no gowa_uuid — re-pair via /settings/whatsapp' };
+
   // 3. Fire GOWA send
   let send;
   try {
     const gowa = getGowaClient();
-    send = await gowa.sendText(device.gowa_device_id as string, { phone: chatId, message: trimmed });
+    send = await gowa.sendText(gowaRestId, { phone: chatId, message: trimmed });
   } catch (err) {
     return { ok: false, error: `gowa send failed: ${(err as Error).message}` };
   }
@@ -80,6 +87,7 @@ export async function sendChatMessage(channelId: string, text: string): Promise<
       metadata: {
         gowa_message_id: send.message_id,
         gowa_device_id: device.gowa_device_id,
+        gowa_uuid: gowaRestId,
         chat_id: chatId,
         chat_slug: channel.identifier,
         from_me: true,
@@ -136,6 +144,10 @@ export async function sendChatMessage(channelId: string, text: string): Promise<
 
   revalidatePath(`/chat/${channel.identifier}`);
   return { ok: true, message_id: send.message_id };
+}
+
+function isUuid(s: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 }
 
 /** Inverse of chatIdToSlug — fall back when channel.metadata.chat_id is missing. */

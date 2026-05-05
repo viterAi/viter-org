@@ -42,11 +42,26 @@ function modalityLabel(m: MessageEvent): string | null {
   }
 }
 
+/** Returns the l0_artifact id of the actual media bytes for this event. */
+function mediaArtifactId(m: MessageEvent): string | null {
+  const attached = m.metadata.attachment_artifact_ids as string[] | undefined;
+  if (attached && attached.length > 0) return attached[0]!;
+  return m.artifact_id;
+}
+
 export function MessageBubble({ message, showSender, isTail, transcript }: BubbleProps) {
   const fromMe = message.from_me;
   const placeholderLabel = modalityLabel(message);
   const hasText = !!message.content && message.modality === 'text';
   const ack = message.metadata.last_ack as string | undefined;
+  const mediaId = mediaArtifactId(message);
+  const showImage = message.modality === 'image' && mediaId;
+  const showAudio = message.modality === 'voice' && mediaId;
+  const filename = (message.metadata.filename as string | undefined)
+    ?? (message.metadata.attachment_filenames as string[] | undefined)?.[0];
+  const showFile = message.modality === 'file' && mediaId;
+  const caption = (message.metadata.caption as string | undefined)
+    ?? (hasText ? null : (message.content || null));
 
   return (
     <div className={`flex w-full ${fromMe ? 'justify-end' : 'justify-start'}`}>
@@ -67,11 +82,53 @@ export function MessageBubble({ message, showSender, isTail, transcript }: Bubbl
               : ''}
           `}
         >
+          {showImage && (
+            <a
+              href={`/api/media/${mediaId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block -mx-1 -mt-1 mb-1"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/api/media/${mediaId}`}
+                alt={filename ?? 'image'}
+                className="max-h-80 w-full rounded-lg object-cover"
+                loading="lazy"
+              />
+            </a>
+          )}
+
+          {showAudio && (
+            <audio
+              src={`/api/media/${mediaId}`}
+              controls
+              preload="none"
+              className="my-0.5 w-full max-w-xs"
+            />
+          )}
+
+          {showFile && (
+            <a
+              href={`/api/media/${mediaId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="my-0.5 flex items-center gap-2 rounded-md bg-zinc-100 px-2 py-1.5 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
+            >
+              <span className="text-base">📎</span>
+              <span className="truncate text-xs">{filename ?? 'File'}</span>
+            </a>
+          )}
+
           {hasText && (
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
           )}
 
-          {!hasText && placeholderLabel && (
+          {!hasText && (showImage || showFile) && caption && (
+            <p className="mt-1 whitespace-pre-wrap break-words text-zinc-800 dark:text-zinc-100">{caption}</p>
+          )}
+
+          {!hasText && !showImage && !showAudio && !showFile && placeholderLabel && (
             <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-200">
               <span className="text-base">{placeholderLabel}</span>
             </div>
