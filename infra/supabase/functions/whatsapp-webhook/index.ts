@@ -36,6 +36,8 @@ import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supa
 const WEBHOOK_SECRET = Deno.env.get('GOWA_WEBHOOK_SECRET') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const GOWA_BASIC_AUTH = Deno.env.get('GOWA_BASIC_AUTH') ?? '';
+const MEDIA_BUCKET = 'l0-whatsapp';
 
 // ────────────────────────────────────────────────────────────────────
 // HMAC verification (inlined to avoid cross-package import in Deno EF)
@@ -133,6 +135,7 @@ interface ResolvedDevice {
   display_name: string | null;
   phone_number: string | null;
   status: string;
+  gowa_device_id: string;
 }
 
 async function resolveDevice(
@@ -141,7 +144,7 @@ async function resolveDevice(
 ): Promise<ResolvedDevice | null> {
   const { data, error } = await db
     .from('whatsapp_devices')
-    .select('id, tenant_id, channel_id, display_name, phone_number, status')
+    .select('id, tenant_id, channel_id, display_name, phone_number, status, gowa_device_id')
     .eq('gowa_device_id', gowaDeviceId)
     .maybeSingle();
   if (error) {
@@ -202,6 +205,97 @@ function chatIdToSlug(chatId: string): string {
   const isGroup = chatId.endsWith('@g.us');
   const local = chatId.replace(/@.*$/, '');
   return isGroup ? `wa-group-${local}` : `wa-${local}`;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Media download + storage (live mirror of zip-ingest's phase-1 upload)
+// ────────────────────────────────────────────────────────────────────
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', bytes);
+  return bufToHex(buf);
+}
+
+function mimeToExt(mime: string): string {
+  if (mime.startsWith('image/jpeg')) return 'jpg';
+  if (mime.startsWith('image/png')) return 'png';
+  if (mime.startsWith('image/webp')) return 'webp';
+  if (mime.startsWith('image/gif')) return 'gif';
+  if (mime.startsWith('audio/ogg')) return 'opus';
+  if (mime.startsWith('audio/mp4')) return 'm4a';
+  if (mime.startsWith('audio/mpeg')) return 'mp3';
+  if (mime.startsWith('audio/')) return 'opus';
+  if (mime.startsWith('video/mp4')) return 'mp4';
+  if (mime.startsWith('video/')) return 'mp4';
+  if (mime === 'application/pdf') return 'pdf';
+  if (mime === 'application/zip') return 'zip';
+  return 'bin';
+}
+
+function mimeToModality(mime: string): 'image' | 'voice' | 'video' | 'file' {
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('audio/')) return 'voice';
+  if (mime.startsWith('video/')) return 'video';
+  return 'file';
+}
+
+interface StoredMedia {
+  sourceUri: string;
+  storagePath: string;     // path within bucket
+  sha256: string;
+  bytes: number;
+  mimeType: string;
+  filename: string;
+  modality: ReturnType<typeof mimeToModality>;
+}
+
+async function downloadAndStoreMedia(
+  db: SupabaseClient,
+  device: ResolvedDevice,
+  msg: MessageData,
+  chatSlug: string,
+): Promise<StoredMedia | null> {
+  const url = msg.media?.url;
+  if (!url) return null;
+  const mimeType = msg.media?.mime_type ?? 'application/octet-stream';
+  const ext = mimeToExt(mimeType);
+  const filename = msg.media?.filename ?? `${msg.id}.${ext}`;
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  // Path: l0-whatsapp/live/<tenant_id>/<chat_slug>/<msg.id>-<filename>
+  const storagePath = `live/${device.tenant_id}/${chatSlug}/${msg.id}-${safeName}`;
+
+  // Auth: GOWA serves media behind basic auth.
+  const authHeader = GOWA_BASIC_AUTH ? `Basic ${btoa(GOWA_BASIC_AUTH)}` : '';
+  const headers: Record<string, string> = {};
+  if (authHeader) headers['Authorization'] = authHeader;
+
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    throw new Error(`gowa media fetch ${res.status} ${res.statusText} (${url})`);
+  }
+  const buf = new Uint8Array(await res.arrayBuffer());
+  const sha = await sha256Hex(buf);
+
+  const { error: upErr } = await db.storage
+    .from(MEDIA_BUCKET)
+    .upload(storagePath, buf, { contentType: mimeType, upsert: false });
+  if (upErr) {
+    const m = (upErr.message ?? '').toLowerCase();
+    if (!m.includes('exists') && !m.includes('duplicate')) {
+      throw new Error(`storage upload: ${upErr.message}`);
+    }
+    // already-exists is fine — same media re-delivered, dedupe via sha
+  }
+
+  return {
+    sourceUri: `${MEDIA_BUCKET}/${storagePath}`,
+    storagePath,
+    sha256: sha,
+    bytes: buf.length,
+    mimeType,
+    filename,
+    modality: mimeToModality(mimeType),
+  };
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -319,13 +413,88 @@ async function handleMessage(
     return { ok: true, l0_id: l0Id, l1_id: l1Row?.id as string | undefined };
   }
 
-  // Media → fire extract-attachment trigger.dev task
-  // For now we record intent; the actual trigger fire is wired by the
-  // packages/orchestrator integration (see wa-message-fan-out.ts task).
-  // The Edge Function does NOT call trigger.dev directly — too tight a coupling
-  // and Deno HTTP rate limits. Instead we mark the l0 row, and the orchestrator's
-  // `wa-message-listener` cron-task picks up unprocessed media artifacts.
-  return { ok: true, l0_id: l0Id, mediaJob: 'queued-for-extract-attachment' };
+  // Media: download bytes from GOWA, push to Supabase Storage, then
+  // insert the l1_event so the bubble actually renders. This is the
+  // live mirror of the zip-ingest phase-1 upload.
+  const chatSlug = chatIdToSlug(msg.chat_id);
+  let stored: StoredMedia | null = null;
+  try {
+    stored = await downloadAndStoreMedia(db, device, msg, chatSlug);
+  } catch (err) {
+    console.warn(`[wa-webhook] media download failed: ${(err as Error).message}`);
+    // Leave l0 with the gowa:// placeholder; a future backfill can retry.
+    return { ok: true, l0_id: l0Id, mediaJob: 'media-fetch-failed' };
+  }
+
+  if (!stored) {
+    return { ok: true, l0_id: l0Id, mediaJob: 'no-media-url' };
+  }
+
+  // Update l0 with the real storage URI + true sha256 + true bytes
+  await db
+    .from('l0_artifacts')
+    .update({
+      source_uri: stored.sourceUri,
+      sha256: stored.sha256,
+      bytes: stored.bytes,
+      metadata: {
+        gowa_message_id: msg.id,
+        gowa_device_id: device.gowa_device_id,
+        chat_id: msg.chat_id,
+        chat_slug: chatSlug,
+        from_id: msg.from_id ?? msg.from ?? msg.from_lid ?? null,
+        from_me: !!msg.from_me,
+        push_name: msg.push_name ?? msg.from_name ?? null,
+        message_type: msg.message_type ?? msg.type ?? null,
+        is_group: !!msg.is_group,
+        group_id: msg.group_id ?? null,
+        group_subject: msg.group_subject ?? null,
+        media: msg.media ?? null,
+        quoted_message_id: msg.quoted_message_id ?? null,
+        mentions: msg.mentions ?? [],
+        kind: stored.modality === 'voice' ? 'audio' : stored.modality,
+        mime_type: stored.mimeType,
+        filename: stored.filename,
+      },
+    })
+    .eq('id', l0Id);
+
+  // Insert the l1_event for the message itself so the bubble renders.
+  // Modality drives the UI (audio player vs <img> vs file chip).
+  const { data: l1Row, error: l1Err } = await db
+    .from('l1_events')
+    .insert({
+      tenant_id: device.tenant_id,
+      artifact_id: l0Id,
+      extraction_run_id: null,
+      facet: 'messages',
+      event_at: msg.timestamp,
+      position: 0,
+      actor_id: null,
+      channel_id: channelId,
+      modality: stored.modality,
+      content: msg.media?.caption ?? null,        // verbatim caption only; vision/OCR derive comes later
+      confidence: 1.0,
+      extraction_method: 'gowa-webhook@v8.4.0',
+      metadata: {
+        gowa_message_id: msg.id,
+        gowa_device_id: device.gowa_device_id,
+        push_name: msg.push_name ?? msg.from_name ?? null,
+        from_me: !!msg.from_me,
+        chat_id: msg.chat_id,
+        filename: stored.filename,
+        mime_type: stored.mimeType,
+        caption: msg.media?.caption ?? null,
+        duration_s: msg.media?.duration_seconds ?? null,
+        quoted_message_id: msg.quoted_message_id ?? null,
+      },
+    })
+    .select('id')
+    .single();
+  if (l1Err && l1Err.code !== '23505') {
+    return { ok: false, error: `l1 insert (media) failed: ${l1Err.message}` };
+  }
+  return { ok: true, l0_id: l0Id, l1_id: l1Row?.id as string | undefined, mediaJob: 'stored' };
 }
 
 async function handleMessageAck(db: SupabaseClient, device: ResolvedDevice, ack: { id: string; ack: string; timestamp: string }): Promise<{ ok: true }> {
