@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { MessageBubble } from './MessageBubble';
 import type { MessageEvent } from '@/lib/chat/types';
 import { getBrowserClient } from '@/lib/supabase/browser';
@@ -30,6 +31,7 @@ export function RealtimeStream({ channelId, initialIds }: RealtimeStreamProps) {
   const seenIds = useRef<Set<string>>(new Set(initialIds));
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stickyBottomRef = useRef(true);
+  const router = useRouter();
 
   // Detect whether the user is at the bottom of the scroll container
   useEffect(() => {
@@ -56,7 +58,7 @@ export function RealtimeStream({ channelId, initialIds }: RealtimeStreamProps) {
           const row = payload.new as Record<string, unknown>;
           const id = row.id as string;
           if (seenIds.current.has(id)) return;
-          if (!['messages', 'transcription', 'reaction', 'edit'].includes(row.facet as string)) return;
+          if (!['messages', 'transcription', 'reaction', 'edit', 'image_caption', 'doc_text'].includes(row.facet as string)) return;
           seenIds.current.add(id);
 
           const meta = (row.metadata ?? {}) as Record<string, unknown>;
@@ -72,6 +74,20 @@ export function RealtimeStream({ channelId, initialIds }: RealtimeStreamProps) {
             from_me: (meta as { from_me?: boolean }).from_me === true,
             push_name: ((meta as { push_name?: string }).push_name) ?? null,
           };
+
+          const isDerived = m.facet === 'transcription' || m.facet === 'image_caption' || m.facet === 'doc_text';
+          if (isDerived) {
+            // Derived companions belong attached to their parent bubble, not
+            // standalone. If the parent is in newMessages, our derivedIdx
+            // catches it. If the parent is SSR'd above this stream (initial
+            // page load), trigger an RSC refresh so the server re-renders
+            // with the companion folded in.
+            const parentInNewMessages = m.artifact_id && newMessages.some((x) => x.artifact_id === m.artifact_id && x.facet === 'messages');
+            if (!parentInNewMessages) {
+              router.refresh();
+              return;
+            }
+          }
 
           setNewMessages((prev) => [...prev, m]);
           if (!stickyBottomRef.current) {
@@ -96,13 +112,13 @@ export function RealtimeStream({ channelId, initialIds }: RealtimeStreamProps) {
     });
   }, [newMessages.length]);
 
-  // Don't render transcripts as separate bubbles — fold them into the
-  // matching parent message inline.
-  const transcriptIdx = new Map<string, MessageEvent>();
+  // Don't render derived L1s (transcription / image_caption / doc_text)
+  // as separate bubbles — fold them into the parent message bubble.
+  const derivedIdx = new Map<string, MessageEvent>();
   const renderable: MessageEvent[] = [];
   for (const m of newMessages) {
-    if (m.facet === 'transcription' && m.artifact_id) {
-      transcriptIdx.set(m.artifact_id, m);
+    if ((m.facet === 'transcription' || m.facet === 'image_caption' || m.facet === 'doc_text') && m.artifact_id) {
+      derivedIdx.set(m.artifact_id, m);
     } else {
       renderable.push(m);
     }
@@ -119,7 +135,7 @@ export function RealtimeStream({ channelId, initialIds }: RealtimeStreamProps) {
             message={m}
             showSender={i === 0 || renderable[i - 1]?.from_me !== m.from_me}
             isTail
-            transcript={m.artifact_id ? transcriptIdx.get(m.artifact_id) : undefined}
+            transcript={m.artifact_id ? derivedIdx.get(m.artifact_id) : undefined}
           />
         ))}
       </div>
