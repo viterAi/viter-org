@@ -74,23 +74,32 @@ async function verifyHmac(secret: string, body: string, headerSig: string | null
 
 interface WebhookEnvelope {
   event: string;
-  device_id: string;
+  device_id: string;                 // GOWA sends JID format e.g. '972524814613@s.whatsapp.net'
   timestamp?: string;
-  data: Record<string, unknown>;
+  // GOWA's actual field name is `payload`. We accept both for compatibility.
+  payload?: Record<string, unknown>;
+  data?: Record<string, unknown>;
 }
 
 interface MessageData {
   id: string;
   chat_id: string;
-  from_id: string;
-  from_me?: boolean;
-  push_name?: string;
+  // GOWA uses `from` and `from_lid` rather than `from_id`. Accept all.
+  from?: string;
+  from_id?: string;
+  from_lid?: string;
+  from_name?: string;                // GOWA's display-name field
+  push_name?: string;                // some events use this
+  is_from_me?: boolean;              // GOWA's actual key
+  from_me?: boolean;                 // alt
   timestamp: string;
   is_group?: boolean;
   group_id?: string;
   group_subject?: string;
-  message_type: string;
-  text?: string;
+  message_type?: string;             // sometimes absent — infer from `body` vs media
+  type?: string;                     // alt
+  body?: string;                     // GOWA's text field
+  text?: string;                     // alt
   media?: {
     url?: string;
     mime_type?: string;
@@ -428,39 +437,51 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return jsonResp({ skipped: true, reason: 'unknown device', device_id: envelope.device_id });
   }
 
+  // Accept both `payload` (GOWA's actual field name) and `data` (our spec).
+  const eventData = (envelope.payload ?? envelope.data ?? {}) as Record<string, unknown>;
   const webhookReceivedAt = new Date().toISOString();
 
   try {
     switch (envelope.event) {
       case 'message': {
-        const result = await handleMessage(db, device, envelope.data as unknown as MessageData, webhookReceivedAt);
+        const raw = eventData as unknown as MessageData;
+        // Normalize GOWA's field variants to the ones handleMessage expects.
+        const msg: MessageData = {
+          ...raw,
+          from_id: raw.from_id ?? raw.from ?? raw.from_lid ?? '',
+          push_name: raw.push_name ?? raw.from_name,
+          from_me: raw.from_me ?? raw.is_from_me ?? false,
+          message_type: raw.message_type ?? raw.type ?? (raw.body ? 'text' : (raw.media ? 'media' : 'unknown')),
+          text: raw.text ?? raw.body,
+        };
+        const result = await handleMessage(db, device, msg, webhookReceivedAt);
         return jsonResp({ ok: result.ok, ...result });
       }
       case 'message.ack': {
-        const result = await handleMessageAck(db, device, envelope.data as unknown as { id: string; ack: string; timestamp: string });
+        const result = await handleMessageAck(db, device, eventData as unknown as { id: string; ack: string; timestamp: string });
         return jsonResp(result);
       }
       case 'message.reaction':
       case 'message.revoke':
       case 'message.edited': {
-        const result = await handleMessageReactionRevokeEdit(db, device, envelope.event, envelope.data);
+        const result = await handleMessageReactionRevokeEdit(db, device, envelope.event, eventData);
         return jsonResp(result);
       }
       case 'device.connection.update':
       case 'device.disconnected':
       case 'device.banned': {
-        const result = await handleDeviceConnectionUpdate(db, device, envelope.data as unknown as DeviceConnectionData);
+        const result = await handleDeviceConnectionUpdate(db, device, eventData as unknown as DeviceConnectionData);
         return jsonResp(result);
       }
       case 'pair.qr.consumed': {
-        const result = await handlePairQrConsumed(db, device, envelope.data as { phone_number?: string });
+        const result = await handlePairQrConsumed(db, device, eventData as { phone_number?: string });
         return jsonResp(result);
       }
       default:
         // Unknown / unhandled events: ack so GOWA doesn't retry, but record
         // them so we can audit what we're missing.
         await db.from('whatsapp_devices').update({
-          metadata: { last_unhandled_event: { event: envelope.event, at: webhookReceivedAt, data: envelope.data } },
+          metadata: { last_unhandled_event: { event: envelope.event, at: webhookReceivedAt, data: eventData } },
         }).eq('id', device.id);
         return jsonResp({ skipped: true, reason: 'unhandled event', event: envelope.event });
     }
