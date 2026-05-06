@@ -29,3 +29,17 @@ export type {
   MeetingTranscribeArgs,
   MeetingTranscribeResult,
 } from './transcribe.js';
+
+export {
+  diarizeChunk,
+  diarizeMeeting,
+  DIARIZE_DEFAULT_MODEL,
+  DIARIZE_EXTRACTOR_VERSION,
+} from './diarize.js';
+
+export type {
+  SpeakerHint,
+  DiarizedSegment,
+  DiarizeChunkArgs,
+  DiarizeChunkResult,
+} from './diarize.js';
