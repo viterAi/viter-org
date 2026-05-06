@@ -10,7 +10,7 @@
  * OpenRouter response, retries alone, doesn't block the other 104.
  */
 
-import { schemaTask, tags, metadata } from '@trigger.dev/sdk';
+import { schemaTask, tags, metadata, logger } from '@trigger.dev/sdk';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 
@@ -95,6 +95,39 @@ export const extractAttachment = schemaTask({
       source: 'trigger:extract-attachment',
     });
 
+    // Registry-driven model selection. Query public.extractor_metadata for the
+    // cheapest active extractor whose facet matches. Falls back to the per-
+    // extractor hardcoded default (e.g. AUDIO_DEFAULT_MODEL in audio.ts) if
+    // the registry lookup fails OR returns no match — preserves prior behavior
+    // when the registry is unseeded/down/misconfigured.
+    let modelOverride: string | undefined;
+    let registryToolKey: string | undefined;
+    try {
+      const { data: tool } = await supabase
+        .from('extractor_metadata')
+        .select('id, pricing_model')
+        .eq('intended_status', 'active')
+        .eq('direction', 'extract')
+        .eq('facet', facet)
+        .order('pricing_model->>usd_per_hour', { ascending: true, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      if (tool?.id) {
+        // Registry id format: '<provider>:<model>@<version>' OR
+        // '<plain-name>@<version>' for in-process tools (no colon, skipped here
+        // since in-process tools don't return network model strings).
+        const m = tool.id.match(/^([^:]+):(.+)@(.+)$/);
+        if (m) {
+          modelOverride = m[2];        // e.g. 'openai/whisper-large-v3-turbo'
+          registryToolKey = tool.id;   // full registry id for audit
+        }
+      }
+    } catch (err) {
+      // Defensive: never let registry-lookup failure break extraction.
+      // Audit trail captures the error; hardcoded default kicks in below.
+      logger.warn(`registry lookup failed (using hardcoded default): ${(err as Error).message}`);
+    }
+
     // Dispatch
     const t0 = Date.now();
     const result = await dispatchExtract(
@@ -102,6 +135,7 @@ export const extractAttachment = schemaTask({
       {
         openrouterApiKey: process.env.OPENROUTER_API_KEY,
         logger: llmLogger,
+        modelOverride,
         scopeKind: 'l0_artifact',
         scopeKey: payload.artifact_id,
         // Forwarded to OpenRouter Broadcast → OTLP → openrouter-webhook
@@ -118,6 +152,8 @@ export const extractAttachment = schemaTask({
           facet,
           channel_id: payload.channel_id ?? null,
           actor_id: payload.actor_id ?? null,
+          // Registry-driven model selection metadata for audit.
+          registry_tool_key: registryToolKey ?? null,
         },
       },
     );
