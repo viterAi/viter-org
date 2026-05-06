@@ -96,30 +96,40 @@ export const extractAttachment = schemaTask({
     });
 
     // Registry-driven model selection. Query public.extractor_metadata for the
-    // cheapest active extractor whose facet matches. Falls back to the per-
-    // extractor hardcoded default (e.g. AUDIO_DEFAULT_MODEL in audio.ts) if
-    // the registry lookup fails OR returns no match — preserves prior behavior
-    // when the registry is unseeded/down/misconfigured.
+    // cheapest active network-backed extractor whose facet matches. Falls back
+    // to the per-extractor hardcoded default (e.g. AUDIO_DEFAULT_MODEL in
+    // audio.ts) if the registry lookup fails OR returns no match — preserves
+    // prior behavior when the registry is unseeded/down/misconfigured.
+    //
+    // Filters provider != 'in-process' so the registry only suggests network
+    // model strings (whisper, gemini, etc.); in-process tools are dispatched
+    // by mime/extension, not by registry.
     let modelOverride: string | undefined;
     let registryToolKey: string | undefined;
     try {
       const { data: tool } = await supabase
         .from('extractor_metadata')
-        .select('id, pricing_model')
+        .select('id, provider, pricing_model')
         .eq('intended_status', 'active')
         .eq('direction', 'extract')
         .eq('facet', facet)
+        .neq('provider', 'in-process')
         .order('pricing_model->>usd_per_hour', { ascending: true, nullsFirst: false })
         .limit(1)
         .maybeSingle();
       if (tool?.id) {
-        // Registry id format: '<provider>:<model>@<version>' OR
-        // '<plain-name>@<version>' for in-process tools (no colon, skipped here
-        // since in-process tools don't return network model strings).
-        const m = tool.id.match(/^([^:]+):(.+)@(.+)$/);
-        if (m) {
-          modelOverride = m[2];        // e.g. 'openai/whisper-large-v3-turbo'
-          registryToolKey = tool.id;   // full registry id for audit
+        // Registry id formats accepted:
+        //   'openrouter:openai/whisper-large-v3-turbo@2026-05-06' (provider prefix)
+        //   'google/gemini-3.1-flash-lite-preview@2026-05-04'     (no prefix)
+        // Use lastIndexOf('@') to handle versions that contain '.' or '-' cleanly.
+        const atIdx = tool.id.lastIndexOf('@');
+        if (atIdx > 0) {
+          const beforeAt = tool.id.slice(0, atIdx);
+          const colonIdx = beforeAt.indexOf(':');
+          // Strip the optional provider prefix; the rest is the model string
+          // we pass to OpenRouter / vendor SDK.
+          modelOverride = colonIdx > 0 ? beforeAt.slice(colonIdx + 1) : beforeAt;
+          registryToolKey = tool.id;
         }
       }
     } catch (err) {
