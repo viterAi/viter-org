@@ -73,12 +73,24 @@ export const waMessageFanOut = schedules.task({
       if (!media?.url) continue;
 
       try {
+        // The webhook (downloadAndStoreMedia in whatsapp-webhook/index.ts) uploads
+        // GOWA media bytes into the `l0-whatsapp` bucket and writes the resulting
+        // bucket-prefixed path into l0_artifacts.source_uri (e.g.
+        //   "l0-whatsapp/live/<tenant>/<chat>/<msg-id>-<filename>").
+        // extract-attachment.ts:80 calls `storage.from('l0-whatsapp').download(remote_path)`,
+        // which expects a path RELATIVE to the bucket. Strip the bucket prefix here.
+        // Falls back to media.url if source_uri shape is unexpected (e.g. legacy rows
+        // ingested before downloadAndStoreMedia was wired).
+        const sourceUri = art.source_uri ?? '';
+        const remotePath = sourceUri.startsWith('l0-whatsapp/')
+          ? sourceUri.slice('l0-whatsapp/'.length)
+          : media.url;
         await tasks.trigger('extract-attachment', {
           tenant_id: art.tenant_id,
           artifact_id: art.id,
           filename: media.filename ?? `wa-${art.id}.bin`,
           mime: media.mime_type ?? 'application/octet-stream',
-          remote_path: media.url,                            // GOWA media URL
+          remote_path: remotePath,                           // bucket-relative path
           channel_id: null,                                  // resolved by the task
           origin_at: art.origin_at,
           actor_id: null,
