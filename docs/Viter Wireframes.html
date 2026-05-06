@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>viter — wireframes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Caveat:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css" />
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="left-rail.jsx"></script>
+<script type="text/babel" src="right-rail.jsx"></script>
+<script type="text/babel" src="space-canvas.jsx"></script>
+<script type="text/babel" src="source-canvas.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "activeSpace": "src-xero",
+  "activeTab": "Activity",
+  "timeRange": "Today",
+  "railVariant": "standard",
+  "chatVisible": true,
+  "chatVariant": "docked",
+  "attentionVariant": "bar",
+  "metricVariant": "sparkline",
+  "spaceLayout": "default",
+  "showAnnotations": true
+}/*EDITMODE-END*/;
+
+// ── App frame: full 3-zone shell (live, interactive) ─────────────
+function AppFrame({ tweaks, setTweak, fixed }) {
+  const t = fixed || tweaks;
+  const railV  = t.railVariant;
+  const chatOn = t.chatVisible;
+
+  const isSource = t.activeSpace.startsWith('src-');
+  const sourceId = isSource ? t.activeSpace.slice(4) : null;
+
+  const onPick = (kind, id) => {
+    if (kind === 'space') setTweak('activeSpace', id);
+    else setTweak('activeSpace', `src-${id}`);
+  };
+
+  const scopeLabel = isSource
+    ? sourceId.charAt(0).toUpperCase() + sourceId.slice(1)
+    : SPACE_CONFIG[t.activeSpace]?.name || 'Sales';
+
+  return (
+    <div style={{
+      display: 'flex', gap: 8, padding: 8,
+      background: 'var(--bg-page)',
+      width: '100%', height: '100%',
+      minHeight: 0, minWidth: 0,
+    }}>
+      <LeftRail
+        variant={railV}
+        activeKind={isSource ? 'source' : 'space'}
+        activeId={isSource ? sourceId : t.activeSpace}
+        onPick={onPick}
+      />
+      {isSource ? (
+        <SourceCanvasEmail
+          timeRange={t.timeRange}
+          onTimeChange={(v) => setTweak('timeRange', v)}
+        />
+      ) : (
+        <SpaceCanvas
+          space={t.activeSpace}
+          layout={t.spaceLayout}
+          attentionVariant={t.attentionVariant}
+          metricVariant={t.metricVariant}
+          tab={t.activeTab}
+          timeRange={t.timeRange}
+          onTabChange={(v) => setTweak('activeTab', v)}
+          onTimeChange={(v) => setTweak('timeRange', v)}
+        />
+      )}
+      {chatOn && (
+        <RightRail
+          scope={scopeLabel}
+          variant={t.chatVariant}
+          onClose={() => setTweak('chatVisible', false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Static helper that renders a fixed config so artboards are independent
+function StaticAppFrame(cfg) {
+  // merge with defaults so unspecified knobs don't crash
+  const t = { ...TWEAK_DEFAULTS, ...cfg };
+  return <AppFrame tweaks={t} setTweak={() => {}} fixed={t} />;
+}
+
+// ─── Mini-frame: just one zone (for variant studies) ──────────────
+function ZoneFrame({ children, w = 720, h = 520 }) {
+  return (
+    <div style={{
+      width: w, height: h, padding: 8,
+      background: 'var(--bg-page)',
+      display: 'flex', minHeight: 0,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+// Annotation overlay for the canvas brief
+function Caption({ children }) {
+  return (
+    <div style={{
+      position: 'absolute', top: -28, left: 4,
+      fontFamily: 'var(--font-hand)', fontSize: 18,
+      color: 'var(--ink-secondary)',
+    }}>{children}</div>
+  );
+}
+
+// ── App ──────────────────────────────────────────────────────────
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  return (
+    <>
+      <DesignCanvas
+        title="viter — wireframe explorations"
+        subtitle="Mid-fi · 5+ variations across rail, attention, metrics, layout, chat. Drag artboards to reorder; double-click a label to rename; click ⤢ to focus."
+        background="var(--bg-page)"
+      >
+        {/* ── 1 · LIVE SHELL ──────────────────────────────────────── */}
+        <DCSection id="live" title="Live shell" subtitle="The full 3-zone app — driven by the Tweaks panel. Click rails to swap.">
+          <DCArtboard id="live-app" label="Interactive · 1440 × 900" width={1440} height={900}>
+            <AppFrame tweaks={t} setTweak={setTweak} />
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── 2 · LEFT RAIL VARIANTS ──────────────────────────────── */}
+        <DCSection id="rails" title="Left rail" subtitle="Five takes on navigation density and structure">
+          <DCArtboard id="rail-standard" label="A · Standard (default)" width={172} height={520}>
+            <ZoneFrame w={172} h={520}><LeftRail variant="standard" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="rail-grouped"  label="B · Divider between sections" width={172} height={520}>
+            <ZoneFrame w={172} h={520}><LeftRail variant="grouped" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="rail-sectioned" label="C · + Pinned section" width={184} height={520}>
+            <ZoneFrame w={184} h={520}><LeftRail variant="sectioned" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="rail-collapsed" label="D · Collapsed" width={60} height={520}>
+            <ZoneFrame w={60} h={520}><LeftRail variant="collapsed" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="rail-source-active" label="E · Source active" width={172} height={520}>
+            <ZoneFrame w={172} h={520}><LeftRail variant="standard" activeKind="source" activeId="email" /></ZoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── 3 · ATTENTION CARD VARIANTS ─────────────────────────── */}
+        <DCSection id="attention" title="‘Needs attention’ cards" subtitle="Same content, five styling treatments. Color encodes urgency.">
+          {['bar','dot','inset','left-tint','flag'].map((v, i) => (
+            <DCArtboard key={v} id={`att-${v}`}
+                        label={`${String.fromCharCode(65+i)} · ${v}`}
+                        width={420} height={300}>
+              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--bg-surface)', height: '100%' }}>
+                <SectionLabel>Needs attention</SectionLabel>
+                <div style={{ height: 6 }} />
+                <AttentionCard status="warn"   title="Bayer Q3 quote pending 3 days" meta="Email · Brigitte M. · 3d" right="€18,400"     variant={v} />
+                <AttentionCard status="info"   title="Henkel asked for revised tier" meta="Front · 2h"                right="Reply needed" variant={v} />
+                <AttentionCard status="danger" title="Linde renewal overdue"        meta="Plunet · 6d past target"   right="€42,000"     variant={v} />
+                <AttentionCard status="good"   title="BASF approved internally"     meta="Plunet · 4h ago"           right="Acknowledge"  variant={v} />
+              </div>
+            </DCArtboard>
+          ))}
+        </DCSection>
+
+        {/* ── 4 · METRIC CARD VARIANTS ────────────────────────────── */}
+        <DCSection id="metrics" title="Pipeline metric cards" subtitle="Same 4 metrics, five card patterns.">
+          {['plain','split','sparkline','inline','big'].map((v, i) => (
+            <DCArtboard key={v} id={`met-${v}`}
+                        label={`${String.fromCharCode(65+i)} · ${v}`}
+                        width={520} height={200}>
+              <div style={{ padding: 16, background: 'var(--bg-surface)', height: '100%' }}>
+                <SectionLabel>Pipeline</SectionLabel>
+                <div style={{ height: 8 }} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                  <MetricCard label="Open quotes"    value="12"    hint="4 awaiting reply" variant={v} />
+                  <MetricCard label="In negotiation" value="€312k" delta="+8%"             variant={v} />
+                  <MetricCard label="Won this week"  value="€48k"  delta="+€18k"           variant={v} />
+                  <MetricCard label="Forecast Q"     value="€1.4M" hint="72% conf."        variant={v} />
+                </div>
+              </div>
+            </DCArtboard>
+          ))}
+        </DCSection>
+
+        {/* ── 5 · SPACE — full canvas, three Spaces ───────────────── */}
+        <DCSection id="spaces" title="Space view — Sales / Operations / Finance" subtitle="Full canvas, default layout, 1140-px center column">
+          <DCArtboard id="space-sales" label="Sales (default layout)" width={1140} height={920}>
+            <ZoneFrame w={1140} h={920}>
+              <SpaceCanvas space="sales" tab="Activity" timeRange="Week" />
+            </ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="space-ops" label="Operations" width={1140} height={920}>
+            <ZoneFrame w={1140} h={920}>
+              <SpaceCanvas space="operations" tab="Activity" timeRange="Week" attentionVariant="dot" metricVariant="split" />
+            </ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="space-finance" label="Finance" width={1140} height={920}>
+            <ZoneFrame w={1140} h={920}>
+              <SpaceCanvas space="finance" tab="Activity" timeRange="Quarter" attentionVariant="left-tint" metricVariant="sparkline" />
+            </ZoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── 6 · SPACE LAYOUT VARIANTS ───────────────────────────── */}
+        <DCSection id="layouts" title="Space layout variants" subtitle="Reordering and re-massing of the same sections">
+          <DCArtboard id="lay-default" label="A · Attention first (default)" width={980} height={760}>
+            <ZoneFrame w={980} h={760}><SpaceCanvas space="sales" layout="default" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="lay-metrics" label="B · Metrics first" width={980} height={760}>
+            <ZoneFrame w={980} h={760}><SpaceCanvas space="sales" layout="metrics-first" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="lay-dense" label="C · Dense — attention + metrics side-by-side" width={980} height={760}>
+            <ZoneFrame w={980} h={760}><SpaceCanvas space="sales" layout="dense" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="lay-kanban" label="D · + Pipeline kanban add-on" width={980} height={920}>
+            <ZoneFrame w={980} h={920}><SpaceCanvas space="sales" layout="kanban" /></ZoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── 7 · TAB CONTENT ─────────────────────────────────────── */}
+        <DCSection id="tabs" title="Tab content" subtitle="Activity / Workflows / People — same Space, different tab">
+          <DCArtboard id="tab-activity" label="Activity feed" width={780} height={620}>
+            <ZoneFrame w={780} h={620}><SpaceCanvas space="sales" tab="Activity" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="tab-workflows" label="Workflows" width={780} height={620}>
+            <ZoneFrame w={780} h={620}><SpaceCanvas space="sales" tab="Workflows" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="tab-people" label="People" width={780} height={620}>
+            <ZoneFrame w={780} h={620}><SpaceCanvas space="sales" tab="People" /></ZoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── 8 · SOURCE — Email substrate ────────────────────────── */}
+        <DCSection id="source" title="Source view — Email substrate" subtitle="Curated, opinionated surface — not the source's UI replicated">
+          <DCArtboard id="src-email" label="Email · default" width={1140} height={920}>
+            <ZoneFrame w={1140} h={920}><SourceCanvasEmail timeRange="Week" /></ZoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── 9 · CHAT RAIL VARIANTS ──────────────────────────────── */}
+        <DCSection id="chat" title="Right rail — AI chat" subtitle="Scoped to current Space/Source. Three behavioral variants.">
+          <DCArtboard id="chat-docked" label="A · Docked w/ thread" width={252} height={620}>
+            <ZoneFrame w={252} h={620}><RightRail scope="Sales" variant="docked" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="chat-minimal" label="B · Minimal (empty state)" width={252} height={620}>
+            <ZoneFrame w={252} h={620}><RightRail scope="Operations" variant="minimal" /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="chat-source" label="C · Scoped to Email source" width={252} height={620}>
+            <ZoneFrame w={252} h={620}><RightRail scope="Email" variant="docked" /></ZoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── 10 · EMPTY STATES ───────────────────────────────────── */}
+        <DCSection id="empty" title="Empty states" subtitle="What new tenants or quiet weeks look like">
+          <DCArtboard id="empty-attention" label="A · Caught up — no attention items" width={780} height={620}>
+            <ZoneFrame w={780} h={620}><SpaceCanvas space="sales" emptyAttention /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="empty-workflows" label="B · No workflows" width={780} height={620}>
+            <ZoneFrame w={780} h={620}><SpaceCanvas space="sales" tab="Workflows" emptyWorkflows /></ZoneFrame>
+          </DCArtboard>
+          <DCArtboard id="empty-fresh" label="C · Brand-new tenant — no spaces" width={780} height={500}>
+            <div style={{
+              padding: 8, background: 'var(--bg-page)', display: 'flex', gap: 8, width: '100%', height: '100%',
+            }}>
+              <LeftRail variant="standard" spaces={[]} sources={[]} />
+              <div style={{ ...Z.zone, flex: 1, display: 'grid', placeItems: 'center', padding: 32, textAlign: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 500, marginBottom: 8 }}>Welcome to viter.</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-secondary)', marginBottom: 18, maxWidth: 360, lineHeight: 1.5 }}>
+                    Connect a source or create a Space. Spaces collect everything that matters for a part of your business — across email, Plunet, Xero and more.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                    <button style={{ all: 'unset', cursor: 'pointer', fontSize: 12, padding: '8px 14px', borderRadius: 4, background: 'var(--ink-primary)', color: 'var(--bg-surface)' }}>Connect first source</button>
+                    <button style={{ all: 'unset', cursor: 'pointer', fontSize: 12, padding: '8px 14px', borderRadius: 4, color: 'var(--ink-primary)', boxShadow: 'inset 0 0 0 0.5px var(--line-strong)' }}>Create a Space</button>
+                  </div>
+                </div>
+              </div>
+              <RightRail scope="Workspace" variant="minimal" />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+      </DesignCanvas>
+
+      {/* ── Tweaks panel ─────────────────────────────────────────── */}
+      <TweaksPanel>
+        <TweakSection label="Active view" />
+        <TweakRadio label="Space"
+          value={t.activeSpace.startsWith('src-') ? 'source' : t.activeSpace}
+          options={['sales','operations','finance','source']}
+          onChange={(v) => setTweak('activeSpace', v === 'source' ? 'src-email' : v)} />
+        <TweakRadio label="Tab" value={t.activeTab}
+          options={['Activity','Workflows','People']}
+          onChange={(v) => setTweak('activeTab', v)} />
+        <TweakRadio label="Time" value={t.timeRange}
+          options={['Today','Week','Quarter','Custom']}
+          onChange={(v) => setTweak('timeRange', v)} />
+
+        <TweakSection label="Shell" />
+        <TweakSelect label="Left rail" value={t.railVariant}
+          options={['standard','grouped','sectioned','collapsed']}
+          onChange={(v) => setTweak('railVariant', v)} />
+        <TweakToggle label="Chat rail" value={t.chatVisible}
+          onChange={(v) => setTweak('chatVisible', v)} />
+        <TweakRadio label="Chat mode" value={t.chatVariant}
+          options={['docked','minimal','thread']}
+          onChange={(v) => setTweak('chatVariant', v)} />
+
+        <TweakSection label="Canvas styling" />
+        <TweakSelect label="Layout" value={t.spaceLayout}
+          options={['default','metrics-first','dense','kanban']}
+          onChange={(v) => setTweak('spaceLayout', v)} />
+        <TweakSelect label="Attention card" value={t.attentionVariant}
+          options={['bar','dot','inset','left-tint','flag']}
+          onChange={(v) => setTweak('attentionVariant', v)} />
+        <TweakSelect label="Metric card" value={t.metricVariant}
+          options={['plain','split','sparkline','inline','big']}
+          onChange={(v) => setTweak('metricVariant', v)} />
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

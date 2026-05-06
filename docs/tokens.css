@@ -1,0 +1,68 @@
+/* ─────────────────────────────────────────────────────────────
+   Mid-fi wireframe tokens — a tiny, opinionated system.
+   Real type, light color, no heavy chrome. Sketch energy
+   comes from spacing rhythm and restraint, not decoration.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* type — Inter as workhorse, Caveat for sketch annotations */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --font-hand: 'Caveat', 'Inter', cursive;
+
+  /* surfaces */
+  --bg-page:        #F4F2EE;   /* warm off-white page */
+  --bg-surface:     #FFFFFF;   /* card / zone surface */
+  --bg-secondary:   #F7F5F1;   /* nested surface tint */
+  --bg-tertiary:    #EFEBE4;   /* hover / chip */
+
+  /* ink */
+  --ink-primary:    #1A1A1A;
+  --ink-secondary:  #5A5650;
+  --ink-tertiary:   #9A938A;
+  --ink-quaternary: #C7BFB4;
+
+  /* lines */
+  --line-thin:      rgba(26, 26, 26, 0.08);
+  --line-strong:    rgba(26, 26, 26, 0.16);
+
+  /* accents — used very sparingly */
+  --accent:         #2F5BFF;   /* info / active */
+  --accent-tint:    #E6ECFF;
+  --warn:           #C58A1B;   /* amber */
+  --warn-tint:      #FBF1DC;
+  --danger:         #C2410C;   /* red */
+  --danger-tint:    #FBE7DC;
+  --good:           #2D7A4F;   /* green */
+  --good-tint:      #DEF0E5;
+
+  /* radii / spacing */
+  --r-zone:   8px;
+  --r-card:   6px;
+  --r-chip:   4px;
+
+  /* shadows — almost none */
+  --shadow-zone: 0 0 0 0.5px var(--line-thin);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  color: var(--ink-primary);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+/* utility — sketchy 0.5px hairline that prints */
+.hair { box-shadow: inset 0 0 0 0.5px var(--line-strong); }
+.hair-soft { box-shadow: inset 0 0 0 0.5px var(--line-thin); }
+
+/* annotation type */
+.note {
+  font-family: var(--font-hand);
+  color: var(--ink-tertiary);
+  font-size: 18px;
+  line-height: 1.1;
+}
