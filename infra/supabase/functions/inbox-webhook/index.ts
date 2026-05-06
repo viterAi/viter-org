@@ -2,8 +2,16 @@
  * inbox-webhook — Supabase Edge Function (Deno runtime).
  *
  * Fires on Storage object-created events for objects under `inbox/`.
- * Validates the path shape (`inbox/<tenant>/<chat>/<filename>.zip`) and
- * triggers the Trigger.dev `ingest-zip` orchestrator.
+ * Dispatches to the right Trigger.dev task based on the path shape:
+ *
+ *   3-part: `inbox/<tenant>/<chat>/<filename>.zip`
+ *     → triggers `ingest-zip` (WhatsApp archive)
+ *
+ *   4-part w/ "meetings" lane:
+ *     `inbox/<tenant>/meetings/<slug>/<filename>.<ext>`  (audio/m4a, mp3, wav, mp4 …)
+ *     → triggers `ingest-meeting` (long-form audio)
+ *
+ * Anything else → no-op (so misnamed drops don't fail loudly during human use).
  *
  * verify_jwt is intentionally disabled — Supabase's database webhook
  * dispatcher does not include the user JWT, only an internal auth header.
@@ -17,6 +25,10 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 const TRIGGER_API_BASE = 'https://api.trigger.dev/api/v1';
+
+const AUDIO_EXTENSIONS = new Set([
+  'm4a', 'mp4', 'mp3', 'wav', 'opus', 'ogg', 'mov', 'webm',
+]);
 
 interface StorageWebhookPayload {
   type?: string;
@@ -40,8 +52,6 @@ Deno.serve(async (req: Request) => {
     return new Response('Invalid JSON', { status: 400 });
   }
 
-  // Reject non-storage-objects events (the webhook should be filtered to
-  // storage.objects but be defensive).
   if (payload.schema !== 'storage' || payload.table !== 'objects') {
     return jsonResp({ skipped: true, reason: 'not-storage-objects', got: { schema: payload.schema, table: payload.table } });
   }
@@ -52,53 +62,80 @@ Deno.serve(async (req: Request) => {
   }
 
   const objectPath = payload.record?.name ?? '';
-  if (!objectPath.toLowerCase().endsWith('.zip')) {
-    return jsonResp({ skipped: true, reason: 'not-a-zip', path: objectPath });
+  if (!objectPath) {
+    return jsonResp({ skipped: true, reason: 'no-path' });
   }
-
-  // Path shape: <tenant_slug>/<chat_slug>/<filename>.zip
-  const parts = objectPath.split('/');
-  if (parts.length < 3) {
-    return jsonResp({ skipped: true, reason: 'bad-path-shape', path: objectPath });
-  }
-  const tenant_slug = parts[0]!;
-  const chat_slug = parts[1]!;
 
   const triggerKey = Deno.env.get('TRIGGER_SECRET_KEY');
   if (!triggerKey) return new Response('TRIGGER_SECRET_KEY not set', { status: 500 });
 
-  const triggerRes = await fetch(`${TRIGGER_API_BASE}/tasks/ingest-zip/trigger`, {
+  const parts = objectPath.split('/');
+  const lower = objectPath.toLowerCase();
+  const ext = lower.includes('.') ? lower.slice(lower.lastIndexOf('.') + 1) : '';
+
+  // ── Path-shape dispatch ──
+  // 4-part meeting path takes precedence: <tenant>/meetings/<slug>/<file>
+  if (parts.length >= 4 && parts[1] === 'meetings') {
+    if (!AUDIO_EXTENSIONS.has(ext)) {
+      return jsonResp({ skipped: true, reason: 'meeting-path-but-not-audio', path: objectPath, ext });
+    }
+    const tenant_slug = parts[0]!;
+    const meeting_slug = parts[2]!;
+    return await triggerTask(triggerKey, 'ingest-meeting', {
+      tenant_slug,
+      meeting_slug,
+      inbox_path: objectPath,
+      inbox_bucket: 'inbox',
+    }, { idempotencyKey: `inbox:${objectPath}`, route: { tenant_slug, meeting_slug, path: objectPath } });
+  }
+
+  // 3-part WhatsApp zip path: <tenant>/<chat>/<file>.zip
+  if (parts.length >= 3 && lower.endsWith('.zip')) {
+    const tenant_slug = parts[0]!;
+    const chat_slug = parts[1]!;
+    return await triggerTask(triggerKey, 'ingest-zip', {
+      tenant_slug,
+      chat_slug,
+      inbox_path: objectPath,
+      inbox_bucket: 'inbox',
+    }, { idempotencyKey: `inbox:${objectPath}`, route: { tenant_slug, chat_slug, path: objectPath } });
+  }
+
+  return jsonResp({ skipped: true, reason: 'unrecognized-path-shape', path: objectPath, parts: parts.length });
+});
+
+async function triggerTask(
+  secretKey: string,
+  taskId: string,
+  payload: Record<string, unknown>,
+  meta: { idempotencyKey: string; route: Record<string, unknown> },
+): Promise<Response> {
+  const triggerRes = await fetch(`${TRIGGER_API_BASE}/tasks/${taskId}/trigger`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${triggerKey}`,
+      Authorization: `Bearer ${secretKey}`,
       'Content-Type': 'application/json',
       'Trigger-Version': '2024-12-19',
     },
     body: JSON.stringify({
-      payload: {
-        tenant_slug,
-        chat_slug,
-        inbox_path: objectPath,
-        inbox_bucket: 'inbox',
-      },
-      options: {
-        idempotencyKey: `inbox:${objectPath}`,
-      },
+      payload,
+      options: { idempotencyKey: meta.idempotencyKey },
     }),
   });
 
   if (!triggerRes.ok) {
     const body = await triggerRes.text();
-    return new Response(`trigger.dev ${triggerRes.status}: ${body}`, { status: 502 });
+    return new Response(`trigger.dev ${triggerRes.status} on ${taskId}: ${body}`, { status: 502 });
   }
 
   const triggerData = await triggerRes.json();
   return jsonResp({
     ok: true,
+    task: taskId,
     triggered_run: triggerData,
-    routed: { tenant_slug, chat_slug, path: objectPath },
+    routed: meta.route,
   });
-});
+}
 
 function jsonResp(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
