@@ -1,15 +1,20 @@
 /**
- * Browser-side Supabase client (uses the publishable / anon key).
+ * Browser-side Supabase client (cookie-bound to the user's session).
  *
- * Reads NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or the
- * newer publishable-key alias). Used only for Realtime subscriptions and
- * future browser-side queries.
+ * Uses @supabase/ssr's `createBrowserClient` so the auth cookie set by
+ * /auth/callback is automatically attached to every request — including
+ * Realtime websocket auth. Without this, Realtime authenticates as the
+ * anon role; RLS policies on l1_events / channels reference auth.uid()
+ * and tenant_memberships, so anon receives nothing → live updates would
+ * silently fail.
  *
- * v0.1 security note: with no auth + permissive anon read policy, this
- * client sees everything. Replace when Supabase Auth lands.
+ * Why not the bare `createClient` with `persistSession: false`: that path
+ * never reads the session cookie, so realtime auth defaults to anon even
+ * after a successful login.
  */
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 let cached: SupabaseClient | null = null;
 
@@ -21,9 +26,8 @@ export function getBrowserClient(): SupabaseClient {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL missing');
   if (!key) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY (or PUBLISHABLE_KEY) missing');
-  cached = createClient(url, key, {
+  cached = createBrowserClient(url, key, {
     realtime: { params: { eventsPerSecond: 10 } },
-    auth: { persistSession: false },
   });
   return cached;
 }
