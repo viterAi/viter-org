@@ -74,6 +74,26 @@ export const extractAttachment = schemaTask({
       return { skipped: true, reason: 'already-extracted', run_id: existing.id };
     }
 
+    // Resolve channel_id when the trigger payload didn't provide one.
+    // wa-message-fan-out passes channel_id=null and expects this task to
+    // resolve it; without resolution, the derivation row lands with
+    // channel_id=NULL and is invisible to channel-scoped UI queries.
+    // The webhook's parent 'messages' row already carries the right channel,
+    // so we look it up by artifact_id.
+    let resolvedChannelId: string | null = payload.channel_id;
+    if (!resolvedChannelId) {
+      const { data: parent } = await supabase
+        .from('l1_events')
+        .select('channel_id')
+        .eq('tenant_id', payload.tenant_id)
+        .eq('artifact_id', payload.artifact_id)
+        .eq('facet', 'messages')
+        .not('channel_id', 'is', null)
+        .limit(1)
+        .maybeSingle();
+      resolvedChannelId = (parent?.channel_id as string | null) ?? null;
+    }
+
     // Download bytes from Storage
     const { data: blob, error: dErr } = await supabase.storage
       .from('l0-whatsapp')
@@ -160,7 +180,7 @@ export const extractAttachment = schemaTask({
           trigger_task_id: ctx.task.id,
           source: 'trigger:extract-attachment',
           facet,
-          channel_id: payload.channel_id ?? null,
+          channel_id: resolvedChannelId,
           actor_id: payload.actor_id ?? null,
           // Registry-driven model selection metadata for audit.
           registry_tool_key: registryToolKey ?? null,
@@ -208,7 +228,7 @@ export const extractAttachment = schemaTask({
       event_at: payload.origin_at,
       position: 0,
       actor_id: payload.actor_id,
-      channel_id: payload.channel_id,
+      channel_id: resolvedChannelId,
       modality,
       content: result.text,
       ts_start_s: result.duration_s != null ? 0 : null,
