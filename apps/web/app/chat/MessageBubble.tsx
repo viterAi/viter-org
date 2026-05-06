@@ -85,6 +85,14 @@ export function MessageBubble({ message, showSender, isTail, transcript }: Bubbl
   const useTwoCol = !!transcriptText;
   const wideBubble = useTwoCol || showImage;
 
+  // "Awaiting derivation" placeholder: voice/image without a derived
+  // companion AND younger than 5 minutes shows a transcribing/processing
+  // state. Older = derivation likely failed or won't happen; stay quiet.
+  const ageMs = Date.now() - new Date(message.event_at).getTime();
+  const youngEnough = ageMs < 5 * 60_000;
+  const showAudioPending = showAudio && !transcriptText && youngEnough;
+  const showImagePending = showImage && !imageDerived && youngEnough;
+
   // Provenance for the derived companion (transcription / image_caption /
   // doc_text). Distinct from VERBATIM caption text from WhatsApp.
   const derivedFacet = transcript?.facet ?? null;
@@ -187,16 +195,30 @@ export function MessageBubble({ message, showSender, isTail, transcript }: Bubbl
                   />
                 </div>
               )}
+              {showImagePending && (
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-amber-700/70 dark:text-amber-400/70">
+                  <span className="inline-block size-1.5 animate-pulse rounded-full bg-amber-500" />
+                  <span>vision · OCR…</span>
+                </div>
+              )}
             </div>
           ) : (
             <>
               {showAudio && (
-                <audio
-                  src={`/api/media/${mediaId}`}
-                  controls
-                  preload="none"
-                  className="my-0.5 w-full max-w-xs"
-                />
+                <>
+                  <audio
+                    src={`/api/media/${mediaId}`}
+                    controls
+                    preload="none"
+                    className="my-0.5 w-full max-w-xs"
+                  />
+                  {showAudioPending && (
+                    <div className="mt-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-amber-700/70 dark:text-amber-400/70">
+                      <span className="inline-block size-1.5 animate-pulse rounded-full bg-amber-500" />
+                      <span>transcribing…</span>
+                    </div>
+                  )}
+                </>
               )}
 
               {showFile && (

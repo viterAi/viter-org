@@ -7,6 +7,7 @@
 
 import Link from 'next/link';
 import { ChannelRail } from './ChannelRail';
+import { RailRealtime } from './RailRealtime';
 import { loadChannelGroups } from '@/lib/chat/queries';
 
 export const dynamic = 'force-dynamic';
@@ -51,6 +52,7 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
         </aside>
         <main className="min-h-0 overflow-hidden">{children}</main>
       </div>
+      <RailRealtime />
     </div>
   );
 }
