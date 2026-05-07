@@ -123,13 +123,10 @@ When the user modifies a view via the dock, message routing splits three ways:
 | Message type | Example | Handler |
 |---|---|---|
 | Pure UI change | "move the chart to the top" | View Builder handles directly — no external call |
-| Needs data | "show only overdue invoices" | View Builder calls Mrodchi's MCP data agent → gets data → re-renders |
-| Persistent preference | "this client is important" | Mrodchi handles — updates ToM, affects future views |
+| Needs data | "show only overdue invoices" | View Builder calls Mrodchi's MCP server → gets data → re-renders |
+| Persistent preference | "this client is important" | View Builder calls Mrodchi's MCP server → Mrodchi updates ToM |
 
-The dock sends all messages to Mrodchi first. Mrodchi classifies and routes:
-- View-change without data → passes to View Builder as a spec-update instruction
-- View-change needing data → fetches data, then passes to View Builder with updated payload
-- Preference → handles internally, may or may not trigger a view update
+All communication with Mrodchi goes through his MCP server. The View Builder calls it when it needs data or needs to pass on a preference. Mrodchi decides what to do from there.
 
 ---
 
@@ -165,7 +162,7 @@ When a user takes an action inside a generated view (clicks a button, submits a 
 
 ---
 
-## Open Questions (Require Mrodchi's Team Input)
+## Open Questions (For Mrodchi)
 
 1. **Data handshake schema** — confirm or revise the `{ intent, view_type, data }` structure
 2. **Action routing** — how do persistent write-back and agent-triggering actions get routed?
