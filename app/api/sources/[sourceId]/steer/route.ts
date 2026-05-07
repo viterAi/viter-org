@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { fetchChatMessages, listWhatsappChats, formatChatName } from "../../../../../lib/l0/whatsapp";
+import { getMockMessages, getMockChats } from "../../../../../lib/l0/mock-data";
 import { getCatalogPromptBlock } from "../../../../../lib/layout/component-catalog";
 import {
   fillPageComponents,
@@ -244,12 +244,7 @@ export async function POST(
 
       try {
         const chatSlug = decodeURIComponent(sourceId);
-
-        // Load messages + all chats in parallel
-        const [rows, allChats] = await Promise.all([
-          fetchChatMessages(chatSlug),
-          listWhatsappChats(),
-        ]);
+        const rows = getMockMessages(chatSlug);
 
         if (rows.length === 0) {
           emit({ type: "error", error: `No messages found for chat: ${chatSlug}` });
@@ -257,13 +252,14 @@ export async function POST(
           return;
         }
 
+        const chatName = chatSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
         const source = {
           key: chatSlug,
-          name: formatChatName(chatSlug),
+          name: chatName,
           channel: "whatsapp",
         };
 
-        const sources: IncomingSource[] = allChats.map((c) => ({ id: c.id, name: c.name, key: c.key }));
+        const sources: IncomingSource[] = getMockChats().map((c) => ({ id: c.id, name: c.name, key: c.key }));
 
         // ── Step 1: classify ────────────────────────────────────────────────
         emit({ type: "planning" });

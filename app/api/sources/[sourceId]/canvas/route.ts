@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import type { SourceDataRow } from "../../../../../lib/types/view-builder";
-import { fetchChatMessages, formatChatName } from "../../../../../lib/l0/whatsapp";
+import { getMockMessages } from "../../../../../lib/l0/mock-data";
 import { getCatalogPromptBlock } from "../../../../../lib/layout/component-catalog";
 import {
   fillPageComponents,
@@ -33,7 +33,7 @@ export async function GET(
       }
 
       try {
-        const rows: SourceDataRow[] = await fetchChatMessages(chatSlug);
+        const rows: SourceDataRow[] = getMockMessages(chatSlug);
 
         if (rows.length === 0) {
           emit({ type: "error", error: `No messages found for chat: ${chatSlug}` });
@@ -41,9 +41,10 @@ export async function GET(
           return;
         }
 
+        const chatName = chatSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
         const source = {
           key: chatSlug,
-          name: formatChatName(chatSlug),
+          name: chatName,
           channel: "whatsapp",
           seed_format: "whatsapp_chat",
         };
