@@ -16,7 +16,55 @@ import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 
 import { synthesize } from '@vita/runtime/synthesizers';
-import { createLLMClient } from '@vita/runtime/synthesizers';
+import type { LLMClient, LLMCompletionRequest, LLMCompletionResult } from '@vita/runtime/synthesizers';
+
+/**
+ * Lightweight OpenRouter client using native fetch — avoids importing the
+ * openai/anthropic SDKs which are not in the orchestrator's package.json.
+ * Mirrors what synthesizers/llm.ts does but without the SDK dependency.
+ */
+function createFetchLLMClient(apiKey: string): LLMClient {
+  return async (req: LLMCompletionRequest): Promise<LLMCompletionResult> => {
+    const model = req.model || 'anthropic/claude-sonnet-4-6';
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://vita.viter.ai',
+        'X-Title': 'Vita Substrate',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: req.systemPrompt },
+          { role: 'user', content: req.userPrompt },
+        ],
+        max_tokens: req.maxTokens ?? 4096,
+        temperature: req.temperature ?? 0.2,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`OpenRouter ${res.status}: ${body.slice(0, 200)}`);
+    }
+    const data = await res.json() as any;
+    const choice = data.choices?.[0];
+    const body = (choice?.message?.content ?? '').trim();
+    const usedModel = data.model ?? model;
+    const canonical = usedModel.includes('sonnet') ? 'claude-sonnet-4-6' : 'claude-opus-4-7';
+    return {
+      body,
+      generator: canonical,
+      model_used: usedModel,
+      provider_name: 'openrouter',
+      generation_id: data.id ?? null,
+      finish_reason: choice?.finish_reason ?? null,
+      generator_params: { provider: 'openrouter', model: usedModel },
+      usage: data.usage as Record<string, unknown> | undefined,
+    };
+  };
+}
 
 const SynthesizeMeetingPayload = z.object({
   tenant_id: z.string().uuid(),
@@ -71,7 +119,7 @@ export const synthesizeMeeting = schemaTask({
       }
     }
 
-    const llm = createLLMClient();
+    const llm = createFetchLLMClient(process.env.OPENROUTER_API_KEY!);
 
     const result = await synthesize(
       { db: supabase, llm, tenantId: payload.tenant_id },
