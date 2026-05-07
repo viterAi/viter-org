@@ -10,10 +10,10 @@ Check off each item when complete. Items marked ⚡ are blocking other work.
 
 ## 1. Infrastructure & Security
 
-- [x] Railway deployment taken offline ⚡
+- [ ] Railway deployment taken offline ⚡
 - [ ] App runs locally only until integration plan is approved
 - [ ] Supabase credentials not exposed in any public URL or repo
-- [x] OpenRouter API key rate-limited or scoped
+- [ ] OpenRouter API key rate-limited or scoped
 - [ ] Integration plan written: how view-builder integrates into platform's three-layer architecture (murmur / surface / dock) ⚡
 
 ---
