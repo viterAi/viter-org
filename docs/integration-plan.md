@@ -2,14 +2,14 @@
 
 **Author:** Issac Brown  
 **Last updated:** May 7, 2026  
-**Status:** Draft — pending review and sign-off from Modchi  
+**Status:** Draft — pending review and sign-off from Mrodchi  
 **Blocks:** checklist items 1.4, 1.5 ⚡
 
 ---
 
 ## Purpose
 
-This document defines how the View Builder integrates with the broader platform. It is a shared contract between the View Builder (Issac) and Modchi's server (platform data + intelligence layer). Both sides must agree on this before either side builds against the interface.
+This document defines how the View Builder integrates with the broader platform. It is a shared contract between the View Builder (Issac) and Mrodchi's server (platform data + intelligence layer). Both sides must agree on this before either side builds against the interface.
 
 ---
 
@@ -17,7 +17,7 @@ This document defines how the View Builder integrates with the broader platform.
 
 The View Builder is a **pure rendering layer**. It receives data and intent, generates a view spec, and renders it. It does not own auth, data collection, user intelligence, or agent memory.
 
-Everything else — auth, data ingestion, surfacing logic, ToM, agent memory — is owned by Modchi's server.
+Everything else — auth, data ingestion, surfacing logic, ToM, agent memory — is owned by Mrodchi's server.
 
 ---
 
@@ -33,7 +33,7 @@ The platform has three permanent layers. The View Builder produces output for th
 │  Surface (center)                       │  ← VIEW BUILDER OUTPUT LIVES HERE
 │  generated views, weighted cards        │
 ├─────────────────────────────────────────┤
-│  Dock (bottom)                          │  ← Modchi owns this
+│  Dock (bottom)                          │  ← Mrodchi owns this
 │  conversational layer, always present   │
 └─────────────────────────────────────────┘
 ```
@@ -45,11 +45,11 @@ The platform has three permanent layers. The View Builder produces output for th
 | Concern | Owner |
 |---------|-------|
 | Shell chrome (murmur / surface / dock layout) | Platform shell |
-| Auth, user identity, permissions | Platform shell / Modchi |
-| Data ingestion, source connectors | Modchi's server |
-| User intelligence, ToM, preferences | Modchi's server |
+| Auth, user identity, permissions | Platform shell / Mrodchi |
+| Data ingestion, source connectors | Mrodchi's server |
+| User intelligence, ToM, preferences | Mrodchi's server |
 | Dock chat UI | Platform shell |
-| Deciding view type + intent from user message | Modchi |
+| Deciding view type + intent from user message | Mrodchi |
 | Spec composition (how to render a view) | View Builder |
 | Component library, skills, rendering rules | View Builder |
 | Spec storage and versioning | View Builder (Supabase `views` table) |
@@ -61,13 +61,13 @@ The platform has three permanent layers. The View Builder produces output for th
 
 ### How data reaches the View Builder
 
-1. Modchi's server (or a Supabase Edge Function it controls) writes source data to a Supabase table
+1. Mrodchi's server (or a Supabase Edge Function it controls) writes source data to a Supabase table
 2. The View Builder reads from that table when generating or refreshing a view
 3. The View Builder never fetches data directly from source systems — all data arrives via Supabase
 
-### The data handshake (hypothesis — to be confirmed with Modchi)
+### The data handshake (hypothesis — to be confirmed with Mrodchi's team)
 
-When Modchi triggers a new view, it passes:
+When Mrodchi triggers a new view, it passes:
 
 ```json
 {
@@ -84,11 +84,11 @@ When Modchi triggers a new view, it passes:
 ```
 
 - `intent` — natural language description of what the user wants
-- `view_type` — Modchi decides this based on user context and ToM (`spatial` / `sequential` / `briefing` / `weighted_card` / `config`)
+- `view_type` — Mrodchi decides this based on user context and ToM (`spatial` / `sequential` / `briefing` / `weighted_card` / `config`)
 - `data.index` — markdown description of what the data means (semantic, not just structural)
 - `data.sources` — array of data sources: inline markdown blocks or file paths to fetch
 
-**This format is a working hypothesis. Final schema to be agreed with Modchi.**
+**This format is a working hypothesis. Final schema to be agreed with Mrodchi's team.**
 
 ---
 
@@ -98,7 +98,7 @@ When Modchi triggers a new view, it passes:
 
 ```
 User opens source / requests view
-  → Modchi: understands intent + context → picks view_type → sends handshake payload
+  → Mrodchi: understands intent + context → picks view_type → sends handshake payload
   → View Builder: receives payload → composes spec using view-type skill → renders
   → Surface: displays view (ephemeral — not saved yet)
   → User: steers or says "save this"
@@ -111,7 +111,7 @@ User opens source / requests view
 User opens source
   → View Builder: loads spec from Supabase views table
   → View Builder: fetches fresh data via Supabase
-  → Surface: renders (no AI call, no Modchi involvement)
+  → Surface: renders (no AI call, no Mrodchi involvement)
 ```
 
 ---
@@ -123,10 +123,10 @@ When the user modifies a view via the dock, message routing splits three ways:
 | Message type | Example | Handler |
 |---|---|---|
 | Pure UI change | "move the chart to the top" | View Builder handles directly — no external call |
-| Needs data | "show only overdue invoices" | View Builder calls Modchi's MCP data agent → gets data → re-renders |
-| Persistent preference | "this client is important" | Modchi handles — updates ToM, affects future views |
+| Needs data | "show only overdue invoices" | View Builder calls Mrodchi's MCP data agent → gets data → re-renders |
+| Persistent preference | "this client is important" | Mrodchi handles — updates ToM, affects future views |
 
-The dock sends all messages to Modchi first. Modchi classifies and routes:
+The dock sends all messages to Mrodchi first. Mrodchi classifies and routes:
 - View-change without data → passes to View Builder as a spec-update instruction
 - View-change needing data → fetches data, then passes to View Builder with updated payload
 - Preference → handles internally, may or may not trigger a view update
@@ -150,10 +150,10 @@ When a user takes an action inside a generated view (clicks a button, submits a 
 | Action type | Candidate handler | Notes |
 |---|---|---|
 | Ephemeral filter / UI-only | View Builder (in-memory) | No external call needed |
-| Persistent write-back to source | Supabase events table? Direct to Modchi? | To be decided |
+| Persistent write-back to source | Supabase events table? Direct to Mrodchi? | To be decided |
 | Agent-triggering action | MCP server call? | To be decided |
 
-**This needs a joint decision with Modchi before write-back is implemented.**
+**This needs a joint decision with Mrodchi's team before write-back is implemented.**
 
 ---
 
@@ -165,19 +165,19 @@ When a user takes an action inside a generated view (clicks a button, submits a 
 
 ---
 
-## Open Questions (Require Modchi's Team Input)
+## Open Questions (Require Mrodchi's Team Input)
 
 1. **Data handshake schema** — confirm or revise the `{ intent, view_type, data }` structure
 2. **Action routing** — how do persistent write-back and agent-triggering actions get routed?
 3. **Edge Function ownership** — who maintains the Supabase Edge Function that serves data to the View Builder?
-4. **View type decision** — does Modchi always decide `view_type`, or can the View Builder suggest one if Modchi doesn't specify?
+4. **View type decision** — does Mrodchi always decide `view_type`, or can the View Builder suggest one if Mrodchi doesn't specify?
 5. **MCP data agent interface** — what does the View Builder call, with what arguments, when it needs additional data mid-steer?
 
 ---
 
 ## Next Steps
 
-- [ ] Share this doc with Modchi for review
+- [ ] Share this doc with Mrodchi's team for review
 - [ ] Resolve open questions (joint session)
 - [ ] Confirm data handshake schema
 - [ ] Finalize action routing decision
