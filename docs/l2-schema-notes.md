@@ -25,12 +25,78 @@ l3_surfaces         ToM-curated outputs         0 rows (not yet running)
 | source_type | count |
 |---|---|
 | `whatsapp_message` | 1,273 |
-| `whatsapp_message_live` | 341 |
+| `whatsapp_message_live` | 346 |
 | `whatsapp_attachment` | 296 |
 | `claude_code_jsonl` | 59 |
 | `meeting_audio` | 5 |
 
 The platform is currently almost entirely **WhatsApp data** — messages, live messages, and attachments — plus some Cursor/Claude agent transcripts and a few meeting recordings.
+
+---
+
+## WhatsApp Chat Grouping (L0)
+
+WhatsApp messages are grouped by `chat_slug` stored in `metadata->>'chat_slug'` on each `l0_artifacts` row. Each `chat_slug` represents one conversation — either a direct message or a group chat.
+
+### All chats (as of May 7, 2026)
+
+| chat_slug | messages | senders | first message | last message | notes |
+|---|---|---|---|---|---|
+| `shaul-direct` | 599 | 2 | Feb 25 | May 5 | Historical export |
+| `mvp-dev` | 296 | 4 | Mar 31 | May 5 | Historical export, group |
+| `group-group` | 283 | 4 | Feb 25 | May 5 | Historical export, group |
+| `yitzchak-direct` | 95 | 2 | Feb 25 | May 3 | Historical export |
+| `wa-group-120363417998577992` | 86 | — | May 5 | May 6 | Live GOWA feed |
+| `wa-972533145330` | 74 | — | May 5 | May 7 | Live GOWA feed, DM |
+| `wa-group-120363425543175451` | 46 | — | May 5 | May 7 | Live GOWA feed |
+| `wa-972552631180` | 35 | — | May 6 | May 7 | Live GOWA feed, DM |
+| `wa-972583246058` | 20 | — | May 5 | May 6 | Live GOWA feed, DM |
+| *(8 more low-volume chats)* | <20 each | — | May 5–7 | — | Live GOWA feed |
+
+**Two tiers of data:**
+- **Named historical exports** — friendly `chat_slug`, sender names populated, full chat history imported from backup
+- **Live GOWA feed** — raw IDs (`wa-group-...` / `wa-972...`), no `sender_raw` yet, streaming from May 5 onward
+
+### Key metadata fields per message
+
+```json
+{
+  "chat_slug": "mvp-dev",
+  "sender_raw": "~ Jeffrey Levine",
+  "ts_raw": "04/05/2026, 14:35:18",
+  "kind": "text",
+  "line_no": 1351,
+  "tenant_slug": "viter",
+  "attachment_filenames": []
+}
+```
+
+### SQL to fetch all messages for a chat
+
+```sql
+SELECT inline_text, metadata->>'sender_raw' as sender, origin_at
+FROM l0_artifacts
+WHERE source_type IN ('whatsapp_message', 'whatsapp_message_live')
+  AND metadata->>'chat_slug' = 'mvp-dev'
+ORDER BY origin_at ASC;
+```
+
+---
+
+## View Builder — Planned UI Source Model
+
+Each WhatsApp `chat_slug` becomes one **source** in the left sidebar. The View Builder reads L0 messages for the selected chat and feeds them to the AI to generate a view.
+
+```
+WhatsApp
+  ├── shaul-direct        (599 messages)
+  ├── mvp-dev             (296 messages, 4 people)
+  ├── group-group         (283 messages, 4 people)
+  ├── yitzchak-direct     (95 messages)
+  └── wa-group-...        (live — 86 messages)
+```
+
+This is decided. The next build step is to replace `/api/sources` with a Supabase query that returns distinct `chat_slug` values as sources, and update the canvas route to pull L0 messages for the selected chat.
 
 ---
 
@@ -69,14 +135,16 @@ The platform is currently almost entirely **WhatsApp data** — messages, live m
 
 ### Current data (as of May 7, 2026)
 
-2 rows, both with:
-- `scope_kind: "day"`
-- `scope_key: "2026-04-29"`
-- `generator: "claude-opus-4-7"`
-- `is_stale: false`
-- Body sizes: ~3,385 chars and ~2,796 chars
+5 rows:
 
-The only `scope_kind` currently used is `"day"` — a daily synthesis. More scope kinds expected as Mrodchi's pipeline develops.
+| scope_kind | scope_key | notes |
+|---|---|---|
+| `day` | `2026-04-29` | Daily brief (×2 rows — two versions) |
+| `meeting` | `meeting:meeting-2026-05-07-1100` | 24 min, Mordechai + Yitzchak |
+| `meeting` | `meeting:meeting-2026-05-07-1000` | 47 min, Mordechai + Shaul |
+| `meeting` | `meeting:smoke-prod-211738` | 1 min smoke test |
+
+Two `scope_kind` values confirmed: `"day"` and `"meeting"`. No per-chat scope kind yet.
 
 ---
 
@@ -115,11 +183,11 @@ WHERE e.id = ANY('<cites_event_ids>'::uuid[])
 
 ## What This Means for View Builder
 
-1. **Primary data source:** `l2_syntheses` — query by `tenant_id` + `scope_kind` + `scope_key`
-2. **Content format:** `body` is text — likely markdown. The View Builder's Data Analysis skill will parse and interpret it.
-3. **Source identification:** use `scope_key` (if it's a channel ID) or traverse `cites_event_ids` → `l1_events` → `l0_artifacts`
-4. **First test case:** `scope_kind = "day"` — daily synthesis of WhatsApp activity. This is the first real data to render.
-5. **Freshness:** check `is_stale` before rendering; if true, the view should show a stale indicator or trigger a refresh.
+1. **Source layer:** `l0_artifacts` grouped by `metadata->>'chat_slug'` — each chat is one source in the sidebar
+2. **Content for AI:** all L0 messages for the selected `chat_slug`, formatted as a conversation transcript
+3. **L2 role (future):** when Mrodchi adds per-chat syntheses (`scope_kind: "chat"`), the View Builder can switch to reading the pre-synthesised `body` instead of raw messages — no UI change needed
+4. **L2 role (current):** daily briefs (`scope_kind: "day"`) and meeting summaries (`scope_kind: "meeting"`) can be separate source types in the sidebar alongside the per-chat sources
+5. **Freshness:** for live GOWA chats (`wa-...`), messages are streaming — canvas should always pull latest on open
 
 ---
 
