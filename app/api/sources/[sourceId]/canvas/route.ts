@@ -75,36 +75,42 @@ export async function GET(
 
         emit({ type: "plan_ready", pages: plan.map((p) => ({ id: p.id, title: p.title, description: p.description })) });
 
-        // ── Stage 2: fill each page ──────────────────────────────────────────
+        // ── Stage 2: fill each page (in parallel) ───────────────────────────
         const catalogPrompt = getCatalogPromptBlock();
-        const aiPages: AiPageNode[] = [];
-        const aiPageStatuses: AiPageStatus[] = [];
-        const allWarnings: string[] = [];
 
-        for (const pagePlan of plan) {
-          emit({ type: "page_start", page_id: pagePlan.id, title: pagePlan.title, max_attempts: MAX_PAGE_FILL_ATTEMPTS });
+        const pageResults = await Promise.all(
+          plan.map(async (pagePlan) => {
+            emit({ type: "page_start", page_id: pagePlan.id, title: pagePlan.title, max_attempts: MAX_PAGE_FILL_ATTEMPTS });
 
-          const { components, status } = await fillPageComponents({
-            page: pagePlan,
-            source,
-            rows,
-            catalogPrompt,
-            maxAttempts: MAX_PAGE_FILL_ATTEMPTS,
-            onAttempt: (attempt, error) => {
-              emit({ type: "page_attempt", page_id: pagePlan.id, attempt, max_attempts: MAX_PAGE_FILL_ATTEMPTS, last_error: error });
-            },
-          });
+            const { components, status } = await fillPageComponents({
+              page: pagePlan,
+              source,
+              rows,
+              catalogPrompt,
+              maxAttempts: MAX_PAGE_FILL_ATTEMPTS,
+              onAttempt: (attempt, error) => {
+                emit({ type: "page_attempt", page_id: pagePlan.id, attempt, max_attempts: MAX_PAGE_FILL_ATTEMPTS, last_error: error });
+              },
+            });
 
-          if (status.state === "ready") {
-            emit({ type: "page_done", page_id: pagePlan.id, title: pagePlan.title, components, attempts_used: status.attempts_used });
-          } else {
-            emit({ type: "page_failed", page_id: pagePlan.id, last_error: status.last_error, attempts_used: status.attempts_used });
-          }
+            if (status.state === "ready") {
+              emit({ type: "page_done", page_id: pagePlan.id, title: pagePlan.title, components, attempts_used: status.attempts_used });
+            } else {
+              emit({ type: "page_failed", page_id: pagePlan.id, last_error: status.last_error, attempts_used: status.attempts_used });
+            }
 
-          aiPages.push({ id: pagePlan.id, title: pagePlan.title, description: pagePlan.description, components });
-          aiPageStatuses.push(status);
-          allWarnings.push(...status.warnings);
-        }
+            return { pagePlan, components, status };
+          }),
+        );
+
+        const aiPages: AiPageNode[] = pageResults.map(({ pagePlan, components }) => ({
+          id: pagePlan.id,
+          title: pagePlan.title,
+          description: pagePlan.description,
+          components,
+        }));
+        const aiPageStatuses: AiPageStatus[] = pageResults.map(({ status }) => status);
+        const allWarnings: string[] = pageResults.flatMap(({ status }) => status.warnings);
 
         const anyInvalid = aiPageStatuses.some((s) => s.state === "invalid");
 

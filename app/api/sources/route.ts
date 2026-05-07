@@ -9,7 +9,7 @@ const createSourceSchema = z.object({
     .trim()
     .min(1)
     .regex(/^[a-z0-9_-]+$/),
-  channel: z.enum(["whatsapp", "email", "portal", "manual_upload"]),
+  channel: z.string().trim().min(1).default("manual_upload"),
   seedFormat: z.enum(["markdown", "json", "csv"]),
   markdown: z.string().default(""),
   description: z.string().nullable().optional(),

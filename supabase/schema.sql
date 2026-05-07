@@ -4,7 +4,7 @@ create table if not exists sources (
   id uuid primary key default gen_random_uuid(),
   key text not null unique,
   name text not null,
-  channel text not null check (channel in ('whatsapp', 'email', 'portal', 'manual_upload')),
+  channel text not null default 'manual_upload',
   description text,
   markdown text not null default '',
   seed_format text not null default 'markdown' check (seed_format in ('markdown', 'json', 'csv')),

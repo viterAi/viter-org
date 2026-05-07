@@ -125,6 +125,10 @@ export async function fillPageComponents(input: {
   rows: SourceDataRow[];
   catalogPrompt: string;
   maxAttempts: number;
+  /** When set, the AI amends the existing layout rather than starting fresh */
+  steerInstruction?: string;
+  /** The current components on this page, provided when steering */
+  existingComponents?: AiComponentNode[];
   onAttempt?: (attempt: number, error: string | null) => void;
 }): Promise<{
   components: AiComponentNode[];
@@ -139,9 +143,16 @@ export async function fillPageComponents(input: {
   for (let attempt = 1; attempt <= input.maxAttempts; attempt += 1) {
     input.onAttempt?.(attempt, attempt > 1 ? lastError : null);
     const hasRows = sampleRows.length > 0;
+    const isSteer = !!input.steerInstruction;
     const prompt = [
-      `Fill this page with components: "${input.page.title}"`,
+      isSteer
+        ? `Amend this dashboard page based on a user instruction: "${input.page.title}"`
+        : `Fill this page with components: "${input.page.title}"`,
       `Page description: ${input.page.description}`,
+      isSteer ? `User instruction: ${input.steerInstruction}` : "",
+      isSteer && input.existingComponents
+        ? `Current components (amend these — keep what still makes sense, change or add what the instruction requires): ${JSON.stringify(input.existingComponents)}`
+        : "",
       "Return JSON only.",
       'Shape: {"components":[{"component_id":"...","props":{}}]}',
       "Rules:",

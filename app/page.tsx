@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
-type Source = { id: string; name: string; key: string; markdown?: string };
-type SourceChannel = "whatsapp" | "email" | "portal" | "manual_upload";
+type Source = { id: string; name: string; key: string; channel?: string; markdown?: string };
+type SourceChannel = string;
 type SourceSeedFormat = "markdown" | "json" | "csv";
 type View = {
   id: string;
@@ -67,6 +68,93 @@ type ProgressStep =
 
 const lanes = ["todo", "in_progress", "followed_up"] as const;
 
+// ── Source preview: derive row count + excerpt from raw markdown ─────────────
+function sourcePreview(s: Source): { rowCount: number | null; excerpt: string } {
+  const md = (s.markdown ?? "").trim();
+  if (!md) return { rowCount: null, excerpt: "" };
+  const lines = md.split("\n");
+  // CSV: count non-empty non-header lines that contain commas
+  const csvData = lines.filter((l, i) => i > 0 && l.trim() && l.includes(","));
+  // Markdown table: count rows (lines with | that are not separator rows)
+  const tableRows = lines.filter((l) => l.includes("|") && !/^[\s|:=-]+$/.test(l));
+  const rowCount = csvData.length > 0 ? csvData.length : tableRows.length > 1 ? tableRows.length - 1 : null;
+  const excerpt = md.slice(0, 60).replace(/\n/g, " ").trim();
+  return { rowCount, excerpt };
+}
+
+// ── Source icon: DuckDuckGo favicon → letter avatar fallback ────────────────
+// DuckDuckGo's favicon service returns a real PNG for known domains and
+// a proper 404 for unknown ones — so plain onLoad/onError is all we need.
+// URL: https://icons.duckduckgo.com/ip3/{domain}.ico
+const CHANNEL_DOMAINS: Record<string, string> = {
+  gmail: "gmail.com", outlook: "outlook.com", email: "gmail.com",
+  slack: "slack.com", whatsapp: "whatsapp.com", telegram: "telegram.org",
+  facebook_messenger: "messenger.com", facebook: "facebook.com",
+  instagram: "instagram.com", linkedin: "linkedin.com", twitter_x: "x.com",
+  monday_com: "monday.com", notion: "notion.so", airtable: "airtable.com",
+  google_sheets: "sheets.google.com", excel: "microsoft.com",
+  hubspot: "hubspot.com", salesforce: "salesforce.com",
+  zendesk: "zendesk.com", intercom: "intercom.com",
+  onedrive: "onedrive.live.com", google_drive: "drive.google.com",
+  dropbox: "dropbox.com", sharepoint: "sharepoint.com",
+};
+
+function SourceIcon({ name, keyStr, domain: domainOverride }: { name: string; keyStr: string; domain?: string }) {
+  const [imgOk, setImgOk] = useState<boolean | null>(null);
+  const domain = domainOverride ?? keyStr.replace(/_/g, "").replace(/\s+/g, "").toLowerCase() + ".com";
+  const src = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+  const hue = [...name].reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
+  const letter = (name[0] ?? "?").toUpperCase();
+
+  return (
+    <span style={{ position: "relative", width: 18, height: 18, flexShrink: 0, display: "inline-flex" }}>
+      {/* Letter avatar — visible by default, hidden once a real favicon loads */}
+      <span
+        style={{
+          position: "absolute", inset: 0,
+          borderRadius: 4,
+          background: `hsl(${hue}, 52%, 62%)`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 9, fontWeight: 700, color: "white",
+          opacity: imgOk === true ? 0 : 1,
+          transition: "opacity 0.2s",
+        }}
+      >
+        {letter}
+      </span>
+      {/* Favicon — fades in on successful load, stays hidden on 404 */}
+      <img
+        src={src}
+        alt=""
+        style={{
+          position: "absolute", inset: 0,
+          width: "100%", height: "100%",
+          borderRadius: 3,
+          objectFit: "contain",
+          opacity: imgOk === true ? 1 : 0,
+          transition: "opacity 0.25s",
+        }}
+        onLoad={() => setImgOk(true)}
+        onError={() => setImgOk(false)}
+      />
+    </span>
+  );
+}
+
+// ── Animation helpers ────────────────────────────────────────────────────────
+function AnimatedTile({ delay, children }: { delay: number; children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 24, delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 function eur(cents: number) {
   return new Intl.NumberFormat("en-IE", {
     style: "currency",
@@ -97,6 +185,98 @@ export default function HomePage() {
   const [progressLog, setProgressLog] = useState<ProgressStep[]>([]);
   const [createSourceOpen, setCreateSourceOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [expandedChannels, setExpandedChannels] = useState<Set<string>>(new Set());
+  const [steerMessages, setSteerMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [steerInput, setSteerInput] = useState("");
+  const [steering, setSteering] = useState(false);
+  const [steerHintIdx, setSteerHintIdx] = useState(0);
+  const steerScrollRef = React.useRef<HTMLDivElement>(null);
+
+  const [leftWidth, setLeftWidth] = useState<number>(168);
+  const [rightWidth, setRightWidth] = useState<number>(300);
+  const draggingLeft = useRef(false);
+  const draggingRight = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("viter-left-width");
+    if (stored) setLeftWidth(Number(stored));
+  }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("viter-right-width");
+    if (stored) setRightWidth(Number(stored));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("viter-left-width", String(leftWidth));
+  }, [leftWidth]);
+
+  useEffect(() => {
+    localStorage.setItem("viter-right-width", String(rightWidth));
+  }, [rightWidth]);
+
+  const startDragLeft = useCallback((e: React.MouseEvent) => {
+    draggingLeft.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = leftWidth;
+    e.preventDefault();
+
+    const onMove = (ev: MouseEvent) => {
+      if (!draggingLeft.current) return;
+      const delta = ev.clientX - dragStartX.current;
+      setLeftWidth(Math.max(120, Math.min(400, dragStartWidth.current + delta)));
+    };
+    const onUp = () => {
+      draggingLeft.current = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [leftWidth]);
+
+  const startDragRight = useCallback((e: React.MouseEvent) => {
+    draggingRight.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = rightWidth;
+    e.preventDefault();
+
+    const onMove = (ev: MouseEvent) => {
+      if (!draggingRight.current) return;
+      const delta = dragStartX.current - ev.clientX;
+      setRightWidth(Math.max(200, Math.min(600, dragStartWidth.current + delta)));
+    };
+    const onUp = () => {
+      draggingRight.current = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [rightWidth]);
+
+  const STEER_HINTS = [
+    "Crossing the t's…",
+    "Dotting the i's…",
+    "Connecting the dots…",
+    "Reading between the lines…",
+    "Laying out components…",
+    "Reviewing the structure…",
+    "Untangling the data…",
+    "Sharpening the layout…",
+    "Checking the details…",
+    "Almost there…",
+  ];
+
+  useEffect(() => {
+    if (!steering) return;
+    setSteerHintIdx(0);
+    const id = setInterval(() => setSteerHintIdx((n) => (n + 1) % STEER_HINTS.length), 3000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [steering]);
   const [newSourceName, setNewSourceName] = useState("");
   const [newSourceKey, setNewSourceKey] = useState("");
   const [newSourceChannel, setNewSourceChannel] =
@@ -116,8 +296,9 @@ export default function HomePage() {
     const list: Source[] = json.sources ?? [];
     setSources(list);
     if (list.length > 0 && !sourceId) {
-      const preferred = list.find((source) => (source.markdown ?? "").trim().length > 0) ?? list[0];
-      setSourceId(preferred.id);
+      const first = list[0];
+      setSourceId(first.id);
+      setExpandedChannels(new Set([first.channel ?? "manual_upload"]));
     }
   }
 
@@ -245,6 +426,137 @@ export default function HomePage() {
     });
     await fetchCanvas(sourceId);
     setBusy("");
+  }
+
+  async function sendSteerMessage() {
+    const message = steerInput.trim();
+    if (!message || !sourceId || steering) return;
+
+    setSteerInput("");
+    setSteerMessages((prev) => [...prev, { role: "user", content: message }]);
+    setSteering(true);
+    setProgressLog([]);
+
+    try {
+      const res = await fetch(`/api/sources/${sourceId}/steer`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message, currentPages: aiPages }),
+      });
+
+      if (!res.ok || !res.body) {
+        setSteerMessages((prev) => [...prev, { role: "assistant", content: "Failed to connect to steer API." }]);
+        setSteering(false);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let tomNoted = false;
+      let nonSpecAnswered = false; // true if query/navigate handled their own reply
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+          let event: Record<string, unknown>;
+          try {
+            event = JSON.parse(raw) as Record<string, unknown>;
+          } catch {
+            continue;
+          }
+
+          const eventType = event.type as string;
+          setProgressLog((prev) => [...prev, event as ProgressStep]);
+
+          if (eventType === "navigate") {
+            nonSpecAnswered = true;
+            const target = event.target as "page" | "source";
+            const id = event.id as string;
+            if (target === "page") {
+              setActiveAiPageId(id);
+              const page = aiPages.find((p) => p.id === id);
+              setSteerMessages((prev) => [...prev, { role: "assistant", content: `Switched to "${page?.title ?? id}".` }]);
+            } else if (target === "source") {
+              setSourceId(id);
+              void fetchCanvas(id);
+              const src = sources.find((s) => s.id === id);
+              setSteerMessages((prev) => [...prev, { role: "assistant", content: `Switched to source "${src?.name ?? id}".` }]);
+            }
+          }
+
+          if (eventType === "query_answer") {
+            nonSpecAnswered = true;
+            const answer = event.answer as string;
+            setSteerMessages((prev) => [...prev, { role: "assistant", content: answer }]);
+          }
+
+          if (eventType === "plan_ready") {
+            const pages = (event.pages as Array<{ id: string; title: string; description: string }>) ?? [];
+            setAiPages(pages.map((p) => ({ id: p.id, title: p.title, description: p.description, components: [] })));
+          }
+
+          if (eventType === "page_done") {
+            const page_id = event.page_id as string;
+            const components = (event.components as AiPage["components"]) ?? [];
+            setAiPages((prev) => prev.map((p) => p.id === page_id ? { ...p, components } : p));
+            setAiPageStatuses((prev) => {
+              const existing = prev.find((s) => s.page_id === page_id);
+              if (existing) return prev.map((s) => s.page_id === page_id ? { ...s, state: "ready" as const, attempts_used: (event.attempts_used as number) ?? 1 } : s);
+              return [...prev, { page_id, state: "ready", attempts_used: (event.attempts_used as number) ?? 1, last_error: null, warnings: [] }];
+            });
+          }
+
+          if (eventType === "page_failed") {
+            const page_id = event.page_id as string;
+            setAiPageStatuses((prev) => {
+              const existing = prev.find((s) => s.page_id === page_id);
+              if (existing) return prev.map((s) => s.page_id === page_id ? { ...s, state: "invalid" as const, last_error: (event.last_error as string) ?? null } : s);
+              return [...prev, { page_id, state: "invalid", attempts_used: (event.attempts_used as number) ?? 20, last_error: (event.last_error as string) ?? null, warnings: [] }];
+            });
+          }
+
+          if (eventType === "done") {
+            const donePayload = event as { tom_noted?: boolean; instruction?: string; ai_pages?: AiPage[]; ai_page_statuses?: AiPageStatus[]; ai_warnings?: string[]; ai_status?: AiStatus };
+            if (donePayload.tom_noted) {
+              tomNoted = true;
+              setSteerMessages((prev) => [...prev, { role: "assistant", content: `Got it — I'll remember: "${donePayload.instruction ?? message}"` }]);
+            }
+            if (donePayload.ai_pages && donePayload.ai_pages.length > 0) {
+              setAiPages(donePayload.ai_pages);
+              setActiveAiPageId((cur) => cur && donePayload.ai_pages?.some((p) => p.id === cur) ? cur : donePayload.ai_pages?.[0]?.id ?? "");
+            }
+            if (donePayload.ai_page_statuses) setAiPageStatuses(donePayload.ai_page_statuses);
+            if (donePayload.ai_warnings) setAiWarnings(donePayload.ai_warnings);
+            if (donePayload.ai_status) setAiStatus(donePayload.ai_status);
+            // Only show "Done" for spec changes — query/navigate/tom all add their own reply
+            if (!tomNoted && !nonSpecAnswered) {
+              setSteerMessages((prev) => [...prev, { role: "assistant", content: "Done — view updated." }]);
+            }
+          }
+
+          if (eventType === "error") {
+            setSteerMessages((prev) => [...prev, { role: "assistant", content: (event.error as string) ?? "Something went wrong." }]);
+          }
+        }
+      }
+    } catch {
+      setSteerMessages((prev) => [...prev, { role: "assistant", content: "Request failed." }]);
+    }
+
+    setSteering(false);
+    setTimeout(() => {
+      steerScrollRef.current?.scrollTo({ top: steerScrollRef.current.scrollHeight, behavior: "smooth" });
+    }, 50);
   }
 
   async function createSource() {
@@ -701,11 +1013,78 @@ export default function HomePage() {
     (row) => row.follow_up_status === "followed_up",
   ).length;
 
+  // ── Channel grouping ────────────────────────────────────────────────────
+  const channelGroups = useMemo(() => {
+    const map = new Map<string, Source[]>();
+    for (const s of sources) {
+      const ch = s.channel ?? "manual_upload";
+      if (!map.has(ch)) map.set(ch, []);
+      map.get(ch)!.push(s);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [sources]);
+
+  function channelLabel(channel: string): string {
+    const labels: Record<string, string> = {
+      gmail: "Gmail", outlook: "Outlook", email: "Email",
+      slack: "Slack", whatsapp: "WhatsApp", telegram: "Telegram",
+      facebook_messenger: "Messenger", facebook: "Facebook",
+      instagram: "Instagram", linkedin: "LinkedIn", twitter_x: "X / Twitter",
+      monday_com: "Monday.com", notion: "Notion", airtable: "Airtable",
+      google_sheets: "Google Sheets", excel: "Excel",
+      hubspot: "HubSpot", salesforce: "Salesforce", zendesk: "Zendesk", intercom: "Intercom",
+      onedrive: "OneDrive", google_drive: "Google Drive", dropbox: "Dropbox", sharepoint: "SharePoint",
+      portal: "Portal / API", database: "Database", webhook: "Webhook",
+      manual_upload: "Manual Upload",
+    };
+    return labels[channel] ?? channel.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  function channelDescription(channel: string): string {
+    const descs: Record<string, string> = {
+      gmail: "Email inbox", outlook: "Email", email: "Email",
+      slack: "Team messaging", whatsapp: "Messaging", telegram: "Messaging", facebook_messenger: "Messaging",
+      facebook: "Social & ads", instagram: "Social", linkedin: "Social", twitter_x: "Social",
+      monday_com: "Project management", notion: "Docs & wikis", airtable: "Database", google_sheets: "Spreadsheets", excel: "Spreadsheets",
+      hubspot: "CRM", salesforce: "CRM", zendesk: "Support", intercom: "Support",
+      onedrive: "File storage", google_drive: "File storage", dropbox: "File storage", sharepoint: "Intranet",
+      portal: "Web portal", database: "Database", webhook: "Live feed",
+      manual_upload: "Manual data",
+    };
+    return descs[channel] ?? "Data source";
+  }
+
+  function sourcePreview(s: Source): { rowCount: number | null; excerpt: string } {
+    const md = (s.markdown ?? "").trim();
+    if (!md) return { rowCount: null, excerpt: "No data yet" };
+    const lines = md.split("\n").filter((l) => l.trim().length > 0);
+    if (lines.length > 1 && lines[0].includes(",")) {
+      return { rowCount: lines.length - 1, excerpt: `${lines.length - 1} rows` };
+    }
+    try {
+      const parsed = JSON.parse(md);
+      if (Array.isArray(parsed)) return { rowCount: parsed.length, excerpt: `${parsed.length} records` };
+    } catch { /* not JSON */ }
+    const firstLine = lines.find((l) => l.replace(/^#+\s*/, "").trim().length > 10) ?? lines[0];
+    const excerpt = firstLine.replace(/^#+\s*/, "").slice(0, 55).trim();
+    return { rowCount: null, excerpt: excerpt + (firstLine.length > 55 ? "…" : "") };
+  }
+
+  function toggleChannel(channel: string) {
+    setExpandedChannels((prev) => {
+      const next = new Set(prev);
+      if (next.has(channel)) next.delete(channel);
+      else next.add(channel);
+      return next;
+    });
+  }
+
   return (
-    <div style={{ height: "100vh", display: "flex", gap: 8, padding: 8 }}>
+    <div style={{ height: "100vh", display: "flex", gap: 0, padding: 8 }}>
       <aside
         style={{
-          width: 168,
+          width: leftWidth,
+          flexShrink: 0,
           background: "var(--bg-surface)",
           borderRadius: "var(--r-zone)",
           boxShadow: "inset 0 0 0 0.5px var(--line-thin)",
@@ -713,31 +1092,77 @@ export default function HomePage() {
           flexDirection: "column",
         }}
       >
-        <div style={{ padding: "12px 10px", borderBottom: "0.5px solid var(--line-thin)", fontSize: 12, fontWeight: 600 }}>
+        <div style={{ padding: "14px 12px", borderBottom: "0.5px solid var(--line-thin)", fontSize: 14, fontWeight: 600 }}>
           viter
         </div>
-        <div style={{ padding: 8, fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-          Sources
-        </div>
-        <div style={{ padding: "0 6px", display: "flex", flexDirection: "column", gap: 3 }}>
-          {sources.map((s) => {
-            const active = s.id === sourceId;
+        <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
+          {channelGroups.map(([channel, channelSources]) => {
+            const isExpanded = expandedChannels.has(channel);
+            const hasActive = channelSources.some((s) => s.id === sourceId);
             return (
-              <button
-                key={s.id}
-                onClick={() => setSourceId(s.id)}
-                style={{
-                  all: "unset",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  borderRadius: 4,
-                  padding: "6px 8px",
-                  background: active ? "var(--accent-tint)" : "transparent",
-                  color: active ? "var(--accent)" : "var(--ink-primary)",
-                }}
-              >
-                {s.name}
-              </button>
+              <div key={channel}>
+                {/* Channel header */}
+                <button
+                  onClick={() => toggleChannel(channel)}
+                  className="btn-ghost"
+                  style={{
+                    all: "unset",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    width: "100%",
+                    padding: "5px 10px",
+                    boxSizing: "border-box",
+                    borderRadius: 4,
+                  }}
+                >
+                  <span style={{ fontSize: 10, color: "var(--ink-tertiary)", transition: "transform 0.15s", display: "inline-block", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>▶</span>
+                  <SourceIcon
+                    name={channelLabel(channel)}
+                    keyStr={channel}
+                    domain={CHANNEL_DOMAINS[channel]}
+                  />
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: hasActive ? "var(--accent)" : "var(--ink-primary)" }}>
+                    {channelLabel(channel)}
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--ink-tertiary)", background: "var(--bg-secondary)", borderRadius: 8, padding: "1px 6px" }}>
+                    {channelSources.length}
+                  </span>
+                </button>
+
+                {isExpanded && (
+                  <div style={{ marginBottom: 6 }}>
+                    {channelSources.map((s) => {
+                      const active = s.id === sourceId;
+                      const { rowCount, excerpt } = sourcePreview(s);
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => setSourceId(s.id)}
+                          style={{
+                            all: "unset",
+                            cursor: "pointer",
+                            display: "block",
+                            width: "100%",
+                            boxSizing: "border-box",
+                            padding: "5px 8px 5px 16px",
+                            borderRadius: 4,
+                            background: active ? "var(--accent-tint)" : "transparent",
+                          }}
+                        >
+                          <div style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: active ? "var(--accent)" : "var(--ink-primary)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {s.name}
+                          </div>
+                          <div style={{ fontSize: 11, color: active ? "var(--accent)" : "var(--ink-tertiary)", marginTop: 1, opacity: 0.8 }}>
+                            {rowCount !== null ? `${rowCount} rows` : excerpt}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -751,6 +1176,7 @@ export default function HomePage() {
           <button
             onClick={() => setCreateSourceOpen((open) => !open)}
             suppressHydrationWarning
+            className="btn-outline"
             style={{
               all: "unset",
               cursor: "pointer",
@@ -792,11 +1218,10 @@ export default function HomePage() {
                   fontSize: 11,
                 }}
               />
-              <select
+              <input
                 value={newSourceChannel}
-                onChange={(event) =>
-                  setNewSourceChannel(event.target.value as SourceChannel)
-                }
+                onChange={(event) => setNewSourceChannel(event.target.value)}
+                placeholder="channel (e.g. gmail, slack, monday_com…)"
                 style={{
                   border: "0.5px solid var(--line-thin)",
                   borderRadius: 4,
@@ -805,12 +1230,7 @@ export default function HomePage() {
                   padding: "6px 8px",
                   fontSize: 11,
                 }}
-              >
-                <option value="manual_upload">manual_upload</option>
-                <option value="email">email</option>
-                <option value="whatsapp">whatsapp</option>
-                <option value="portal">portal</option>
-              </select>
+              />
               <select
                 value={newSourceFormat}
                 onChange={(event) =>
@@ -846,6 +1266,7 @@ export default function HomePage() {
               />
               <button
                 onClick={createSource}
+                className="btn-solid"
                 style={{
                   all: "unset",
                   cursor: "pointer",
@@ -867,6 +1288,23 @@ export default function HomePage() {
         </div>
       </aside>
 
+      {/* Left resize handle */}
+      <div
+        onMouseDown={startDragLeft}
+        className="drag-handle"
+        style={{
+          width: 8,
+          flexShrink: 0,
+          cursor: "col-resize",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10,
+        }}
+      >
+        <div className="drag-pip" style={{ width: 2, height: 32, borderRadius: 1, background: "var(--line-thin)", opacity: 0.6, transition: "height 0.15s, opacity 0.15s, background 0.15s" }} />
+      </div>
+
       <main
         style={{
           flex: 1,
@@ -878,51 +1316,112 @@ export default function HomePage() {
           flexDirection: "column",
         }}
       >
-        <div style={{ padding: "18px 24px 12px", borderBottom: "0.5px solid var(--line-thin)" }}>
-          <div style={{ fontSize: 19, fontWeight: 500 }}>{sourceName}</div>
-          <div style={{ fontSize: 12, color: "var(--ink-tertiary)", marginTop: 4 }}>
-            Dynamic source data with multi-view shell
+        <div style={{ borderBottom: "0.5px solid var(--line-thin)" }}>
+          {/* Source header */}
+          <div style={{ padding: "18px 24px 14px", display: "flex", alignItems: "baseline", gap: 10 }}>
+            <div style={{ fontSize: 19, fontWeight: 500 }}>{sourceName}</div>
+            {aiPages.length > 0 && (
+              <div style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--accent)",
+                background: "var(--accent-tint)",
+                borderRadius: 20,
+                padding: "2px 8px",
+                letterSpacing: "0.02em",
+              }}>
+                {aiPages.length} {aiPages.length === 1 ? "page" : "pages"}
+              </div>
+            )}
           </div>
-          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {aiPages.map((page) => (
-              <button
-                key={page.id}
-                onClick={() => setActiveAiPageId(page.id)}
-                style={{
-                  all: "unset",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  padding: "5px 10px",
-                  borderRadius: 4,
-                  background: page.id === activeAiPageId ? "var(--accent-tint)" : "var(--bg-secondary)",
-                  color: page.id === activeAiPageId ? "var(--accent)" : "var(--ink-secondary)",
-                }}
-              >
-                {page.title}
-              </button>
-            ))}
-            {views.map((v) => (
-              <button
-                key={v.id}
-                onClick={() => setActiveViewId(v.id)}
-                style={{
-                  all: "unset",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  padding: "5px 10px",
-                  borderRadius: 4,
-                  background: v.id === activeViewId ? "var(--accent-tint)" : "var(--bg-secondary)",
-                  color: v.id === activeViewId ? "var(--accent)" : "var(--ink-secondary)",
-                }}
-              >
-                {v.view_name}
-              </button>
-            ))}
-          </div>
+          {/* Tab bar */}
+          {(aiPages.length > 0 || views.length > 0) && (
+            <div style={{ display: "flex", overflowX: "auto", paddingLeft: 16, gap: 0 }}>
+              {aiPages.map((page, i) => {
+                const isActive = page.id === activeAiPageId;
+                const pageStatus = aiPageStatuses.find((s) => s.page_id === page.id);
+                const isDone = pageStatus?.state === "ready";
+                const isFailed = pageStatus?.state === "invalid";
+                const isBuilding = pageStatus && !isDone && !isFailed;
+                return (
+                  <button
+                    key={page.id}
+                    onClick={() => setActiveAiPageId(page.id)}
+                    className={isActive ? undefined : "btn-ghost"}
+                    style={{
+                      all: "unset",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "10px 16px",
+                      fontSize: 13,
+                      fontWeight: isActive ? 600 : 400,
+                      color: isActive ? "var(--ink-primary)" : "var(--ink-secondary)",
+                      borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
+                      marginBottom: -1,
+                      whiteSpace: "nowrap",
+                      transition: "color 0.15s, border-color 0.15s",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 17,
+                      height: 17,
+                      borderRadius: "50%",
+                      background: isActive ? "var(--accent)" : "var(--bg-secondary)",
+                      color: isActive ? "#fff" : "var(--ink-tertiary)",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                      boxShadow: isActive ? "none" : "inset 0 0 0 1px var(--line-thin)",
+                    }}>
+                      {i + 1}
+                    </span>
+                    {page.title}
+                    {isFailed && (
+                      <span style={{ fontSize: 10, color: "var(--warn)", flexShrink: 0 }}>!</span>
+                    )}
+                  </button>
+                );
+              })}
+              {views.map((v) => {
+                const isActive = v.id === activeViewId;
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => setActiveViewId(v.id)}
+                    className={isActive ? undefined : "btn-ghost"}
+                    style={{
+                      all: "unset",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "10px 16px",
+                      fontSize: 13,
+                      fontWeight: isActive ? 600 : 400,
+                      color: isActive ? "var(--ink-primary)" : "var(--ink-secondary)",
+                      borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
+                      marginBottom: -1,
+                      whiteSpace: "nowrap",
+                      transition: "color 0.15s, border-color 0.15s",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {v.view_name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {pendingDraft && activeView ? (
             <div
               style={{
-                marginTop: 10,
+                margin: "0 16px 12px",
                 padding: "8px 10px",
                 borderRadius: 6,
                 background: "var(--warn-tint)",
@@ -937,6 +1436,7 @@ export default function HomePage() {
               </div>
               <button
                 onClick={applyDraft}
+                className="btn-solid"
                 style={{
                   all: "unset",
                   cursor: "pointer",
@@ -953,10 +1453,10 @@ export default function HomePage() {
           ) : null}
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 20 }}>
-          {loading ? <p>Loading sources...</p> : null}
-          {!loading && !sourceId ? (
-            <p>No sources available yet. Add real source records in Supabase.</p>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: 20 }}>
+          {mounted && loading ? <p>Loading sources...</p> : null}
+          {mounted && !loading && !sourceId ? (
+            <p style={{ fontSize: 13, color: "var(--ink-tertiary)" }}>Select a source from the left rail to get started.</p>
           ) : null}
           {canvasError ? (
             <div
@@ -1005,6 +1505,7 @@ export default function HomePage() {
               ) : null}
               <button
                 onClick={() => { if (sourceId) void fetchCanvas(sourceId, true); }}
+                className="btn-solid"
                 style={{ all: "unset", cursor: "pointer", marginTop: 4, fontSize: 11, padding: "6px 10px", borderRadius: 4, background: "var(--ink-primary)", color: "white", display: "inline-block" }}
               >
                 Retry AI
@@ -1044,45 +1545,65 @@ export default function HomePage() {
               Page <b>{activeAiPageStatus.page_id}</b> failed after {activeAiPageStatus.attempts_used} attempts: {activeAiPageStatus.last_error}
             </div>
           ) : null}
-          {!showAiOnly && !generating && activeAiPage ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
-              {activeAiPage.components.map((component, index) =>
-                renderAiComponent(component, index),
-              )}
-            </div>
-          ) : null}
+          <AnimatePresence mode="wait">
+            {!showAiOnly && !generating && activeAiPage ? (
+              <motion.div
+                key={activeAiPageId}
+                initial={{ opacity: 0, x: 36 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -36 }}
+                transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+                style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}
+              >
+                <AnimatePresence>
+                  {activeAiPage.components.map((component, index) => {
+                    const rendered = renderAiComponent(component, index);
+                    if (!rendered) return null;
+                    return (
+                      <AnimatedTile
+                        key={`${component.component_id}-${index}`}
+                        delay={index * 0.055}
+                      >
+                        {rendered}
+                      </AnimatedTile>
+                    );
+                  })}
+                </AnimatePresence>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
           {!showAiOnly && !generating && !activeAiPage && activeView ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: 18 }}>
               {activeView.view_type === "follow_up_kanban" ? (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-                  <div style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
+                  <div data-card style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
                     <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase" }}>Todo</div>
                     <div style={{ fontSize: 18, fontWeight: 600 }}>{todoCount}</div>
                   </div>
-                  <div style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
+                  <div data-card style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
                     <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase" }}>In Progress</div>
                     <div style={{ fontSize: 18, fontWeight: 600 }}>{inProgressCount}</div>
                   </div>
-                  <div style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
+                  <div data-card style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
                     <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase" }}>Followed Up</div>
                     <div style={{ fontSize: 18, fontWeight: 600 }}>{followedUpCount}</div>
                   </div>
-                  <div style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
+                  <div data-card style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
                     <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase" }}>View</div>
                     <div style={{ fontSize: 18, fontWeight: 600 }}>{activeView.view_name}</div>
                   </div>
                 </div>
               ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-                  <div style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
+                  <div data-card style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
                     <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase" }}>Rows</div>
                     <div style={{ fontSize: 18, fontWeight: 600 }}>{rows.length}</div>
                   </div>
-                  <div style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
+                  <div data-card style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
                     <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase" }}>Columns</div>
                     <div style={{ fontSize: 18, fontWeight: 600 }}>{activeColumns.length}</div>
                   </div>
-                  <div style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
+                  <div data-card style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
                     <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase" }}>
                       Primary Total
                     </div>
@@ -1090,7 +1611,7 @@ export default function HomePage() {
                       {primaryTotal === null ? "—" : eur(primaryTotal)}
                     </div>
                   </div>
-                  <div style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
+                  <div data-card style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 10 }}>
                     <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase" }}>
                       View
                     </div>
@@ -1137,7 +1658,7 @@ export default function HomePage() {
               </thead>
               <tbody>
                 {rows.map((row, index) => (
-                  <tr key={`${String(row[rowKey] ?? "row")}-${index}`}>
+                  <tr className="data-row" key={`${String(row[rowKey] ?? "row")}-${index}`}>
                     {activeColumns.map((column, columnIndex) => {
                       const value = row[column.field];
                       const rendered =
@@ -1154,6 +1675,7 @@ export default function HomePage() {
                       <button
                         disabled={row.follow_up_status === "followed_up" || !row.invoice_id || !!busy}
                         onClick={() => markFollowedUp(String(row.invoice_id))}
+                        className="btn-outline"
                         style={{ all: "unset", cursor: "pointer", fontSize: 11, padding: "4px 8px", borderRadius: 4, boxShadow: "inset 0 0 0 0.5px var(--line-strong)", color: "var(--ink-secondary)" }}
                       >
                         Mark followed up
@@ -1183,7 +1705,8 @@ export default function HomePage() {
                           {lane !== "followed_up" ? (
                             <button
                               onClick={() => markFollowedUp(String(row.invoice_id))}
-                              style={{ all: "unset", cursor: "pointer", marginTop: 8, fontSize: 11, color: "var(--accent)" }}
+                              className="btn-ghost"
+                              style={{ all: "unset", cursor: "pointer", marginTop: 8, fontSize: 11, color: "var(--accent)", padding: "3px 6px", borderRadius: 4 }}
                             >
                               Mark followed up
                             </button>
@@ -1198,24 +1721,141 @@ export default function HomePage() {
         </div>
       </main>
 
+      {/* Right resize handle */}
+      <div
+        onMouseDown={startDragRight}
+        className="drag-handle"
+        style={{
+          width: 8,
+          flexShrink: 0,
+          cursor: "col-resize",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10,
+        }}
+      >
+        <div className="drag-pip" style={{ width: 2, height: 32, borderRadius: 1, background: "var(--line-thin)", opacity: 0.6, transition: "height 0.15s, opacity 0.15s, background 0.15s" }} />
+      </div>
+
       <aside
         style={{
-          width: 240,
+          width: rightWidth,
+          flexShrink: 0,
           background: "var(--bg-surface)",
           borderRadius: "var(--r-zone)",
           boxShadow: "inset 0 0 0 0.5px var(--line-thin)",
           display: "flex",
           flexDirection: "column",
+          minHeight: 0,
         }}
       >
-        <div style={{ padding: "10px 12px", borderBottom: "0.5px solid var(--line-thin)", fontSize: 12, fontWeight: 500 }}>
+        <div style={{ padding: "13px 16px", borderBottom: "0.5px solid var(--line-thin)", fontSize: 13, fontWeight: 600, flexShrink: 0, letterSpacing: "-0.01em" }}>
           Ask viter
         </div>
-        <div style={{ padding: 12, fontSize: 12, color: "var(--ink-secondary)", lineHeight: 1.5 }}>
-          Scoped to <b>{sourceName}</b>. Next step is plugging the real Steer loop into the apply API.
+
+        {/* Message history */}
+        <div
+          ref={steerScrollRef}
+          style={{ flex: 1, overflowY: "auto", padding: "14px 14px", display: "flex", flexDirection: "column", gap: 10, minHeight: 0 }}
+        >
+          {steerMessages.length === 0 ? (
+            <div style={{ fontSize: 12, color: "var(--ink-tertiary)", lineHeight: 1.6 }}>
+              Ask me to change what you see — e.g. &ldquo;show only overdue items&rdquo; or &ldquo;add a chart for totals by client&rdquo;.
+            </div>
+          ) : null}
+          <AnimatePresence initial={false}>
+            {steerMessages.map((msg, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ type: "spring", stiffness: 340, damping: 26 }}
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.6,
+                  padding: "8px 11px",
+                  borderRadius: 10,
+                  background: msg.role === "user" ? "var(--accent)" : "var(--bg-secondary)",
+                  color: msg.role === "user" ? "white" : "var(--ink-secondary)",
+                  alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "88%",
+                  boxShadow: msg.role === "user" ? "0 1px 4px rgba(47,91,255,0.18)" : "none",
+                }}
+              >
+                {msg.content}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {steering ? (
+            <div style={{ alignSelf: "flex-start", width: "88%", display: "flex", flexDirection: "column", gap: 8, padding: "10px 0" }}>
+              <div className="chat-skeleton-line" style={{ width: "100%" }} />
+              <div className="chat-skeleton-line" style={{ width: "82%" }} />
+              <div className="chat-skeleton-line" style={{ width: "91%" }} />
+              <div className="chat-skeleton-line" style={{ width: "67%" }} />
+              <div className="chat-skeleton-line" style={{ width: "78%" }} />
+              <div className="chat-hint-cycle" style={{ marginTop: 2, fontSize: 11, color: "var(--ink-tertiary)" }}>
+                {STEER_HINTS[steerHintIdx]}
+              </div>
+            </div>
+          ) : null}
         </div>
-        <div style={{ marginTop: "auto", padding: 10, borderTop: "0.5px solid var(--line-thin)", fontSize: 11, color: "var(--ink-tertiary)" }}>
-          {busy || "Ready"}
+
+        {/* Input */}
+        <div style={{ padding: "10px 12px 12px", borderTop: "0.5px solid var(--line-thin)", flexShrink: 0 }}>
+          <div style={{
+            display: "flex",
+            alignItems: "flex-end",
+            gap: 0,
+            borderRadius: 10,
+            border: "1px solid var(--line-strong)",
+            background: "var(--bg-secondary)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+            overflow: "hidden",
+            transition: "border-color 0.15s",
+          }}>
+            <input
+              value={steerInput}
+              onChange={(e) => setSteerInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendSteerMessage(); } }}
+              placeholder="Ask to change the view…"
+              disabled={steering || !sourceId || aiPages.length === 0}
+              style={{
+                flex: 1,
+                fontSize: 12,
+                padding: "10px 12px",
+                border: "none",
+                background: "transparent",
+                color: "var(--ink-primary)",
+                outline: "none",
+                minWidth: 0,
+              }}
+            />
+            <button
+              onClick={() => void sendSteerMessage()}
+              disabled={steering || !steerInput.trim() || !sourceId || aiPages.length === 0}
+              className={(!steering && steerInput.trim()) ? "btn-solid" : undefined}
+              style={{
+                all: "unset",
+                cursor: steering || !steerInput.trim() ? "default" : "pointer",
+                fontSize: 14,
+                width: 36,
+                height: 36,
+                margin: 4,
+                borderRadius: 7,
+                background: steering || !steerInput.trim() ? "var(--bg-tertiary)" : "var(--ink-primary)",
+                color: steering || !steerInput.trim() ? "var(--ink-quaternary)" : "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                transition: "background 0.15s, color 0.15s",
+              }}
+            >
+              ↑
+            </button>
+          </div>
         </div>
       </aside>
     </div>
