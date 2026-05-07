@@ -1,0 +1,1 @@
+{"version":3,"file":"meeting.d.ts","sourceRoot":"","sources":["../../../src/synthesizers/scopers/meeting.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;GAYG;AAEH,OAAO,KAAK,EAAE,cAAc,EAAE,MAAM,uBAAuB,CAAC;AAC5D,OAAO,KAAK,EAAE,gBAAgB,EAAE,WAAW,EAAE,MAAM,aAAa,CAAC;AAEjE,wBAAsB,cAAc,CAClC,KAAK,EAAE,WAAW,EAClB,EAAE,EAAE,cAAc,GACjB,OAAO,CAAC,gBAAgB,EAAE,CAAC,CA2E7B"}

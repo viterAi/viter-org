@@ -12,7 +12,9 @@
  */
 import { createHash } from 'node:crypto';
 import { scopeByDay } from './scopers/day.js';
+import { scopeByMeeting } from './scopers/meeting.js';
 import { buildDayPrompt } from './prompts/day.js';
+import { buildMeetingPrompt } from './prompts/meeting.js';
 import { resolveCitations } from './citation-parser.js';
 import { preparePayloadForLog } from '../utils/redact.js';
 const PROMPT_VERSION_DAY = 'day-prompt-v2-deep';
@@ -174,6 +176,7 @@ async function dispatchScoper(kind, input, db) {
         case 'day':
             return scopeByDay(input, db);
         case 'meeting':
+            return scopeByMeeting(input, db);
         case 'thread':
         case 'concept':
         case 'person':
@@ -186,6 +189,7 @@ function dispatchPromptBuilder(kind, scopeKey, events) {
         case 'day':
             return buildDayPrompt(scopeKey, events);
         case 'meeting':
+            return buildMeetingPrompt(scopeKey, events);
         case 'thread':
         case 'concept':
         case 'person':

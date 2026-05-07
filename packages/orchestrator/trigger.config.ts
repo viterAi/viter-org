@@ -74,7 +74,7 @@ const aliasWorkspaceDepsExtension: any = {
       '@vita/runtime/extractors-attachments': resolve(VENDOR_ROOT, 'runtime-src/extractors/attachments/dispatcher.ts'),
       '@vita/runtime/extractors-meeting': resolve(VENDOR_ROOT, 'runtime-src/extractors/meeting/index.ts'),
       '@vita/runtime/llm-log': resolve(VENDOR_ROOT, 'runtime-src/llm-log/index.ts'),
-      '@vita/runtime/synthesizers': resolve(VENDOR_ROOT, 'runtime-src/synthesizers/index.ts'),
+      '@vita/runtime/synthesizers': resolve(VENDOR_ROOT, 'runtime-dist/synthesizers/index.js'),
       '@vita/runtime/types': resolve(VENDOR_ROOT, 'runtime-dist/types.js'),
     };
     context.registerPlugin({
