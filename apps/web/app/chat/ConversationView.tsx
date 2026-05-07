@@ -11,7 +11,8 @@
 import { Composer } from './Composer';
 import { MessageStream } from './MessageStream';
 import { MeetingL2Panel } from './MeetingL2Panel';
-import { loadMessages, loadMeetingL2 } from '@/lib/chat/queries';
+import { SpeakerPanel } from './SpeakerPanel';
+import { loadMessages, loadMeetingL2, loadSpeakerCodes } from '@/lib/chat/queries';
 import type { Channel } from '@/lib/chat/types';
 
 interface ConversationViewProps {
@@ -20,9 +21,10 @@ interface ConversationViewProps {
 
 export async function ConversationView({ channel }: ConversationViewProps) {
   const isMeeting = channel.kind === 'meeting';
-  const [initialMessages, meetingL2] = await Promise.all([
+  const [initialMessages, meetingL2, speakerCodes] = await Promise.all([
     loadMessages(channel.id),
     isMeeting ? loadMeetingL2(channel.id) : Promise.resolve(null),
+    isMeeting ? loadSpeakerCodes(channel.id) : Promise.resolve([]),
   ]);
 
   const cleanName = (channel.display_name ?? channel.identifier).replace(/^WhatsApp · /, '');
@@ -58,6 +60,9 @@ export async function ConversationView({ channel }: ConversationViewProps) {
             generated_at={meetingL2.generated_at}
             scope_key={meetingL2.scope_key}
           />
+        )}
+        {speakerCodes.length > 0 && (
+          <SpeakerPanel channelId={channel.id} speakers={speakerCodes} />
         )}
         <MessageStream channelId={channel.id} initialMessages={initialMessages} />
       </div>

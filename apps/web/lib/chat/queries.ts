@@ -212,6 +212,47 @@ export async function loadMeetingL2(channelId: string): Promise<{ body: string; 
   };
 }
 
+/** Load distinct speaker codes for a meeting channel, merged with saved names from metadata. */
+export async function loadSpeakerCodes(
+  channelId: string,
+): Promise<{ code: string; name: string | null }[]> {
+  const tenantId = await getCurrentTenantId();
+  const db = getServiceRoleClient();
+
+  const [{ data: events }, { data: channel }] = await Promise.all([
+    db
+      .from('l1_events')
+      .select('metadata')
+      .eq('tenant_id', tenantId)
+      .eq('channel_id', channelId)
+      .eq('facet', 'transcription')
+      .not('metadata->>speaker', 'is', null)
+      .limit(500),
+    db
+      .from('channels')
+      .select('metadata')
+      .eq('id', channelId)
+      .eq('tenant_id', tenantId)
+      .single(),
+  ]);
+
+  if (!events || events.length === 0) return [];
+
+  const savedSpeakers = ((channel?.metadata as Record<string, unknown>)?.speakers ?? {}) as
+    Record<string, { name?: string }>;
+
+  const codes = new Set<string>();
+  for (const e of events) {
+    const spk = (e.metadata as Record<string, unknown>)?.speaker as string | null;
+    if (spk) codes.add(spk);
+  }
+
+  return [...codes].sort().map((code) => ({
+    code,
+    name: savedSpeakers[code]?.name ?? null,
+  }));
+}
+
 // Pure formatters (groupByDay / groupConsecutive / MessageBlock) live in
 // ./format.ts so client components can import them without dragging in the
 // server-only Supabase helpers above. Re-exported here for source compat.
