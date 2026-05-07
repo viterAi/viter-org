@@ -79,7 +79,6 @@ export async function transcribeWithAssemblyAI(
     headers: {
       Authorization: args.apiKey,
       'Content-Type': 'application/octet-stream',
-      'Transfer-Encoding': 'chunked',
     },
     body: audioBuf,
   });
