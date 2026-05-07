@@ -14,54 +14,50 @@
 import { schemaTask, logger } from '@trigger.dev/sdk';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { generateText } from 'ai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
 import { synthesize } from '@vita/runtime/synthesizers';
 import type { LLMClient, LLMCompletionRequest, LLMCompletionResult } from '@vita/runtime/synthesizers';
 
 /**
- * Lightweight OpenRouter client using native fetch — avoids importing the
- * openai/anthropic SDKs which are not in the orchestrator's package.json.
- * Mirrors what synthesizers/llm.ts does but without the SDK dependency.
+ * LLM client using @openrouter/ai-sdk-provider (same pattern as viterAi/viter).
+ * Only needs OPENROUTER_API_KEY — no openai or @anthropic-ai/sdk deps.
  */
-function createFetchLLMClient(apiKey: string): LLMClient {
+function createOpenRouterLLMClient(apiKey: string): LLMClient {
+  const openrouter = createOpenRouter({ apiKey });
+
   return async (req: LLMCompletionRequest): Promise<LLMCompletionResult> => {
-    const model = req.model || 'anthropic/claude-sonnet-4-6';
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://vita.viter.ai',
-        'X-Title': 'Vita Substrate',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: req.systemPrompt },
-          { role: 'user', content: req.userPrompt },
-        ],
-        max_tokens: req.maxTokens ?? 4096,
-        temperature: req.temperature ?? 0.2,
-      }),
+    const modelId = req.model || 'anthropic/claude-sonnet-4-6';
+
+    const { text, usage, warnings, response } = await generateText({
+      model: openrouter.chat(modelId),
+      system: req.systemPrompt,
+      prompt: req.userPrompt,
+      maxTokens: req.maxTokens ?? 4096,
+      temperature: req.temperature ?? 0.2,
     });
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(`OpenRouter ${res.status}: ${body.slice(0, 200)}`);
+
+    if (warnings?.length) {
+      logger.warn('generateText warnings', { warnings });
     }
-    const data = await res.json() as any;
-    const choice = data.choices?.[0];
-    const body = (choice?.message?.content ?? '').trim();
-    const usedModel = data.model ?? model;
+
+    const usedModel = response?.modelId ?? modelId;
     const canonical = usedModel.includes('sonnet') ? 'claude-sonnet-4-6' : 'claude-opus-4-7';
+
     return {
-      body,
+      body: text,
       generator: canonical,
       model_used: usedModel,
       provider_name: 'openrouter',
-      generation_id: data.id ?? null,
-      finish_reason: choice?.finish_reason ?? null,
+      generation_id: null,
+      finish_reason: null,
       generator_params: { provider: 'openrouter', model: usedModel },
-      usage: data.usage as Record<string, unknown> | undefined,
+      usage: usage ? {
+        prompt_tokens: usage.promptTokens,
+        completion_tokens: usage.completionTokens,
+        total_tokens: usage.totalTokens,
+      } : undefined,
     };
   };
 }
@@ -119,7 +115,7 @@ export const synthesizeMeeting = schemaTask({
       }
     }
 
-    const llm = createFetchLLMClient(process.env.OPENROUTER_API_KEY!);
+    const llm = createOpenRouterLLMClient(process.env.OPENROUTER_API_KEY!);
 
     const result = await synthesize(
       { db: supabase, llm, tenantId: payload.tenant_id },

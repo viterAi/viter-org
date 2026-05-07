@@ -13,7 +13,9 @@
     "trigger:deploy": "trigger deploy --native-build-server"
   },
   "dependencies": {
+    "@openrouter/ai-sdk-provider": "^2.8.0",
     "@supabase/supabase-js": "^2.45.0",
+    "ai": "^6.0.168",
     "@trigger.dev/build": "^4.4.5",
     "@trigger.dev/sdk": "^4.4.5",
     "@vita/adapter-whatsapp-gowa": "workspace:*",
