@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import type { SourceDataRow } from "../../../../../lib/types/view-builder";
-import { getSupabaseAdminClient } from "../../../../../lib/supabase/admin";
-import { parseSourceRows } from "../../../../../lib/source-data/parse-source-data";
+import { fetchChatMessages, formatChatName } from "../../../../../lib/l0/whatsapp";
 import { getCatalogPromptBlock } from "../../../../../lib/layout/component-catalog";
 import {
   fillPageComponents,
@@ -23,6 +22,9 @@ export async function GET(
   const { sourceId } = await params;
   void request;
 
+  // sourceId is the chat_slug (e.g. "shaul-direct", "mvp-dev")
+  const chatSlug = decodeURIComponent(sourceId);
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -31,29 +33,19 @@ export async function GET(
       }
 
       try {
-        const supabase = getSupabaseAdminClient();
-        const { data: sourceMeta } = await supabase
-          .from("sources")
-          .select("key,name,channel,seed_format,markdown")
-          .eq("id", sourceId)
-          .maybeSingle();
+        const rows: SourceDataRow[] = await fetchChatMessages(chatSlug);
 
-        if (!sourceMeta) {
-          emit({ type: "error", error: "Source not found." });
+        if (rows.length === 0) {
+          emit({ type: "error", error: `No messages found for chat: ${chatSlug}` });
           controller.close();
           return;
         }
 
-        const rows = parseSourceRows({
-          markdown: sourceMeta.markdown ?? "",
-          seedFormat: (sourceMeta.seed_format ?? "markdown") as "markdown" | "json" | "csv",
-        }) as SourceDataRow[];
-
         const source = {
-          key: sourceMeta.key ?? "unknown",
-          name: sourceMeta.name ?? "Unknown source",
-          channel: sourceMeta.channel as string | undefined,
-          seed_format: sourceMeta.seed_format as string | undefined,
+          key: chatSlug,
+          name: formatChatName(chatSlug),
+          channel: "whatsapp",
+          seed_format: "whatsapp_chat",
         };
 
         // ── Stage 1: plan pages ──────────────────────────────────────────────
@@ -111,7 +103,6 @@ export async function GET(
         }));
         const aiPageStatuses: AiPageStatus[] = pageResults.map(({ status }) => status);
         const allWarnings: string[] = pageResults.flatMap(({ status }) => status.warnings);
-
         const anyInvalid = aiPageStatuses.some((s) => s.state === "invalid");
 
         emit({
@@ -123,10 +114,7 @@ export async function GET(
           ai_status: {
             state: anyInvalid ? "invalid" : "ready",
             last_error: anyInvalid
-              ? aiPageStatuses
-                  .filter((s) => s.state === "invalid")
-                  .map((s) => `Page '${s.page_id}': ${s.last_error}`)
-                  .join("; ")
+              ? aiPageStatuses.filter((s) => s.state === "invalid").map((s) => `Page '${s.page_id}': ${s.last_error}`).join("; ")
               : null,
           },
         });

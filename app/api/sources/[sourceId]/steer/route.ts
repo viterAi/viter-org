@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
-import { getSupabaseAdminClient } from "../../../../../lib/supabase/admin";
-import { parseSourceRows } from "../../../../../lib/source-data/parse-source-data";
+import { fetchChatMessages, listWhatsappChats, formatChatName } from "../../../../../lib/l0/whatsapp";
 import { getCatalogPromptBlock } from "../../../../../lib/layout/component-catalog";
 import {
   fillPageComponents,
@@ -244,36 +243,27 @@ export async function POST(
       }
 
       try {
-        const supabase = getSupabaseAdminClient();
+        const chatSlug = decodeURIComponent(sourceId);
 
-        // Load source meta + all sources in parallel
-        const [{ data: sourceMeta }, { data: allSources }] = await Promise.all([
-          supabase
-            .from("sources")
-            .select("key,name,channel,seed_format,markdown")
-            .eq("id", sourceId)
-            .maybeSingle(),
-          supabase.from("sources").select("id,name,key"),
+        // Load messages + all chats in parallel
+        const [rows, allChats] = await Promise.all([
+          fetchChatMessages(chatSlug),
+          listWhatsappChats(),
         ]);
 
-        if (!sourceMeta) {
-          emit({ type: "error", error: "Source not found." });
+        if (rows.length === 0) {
+          emit({ type: "error", error: `No messages found for chat: ${chatSlug}` });
           controller.close();
           return;
         }
 
-        const rows = parseSourceRows({
-          markdown: sourceMeta.markdown ?? "",
-          seedFormat: (sourceMeta.seed_format ?? "markdown") as "markdown" | "json" | "csv",
-        }) as SourceDataRow[];
-
         const source = {
-          key: sourceMeta.key ?? "unknown",
-          name: sourceMeta.name ?? "Unknown source",
-          channel: sourceMeta.channel as string | undefined,
+          key: chatSlug,
+          name: formatChatName(chatSlug),
+          channel: "whatsapp",
         };
 
-        const sources: IncomingSource[] = (allSources ?? []) as IncomingSource[];
+        const sources: IncomingSource[] = allChats.map((c) => ({ id: c.id, name: c.name, key: c.key }));
 
         // ── Step 1: classify ────────────────────────────────────────────────
         emit({ type: "planning" });
