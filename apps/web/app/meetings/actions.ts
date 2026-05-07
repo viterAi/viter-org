@@ -63,6 +63,7 @@ export async function ensureMeetingChannel(args: EnsureMeetingChannelArgs): Prom
         tenant_id: tenantId,
         kind: 'meeting',
         identifier: meetingSlug,
+        scope: 'tenant',
         display_name: args.display_name?.trim() || `meeting: ${meetingSlug}`,
         metadata,
       },
