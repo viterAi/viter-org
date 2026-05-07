@@ -43,3 +43,15 @@ export type {
   DiarizeChunkArgs,
   DiarizeChunkResult,
 } from './diarize.js';
+
+export {
+  transcribeWithAssemblyAI,
+  ASSEMBLYAI_EXTRACTOR_VERSION,
+  ASSEMBLYAI_MODEL_ID,
+} from './assemblyai.js';
+
+export type {
+  AssemblyAIUtterance,
+  AssemblyAITranscribeArgs,
+  AssemblyAITranscribeResult,
+} from './assemblyai.js';

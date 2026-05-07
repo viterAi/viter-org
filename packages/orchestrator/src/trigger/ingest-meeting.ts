@@ -37,6 +37,9 @@ import {
   MEETING_EXTRACTOR_VERSION,
   MEETING_DEFAULT_CHUNK_MIN,
   MEETING_DEFAULT_BIAS_PROMPT,
+  transcribeWithAssemblyAI,
+  ASSEMBLYAI_EXTRACTOR_VERSION,
+  ASSEMBLYAI_MODEL_ID,
 } from '@vita/runtime/extractors-meeting';
 import { createLLMCallLogger } from '@vita/runtime/llm-log';
 
@@ -163,24 +166,34 @@ export const ingestMeeting = schemaTask({
         artifactId = artRow.id as string;
       }
 
-      // ── 5. l1_extraction_run (running) ──
+      // ── 5. Choose extractor: AssemblyAI (bundled diarization) or Whisper ──
+      const assemblyaiKey = process.env.ASSEMBLYAI_API_KEY;
+      const useAssemblyAI = !!assemblyaiKey;
+
       const chunkMinutes = payload.chunk_minutes ?? MEETING_DEFAULT_CHUNK_MIN;
       const biasPrompt = payload.bias_prompt === ''
         ? null
         : (payload.bias_prompt ?? MEETING_DEFAULT_BIAS_PROMPT);
-      const runParameters = {
-        route: 'openrouter/audio/transcriptions',
-        input_format: 'wav',
-        response_format: 'verbose_json',
-        chunk_minutes: chunkMinutes,
-        max_minutes: payload.max_minutes,
-        bias_prompt_present: !!biasPrompt,
-        language: payload.language ?? null,
-      };
 
-      // Idempotency: the unique key on l1_extraction_runs covers
-      // (tenant, artifact, facet, extractor, version, parameters). Try insert,
-      // fall back to upsert-style fetch on conflict.
+      const runParameters = useAssemblyAI
+        ? {
+            route: 'assemblyai/v2/transcript',
+            speaker_labels: true,
+            language: payload.language ?? null,
+          }
+        : {
+            route: 'openrouter/audio/transcriptions',
+            input_format: 'wav',
+            response_format: 'verbose_json',
+            chunk_minutes: chunkMinutes,
+            max_minutes: payload.max_minutes,
+            bias_prompt_present: !!biasPrompt,
+            language: payload.language ?? null,
+          };
+
+      const extractor = useAssemblyAI ? ASSEMBLYAI_MODEL_ID : MEETING_DEFAULT_MODEL;
+      const version = useAssemblyAI ? ASSEMBLYAI_EXTRACTOR_VERSION : MEETING_EXTRACTOR_VERSION;
+
       const { data: runRow, error: runErr } = await supabase
         .from('l1_extraction_runs')
         .upsert(
@@ -188,8 +201,8 @@ export const ingestMeeting = schemaTask({
             tenant_id: tenantId,
             artifact_id: artifactId,
             facet: 'transcription',
-            extractor: MEETING_DEFAULT_MODEL,
-            version: MEETING_EXTRACTOR_VERSION,
+            extractor,
+            version,
             parameters: runParameters,
             is_deterministic: false,
             status: 'running',
@@ -202,7 +215,6 @@ export const ingestMeeting = schemaTask({
       if (runErr || !runRow) throw new Error(`l1_extraction_run upsert: ${runErr?.message}`);
       const runId = runRow.id as string;
 
-      // If a prior run already completed (status=ok), skip retranscription.
       if (runRow.status === 'ok') {
         return {
           tenant_id: tenantId,
@@ -215,114 +227,158 @@ export const ingestMeeting = schemaTask({
         };
       }
 
-      // ── 6. Transcribe in chunks ──
-      const logger = createLLMCallLogger({
-        db: supabase,
-        tenantId,
-        caller: 'extractor.meeting',
-        triggerRunId: ctx?.run?.id,
-        triggerTaskId: 'ingest-meeting',
-        source: 'orchestrator/trigger/ingest-meeting.ts',
-        environment: process.env.TRIGGER_ENV ?? 'dev',
-        tags: ['meeting', `tenant:${payload.tenant_slug}`, `meeting:${payload.meeting_slug}`],
-      });
-
-      const apiKey = process.env.OPENROUTER_API_KEY;
-      if (!apiKey) throw new Error('OPENROUTER_API_KEY is required');
-
-      const result = await transcribeMeeting({
-        audioPath: localAudioPath,
-        openrouterApiKey: apiKey,
-        chunkMinutes,
-        maxMinutes: payload.max_minutes,
-        biasPrompt: biasPrompt as string | null | undefined,
-        languageHint: payload.language,
-        logger,
-        callerMetadata: {
-          tenant_id: tenantId,
-          caller: 'extractor.meeting',
-          scope_kind: 'meeting_audio',
-          scope_key: payload.meeting_slug,
-          trigger_run_id: ctx?.run?.id ?? null,
-        },
-        scopeKey: payload.meeting_slug,
-        concurrency: 2,
-      });
-
-      // ── 7. Insert l1_events (one per chunk) ──
-      // Each event uses the audio's `origin_at` + chunk start as its event_at.
-      // Future: replace `origin_at` here with a real recording-start timestamp
-      // when the inbox webhook captures it. For now we use the captured_at.
+      // ── 6. Transcribe ──
       const { data: artForOrigin } = await supabase
-        .from('l0_artifacts')
-        .select('origin_at')
-        .eq('id', artifactId)
-        .single();
+        .from('l0_artifacts').select('origin_at').eq('id', artifactId).single();
       const originAtMs = artForOrigin
         ? new Date(artForOrigin.origin_at as string).getTime()
         : Date.now();
 
-      const eventRows = result.chunks.map((c) => ({
-        tenant_id: tenantId,
-        artifact_id: artifactId,
-        extraction_run_id: runId,
-        facet: 'transcription',
-        event_at: new Date(originAtMs + c.startSec * 1000).toISOString(),
-        position: c.index,
-        actor_id: null,                                   // Whisper doesn't diarize
-        channel_id: channelId,
-        modality: 'voice',
-        content: c.text,
-        ts_start_s: c.startSec,
-        ts_end_s: c.startSec + c.durationSec,
-        confidence: null,
-        extraction_method: `${result.modelUsed}@${result.version}`,
-        metadata: {
-          chunk_index: c.index,
-          chunk_chars: c.text.length,
-          chunk_duration_s: c.durationSec,
-          chunk_start_s: c.startSec,
-          chunk_end_s: c.startSec + c.durationSec,
-          meeting_slug: payload.meeting_slug,
-          wav_bytes: c.wavBytes,
-          wav_sha256: c.wavSha256,
-          audio_seconds_provider: c.audioSeconds,
-          cost_usd: c.costUsd,
-          wall_ms: c.wallMs,
-          language: c.language,
-          n_segments: c.segments.length,
-          segments: c.segments,                            // small inline; fine for transcript
-        },
-      }));
+      let eventRows: object[];
+      let totalCost: number;
+      let totalChars: number;
+      let totalDurationS: number;
+      let modelUsed: string;
+      let chunkCount: number;
 
-      // Idempotency on events: nuke any prior events for this run before
-      // re-insert (the run row is the same on retry; events repopulate cleanly).
-      await supabase
-        .from('l1_events')
-        .delete()
-        .eq('extraction_run_id', runId);
+      if (useAssemblyAI) {
+        // ── AssemblyAI path — one call, bundled speaker diarization ──
+        const aaiResult = await transcribeWithAssemblyAI({
+          apiKey: assemblyaiKey,
+          audioPath: localAudioPath,
+          language: payload.language,
+        });
 
+        totalDurationS = aaiResult.duration_s;
+        totalChars = aaiResult.text.length;
+        totalCost = aaiResult.cost_usd ?? 0;
+        modelUsed = ASSEMBLYAI_MODEL_ID;
+        chunkCount = aaiResult.utterances.length;
+
+        // Each utterance → one l1_event; speaker label goes in metadata.
+        eventRows = aaiResult.utterances.map((u, i) => ({
+          tenant_id: tenantId,
+          artifact_id: artifactId,
+          extraction_run_id: runId,
+          facet: 'transcription',
+          event_at: new Date(originAtMs + u.start_ms).toISOString(),
+          position: i,
+          actor_id: null,
+          channel_id: channelId,
+          modality: 'voice',
+          content: u.text,
+          ts_start_s: u.start_ms / 1000,
+          ts_end_s: u.end_ms / 1000,
+          confidence: u.confidence,
+          extraction_method: `${ASSEMBLYAI_MODEL_ID}@${ASSEMBLYAI_EXTRACTOR_VERSION}`,
+          metadata: {
+            speaker: u.speaker,
+            utterance_index: i,
+            utterance_chars: u.text.length,
+            utterance_start_ms: u.start_ms,
+            utterance_end_ms: u.end_ms,
+            meeting_slug: payload.meeting_slug,
+            transcript_id: aaiResult.transcript_id,
+            language: aaiResult.language,
+            cost_usd: aaiResult.cost_usd,
+            wall_ms: aaiResult.wall_ms,
+            n_words: u.words.length,
+          },
+        }));
+      } else {
+        // ── Whisper path (chunked via OpenRouter) ──
+        const logger = createLLMCallLogger({
+          db: supabase,
+          tenantId,
+          caller: 'extractor.meeting',
+          triggerRunId: ctx?.run?.id,
+          triggerTaskId: 'ingest-meeting',
+          source: 'orchestrator/trigger/ingest-meeting.ts',
+          environment: process.env.TRIGGER_ENV ?? 'dev',
+          tags: ['meeting', `tenant:${payload.tenant_slug}`, `meeting:${payload.meeting_slug}`],
+        });
+
+        const openrouterKey = process.env.OPENROUTER_API_KEY;
+        if (!openrouterKey) throw new Error('OPENROUTER_API_KEY is required');
+
+        const result = await transcribeMeeting({
+          audioPath: localAudioPath,
+          openrouterApiKey: openrouterKey,
+          chunkMinutes,
+          maxMinutes: payload.max_minutes,
+          biasPrompt: biasPrompt as string | null | undefined,
+          languageHint: payload.language,
+          logger,
+          callerMetadata: {
+            tenant_id: tenantId,
+            caller: 'extractor.meeting',
+            scope_kind: 'meeting_audio',
+            scope_key: payload.meeting_slug,
+            trigger_run_id: ctx?.run?.id ?? null,
+          },
+          scopeKey: payload.meeting_slug,
+          concurrency: 2,
+        });
+
+        totalDurationS = result.totalDurationS;
+        totalChars = result.totalChars;
+        totalCost = result.chunks.reduce((s, c) => s + (c.costUsd ?? 0), 0);
+        modelUsed = result.modelUsed;
+        chunkCount = result.chunks.length;
+
+        eventRows = result.chunks.map((c) => ({
+          tenant_id: tenantId,
+          artifact_id: artifactId,
+          extraction_run_id: runId,
+          facet: 'transcription',
+          event_at: new Date(originAtMs + c.startSec * 1000).toISOString(),
+          position: c.index,
+          actor_id: null,
+          channel_id: channelId,
+          modality: 'voice',
+          content: c.text,
+          ts_start_s: c.startSec,
+          ts_end_s: c.startSec + c.durationSec,
+          confidence: null,
+          extraction_method: `${result.modelUsed}@${result.version}`,
+          metadata: {
+            chunk_index: c.index,
+            chunk_chars: c.text.length,
+            chunk_duration_s: c.durationSec,
+            chunk_start_s: c.startSec,
+            chunk_end_s: c.startSec + c.durationSec,
+            meeting_slug: payload.meeting_slug,
+            wav_bytes: c.wavBytes,
+            wav_sha256: c.wavSha256,
+            audio_seconds_provider: c.audioSeconds,
+            cost_usd: c.costUsd,
+            wall_ms: c.wallMs,
+            language: c.language,
+            n_segments: c.segments.length,
+            segments: c.segments,
+          },
+        }));
+      }
+
+      // ── 7. Insert l1_events ──
+      await supabase.from('l1_events').delete().eq('extraction_run_id', runId);
       if (eventRows.length > 0) {
         const { error: evErr } = await supabase.from('l1_events').insert(eventRows);
         if (evErr) throw new Error(`l1_events insert: ${evErr.message}`);
       }
 
       // ── 8. Finalize run + promote active ──
-      const totalCost = result.chunks.reduce((s, c) => s + (c.costUsd ?? 0), 0);
       await supabase
         .from('l1_extraction_runs')
         .update({
           status: 'ok',
           completed_at: new Date().toISOString(),
           metrics: {
-            chunks: result.chunks.length,
-            chars: result.totalChars,
-            duration_s: result.totalDurationS,
-            audio_bytes: result.audioBytes,
-            audio_sha256: result.audioSha256,
-            chunk_minutes: result.chunkMinutes,
-            bias_prompt_hash: result.biasPromptHash,
+            chunks: chunkCount,
+            chars: totalChars,
+            duration_s: totalDurationS,
             cost_usd: totalCost,
+            extractor: useAssemblyAI ? 'assemblyai' : 'whisper',
             source: 'orchestrator/trigger/ingest-meeting.ts',
           },
         })
@@ -347,11 +403,12 @@ export const ingestMeeting = schemaTask({
         channel_id: channelId,
         artifact_id: artifactId,
         run_id: runId,
-        chunks: result.chunks.length,
-        chars: result.totalChars,
-        duration_s: result.totalDurationS,
+        chunks: chunkCount,
+        chars: totalChars,
+        duration_s: totalDurationS,
         cost_usd: totalCost,
-        model: result.modelUsed,
+        model: modelUsed,
+        extractor: useAssemblyAI ? 'assemblyai' : 'whisper',
         skipped: false,
       };
     } finally {
