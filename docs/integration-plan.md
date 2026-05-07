@@ -2,7 +2,7 @@
 
 **Author:** Issac Brown  
 **Last updated:** May 7, 2026  
-**Status:** Draft — pending review and sign-off from Mrodchi  
+**Status:** Partially agreed — data flow confirmed with Mrodchi (May 7 2026); remaining questions open  
 **Blocks:** checklist items 1.4, 1.5 ⚡
 
 ---
@@ -78,7 +78,9 @@ The primary table is `l2_syntheses` — each row is an AI-generated synthesis sc
 
 See **[`docs/l2-schema-notes.md`](./l2-schema-notes.md)** for full schema details, current data counts, and SQL traces.
 
-**Open question for Mrodchi:** what `scope_kind` values will exist beyond `"day"`? What format is `body` in? When will `l3_surfaces` be populated?
+**Agreed (May 7 2026):** View Builder reads all data directly from `l2_syntheses`. No handshake payload. Mrodchi writes; View Builder reads. This is the confirmed data contract.
+
+Remaining open questions: what `scope_kind` values will exist beyond `"day"`? What format is `body` in? When will `l3_surfaces` be populated?
 
 ---
 
@@ -234,22 +236,33 @@ The handshake payload between Mrodchi and the View Builder will not change — M
 
 ---
 
-## Open Questions (For Mrodchi)
+## Agreed Decisions
 
-1. **L2 table schema** — what tables exist, what columns, what does each field mean semantically? This is the core contract the View Builder builds against.
+| Decision | Detail | Date |
+|---|---|---|
+| Data source | View Builder reads all data from `l2_syntheses` in Supabase. No payload handshake. | May 7 2026 |
+| Auth | Handled entirely by Supabase RLS — not passed between systems | May 7 2026 |
+| Design tokens | View Builder fetches from Supabase by tenant/user — Mrodchi not involved | May 7 2026 |
+| Multi-view | Internal to View Builder; Mrodchi can query `views` table directly | May 7 2026 |
+
+---
+
+## Open Questions (Still Pending)
+
 2. **Action routing** — how do persistent write-back and agent-triggering actions get routed?
 3. **Action logging scope** — log boundary-crossing actions only, or all UI interactions?
 4. **Edge Function ownership** — who maintains the Supabase Edge Function that serves data to the View Builder?
 5. **View type decision** — does Mrodchi always decide `view_type`, or can the View Builder suggest one if Mrodchi doesn't specify?
 6. **MCP data agent interface** — what does the View Builder call, with what arguments, when it needs additional data mid-steer?
-7. **Multi-view visibility** — should Mrodchi query the `views` table directly, or does the View Builder expose an endpoint?
+7. **L2 body format + scope kinds** — what `scope_kind` values will exist beyond `"day"`? Is `body` always markdown?
 
 ---
 
 ## Next Steps
 
-- [ ] Share this doc with Mrodchi for review
-- [ ] Resolve open questions (joint session)
-- [ ] Get L2 table schema from Mrodchi — this is the core contract
-- [ ] Finalize action routing decision
-- [ ] Mark integration plan approved → unblocks spec format work and shell build
+- [x] Share data flow decision with Mrodchi ✓
+- [x] Confirm View Builder reads from `l2_syntheses` directly ✓
+- [ ] Wire up Supabase L2 reads into the Next.js app (replace `/api/sources` mock layer)
+- [ ] Define abstract spec format (`lib/types/spec.ts`)
+- [ ] Resolve remaining open questions 2–7 (next joint session)
+- [ ] Mark integration plan fully approved → unblocks spec format work and shell build
