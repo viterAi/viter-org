@@ -10,7 +10,8 @@
 
 import { Composer } from './Composer';
 import { MessageStream } from './MessageStream';
-import { loadMessages } from '@/lib/chat/queries';
+import { MeetingL2Panel } from './MeetingL2Panel';
+import { loadMessages, loadMeetingL2 } from '@/lib/chat/queries';
 import type { Channel } from '@/lib/chat/types';
 
 interface ConversationViewProps {
@@ -18,7 +19,11 @@ interface ConversationViewProps {
 }
 
 export async function ConversationView({ channel }: ConversationViewProps) {
-  const initialMessages = await loadMessages(channel.id);
+  const isMeeting = channel.kind === 'meeting';
+  const [initialMessages, meetingL2] = await Promise.all([
+    loadMessages(channel.id),
+    isMeeting ? loadMeetingL2(channel.id) : Promise.resolve(null),
+  ]);
 
   const cleanName = (channel.display_name ?? channel.identifier).replace(/^WhatsApp · /, '');
   const isGroup = (channel.metadata as { is_group?: boolean }).is_group === true;
@@ -47,6 +52,13 @@ export async function ConversationView({ channel }: ConversationViewProps) {
 
       {/* Scrollable message stream */}
       <div className="chat-bg chat-scroll min-h-0 flex-1 overflow-y-auto">
+        {meetingL2 && (
+          <MeetingL2Panel
+            body={meetingL2.body}
+            generated_at={meetingL2.generated_at}
+            scope_key={meetingL2.scope_key}
+          />
+        )}
         <MessageStream channelId={channel.id} initialMessages={initialMessages} />
       </div>
 

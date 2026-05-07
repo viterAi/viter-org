@@ -16,7 +16,9 @@ import { createHash } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { scopeByDay } from './scopers/day.js';
+import { scopeByMeeting } from './scopers/meeting.js';
 import { buildDayPrompt } from './prompts/day.js';
+import { buildMeetingPrompt } from './prompts/meeting.js';
 import { resolveCitations } from './citation-parser.js';
 import { preparePayloadForLog } from '../utils/redact.js';
 import type {
@@ -214,6 +216,7 @@ async function dispatchScoper(
     case 'day':
       return scopeByDay(input, db);
     case 'meeting':
+      return scopeByMeeting(input, db);
     case 'thread':
     case 'concept':
     case 'person':
@@ -231,6 +234,7 @@ function dispatchPromptBuilder(
     case 'day':
       return buildDayPrompt(scopeKey, events);
     case 'meeting':
+      return buildMeetingPrompt(scopeKey, events);
     case 'thread':
     case 'concept':
     case 'person':

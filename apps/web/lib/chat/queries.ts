@@ -163,6 +163,42 @@ export async function loadMessages(channelId: string, limit = 200): Promise<Mess
   });
 }
 
+/** Load the latest non-stale L2 synthesis for a meeting channel. Returns null if none exists. */
+export async function loadMeetingL2(channelId: string): Promise<{ body: string; generated_at: string; scope_key: string } | null> {
+  const tenantId = await getCurrentTenantId();
+  const db = getServiceRoleClient();
+
+  // Resolve channel identifier for the scope_key lookup
+  const { data: channel } = await db
+    .from('channels')
+    .select('identifier')
+    .eq('id', channelId)
+    .eq('tenant_id', tenantId)
+    .single();
+  if (!channel) return null;
+
+  const scopeKey = `meeting:${channel.identifier as string}`;
+
+  const { data } = await db
+    .from('l2_syntheses')
+    .select('body, generated_at, scope_key')
+    .eq('tenant_id', tenantId)
+    .eq('scope_kind', 'meeting')
+    .eq('scope_key', scopeKey)
+    .eq('is_stale', false)
+    .is('superseded_by', null)
+    .order('generated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+  return {
+    body: data.body as string,
+    generated_at: data.generated_at as string,
+    scope_key: data.scope_key as string,
+  };
+}
+
 // Pure formatters (groupByDay / groupConsecutive / MessageBlock) live in
 // ./format.ts so client components can import them without dragging in the
 // server-only Supabase helpers above. Re-exported here for source compat.

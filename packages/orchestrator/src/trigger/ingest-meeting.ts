@@ -27,7 +27,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createWriteStream } from 'node:fs';
 
-import { schemaTask } from '@trigger.dev/sdk';
+import { schemaTask, tasks } from '@trigger.dev/sdk';
 import { z } from 'zod';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
@@ -397,6 +397,13 @@ export const ingestMeeting = schemaTask({
           },
           { onConflict: 'tenant_id,artifact_id,facet' },
         );
+
+      // Fire L2 synthesis after successful transcription — non-blocking.
+      await tasks.trigger('synthesize-meeting', {
+        tenant_id: tenantId,
+        channel_id: channelId,
+        force: false,
+      });
 
       return {
         tenant_id: tenantId,
