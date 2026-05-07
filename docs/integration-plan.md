@@ -65,7 +65,7 @@ The platform has three permanent layers. The View Builder produces output for th
 2. The View Builder reads from that table when generating or refreshing a view
 3. The View Builder never fetches data directly from source systems — all data arrives via Supabase
 
-### The data handshake (hypothesis — to be confirmed with Mrodchi's team)
+### The data handshake (hypothesis — to be confirmed with Mrodchi)
 
 When Mrodchi triggers a new view, it passes:
 
@@ -88,7 +88,7 @@ When Mrodchi triggers a new view, it passes:
 - `data.index` — markdown description of what the data means (semantic, not just structural)
 - `data.sources` — array of data sources: inline markdown blocks or file paths to fetch
 
-**This format is a working hypothesis. Final schema to be agreed with Mrodchi's team.**
+**This format is a working hypothesis. Final schema to be agreed with Mrodchi.**
 
 ---
 
@@ -153,7 +153,7 @@ When a user takes an action inside a generated view (clicks a button, submits a 
 | Persistent write-back to source | Supabase events table? Direct to Mrodchi? | To be decided |
 | Agent-triggering action | MCP server call? | To be decided |
 
-**This needs a joint decision with Mrodchi's team before write-back is implemented.**
+**This needs a joint decision with Mrodchi before write-back is implemented.**
 
 ---
 
@@ -177,7 +177,7 @@ When a user takes an action inside a generated view (clicks a button, submits a 
 
 ## Next Steps
 
-- [ ] Share this doc with Mrodchi's team for review
+- [ ] Share this doc with Mrodchi for review
 - [ ] Resolve open questions (joint session)
 - [ ] Confirm data handshake schema
 - [ ] Finalize action routing decision
