@@ -1,5 +1,12 @@
-import { getSupabaseAdminClient } from "../supabase/admin";
+import { createClient } from "@supabase/supabase-js";
 import type { SourceDataRow } from "../types/view-builder";
+
+function getDataClient() {
+  const url = process.env.L0_SUPABASE_URL;
+  const key = process.env.L0_SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error("Missing L0_SUPABASE_URL or L0_SUPABASE_ANON_KEY");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
 
 export type WhatsappChat = {
   id: string;
@@ -18,82 +25,48 @@ export function formatChatName(slug: string): string {
   if (slug.startsWith("wa-")) {
     return `+${slug.slice(3)}`;
   }
-  // Named slugs like "shaul-direct", "mvp-dev"
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export async function listWhatsappChats(): Promise<WhatsappChat[]> {
-  const supabase = getSupabaseAdminClient();
+  const supabase = getDataClient();
 
-  // Fetch metadata only (no inline_text) to keep payload small
-  const { data, error } = await supabase
-    .from("l0_artifacts")
-    .select("metadata, origin_at")
-    .in("source_type", ["whatsapp_message", "whatsapp_message_live"]);
+  const { data, error } = await supabase.rpc("list_whatsapp_chats");
 
   if (error || !data) return [];
 
-  const chatMap = new Map<string, { count: number; lastActive: string | null }>();
-
-  for (const row of data) {
-    const meta = row.metadata as Record<string, string> | null;
-    const slug = meta?.chat_slug;
-    if (!slug) continue;
-
-    const existing = chatMap.get(slug);
-    const at = (row.origin_at as string | null) ?? null;
-
-    if (!existing) {
-      chatMap.set(slug, { count: 1, lastActive: at });
-    } else {
-      existing.count++;
-      if (at && (!existing.lastActive || at > existing.lastActive)) {
-        existing.lastActive = at;
-      }
-    }
-  }
-
-  return Array.from(chatMap.entries())
-    .map(([slug, { count, lastActive }]) => ({
-      id: slug,
-      name: formatChatName(slug),
-      key: slug,
-      channel: "whatsapp" as const,
-      message_count: count,
-      last_active: lastActive,
-    }))
-    .sort((a, b) => (b.last_active ?? "").localeCompare(a.last_active ?? ""));
+  return (data as Array<{
+    id: string; name: string; key: string;
+    channel: string; message_count: number; last_active: string | null;
+  }>).map((row) => ({
+    id: row.id,
+    name: formatChatName(row.id),
+    key: row.key,
+    channel: "whatsapp" as const,
+    message_count: Number(row.message_count),
+    last_active: row.last_active,
+  }));
 }
 
-/**
- * Fetch up to `limit` messages for a chat, formatted as SourceDataRow[].
- * Each row: { sender, message, timestamp, kind }
- */
 export async function fetchChatMessages(
   chatSlug: string,
   limit = 400,
 ): Promise<SourceDataRow[]> {
-  const supabase = getSupabaseAdminClient();
+  const supabase = getDataClient();
 
-  const { data, error } = await supabase
-    .from("l0_artifacts")
-    .select("inline_text, metadata, origin_at")
-    .in("source_type", ["whatsapp_message", "whatsapp_message_live"])
-    .filter("metadata->>chat_slug", "eq", chatSlug)
-    .order("origin_at", { ascending: true })
-    .limit(limit);
+  const { data, error } = await supabase.rpc("fetch_chat_messages", {
+    p_chat_slug: chatSlug,
+    p_limit: limit,
+  });
 
   if (error || !data) return [];
 
-  return data
-    .filter((row) => row.inline_text)
-    .map((row) => {
-      const meta = (row.metadata as Record<string, string> | null) ?? {};
-      return {
-        sender: meta.sender_raw ?? "unknown",
-        message: (row.inline_text as string).slice(0, 500),
-        timestamp: (row.origin_at as string) ?? "",
-        kind: meta.kind ?? "text",
-      };
-    });
+  return (data as Array<{
+    sender: string; message: string; sent_at: string; kind: string;
+  }>).map((row) => ({
+    sender: row.sender,
+    message: row.message,
+    timestamp: row.sent_at,
+    kind: row.kind,
+  }));
 }
