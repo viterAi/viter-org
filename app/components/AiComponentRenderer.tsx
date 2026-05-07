@@ -1,7 +1,143 @@
 "use client";
 
+import { useState } from "react";
 import type { Row, UiColumn } from "../types";
 import { eur } from "../utils";
+
+type GanttTask = {
+  title?: string;
+  name?: string;
+  label?: string;
+  start?: string;
+  end?: string;
+  status?: string;
+  [key: string]: unknown;
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  done:        "var(--color-status-done)",
+  complete:    "var(--color-status-done)",
+  completed:   "var(--color-status-done)",
+  in_progress: "var(--color-status-active)",
+  active:      "var(--color-status-active)",
+  blocked:     "var(--color-status-blocked)",
+  at_risk:     "var(--color-status-at-risk)",
+  pending:     "var(--color-status-pending)",
+  planned:     "var(--color-status-pending)",
+};
+
+function ganttColor(status: string) {
+  return STATUS_COLORS[status.toLowerCase()] ?? "var(--accent)";
+}
+
+function fmtGanttDate(ts: number) {
+  const d = new Date(ts);
+  return `${d.toLocaleString("default", { month: "short" })} ${d.getDate()}`;
+}
+
+function GanttChart({ title, tasks, cardStyle }: { title: string; tasks: GanttTask[]; cardStyle: React.CSSProperties }) {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
+  const parsed = tasks
+    .map((t) => ({
+      title: String(t.title ?? t.name ?? t.label ?? "Task"),
+      start: t.start ? Date.parse(t.start) : NaN,
+      end: t.end ? Date.parse(t.end) : NaN,
+      status: String(t.status ?? ""),
+    }))
+    .filter((t) => !isNaN(t.start) && !isNaN(t.end));
+
+  if (parsed.length === 0) {
+    return (
+      <div style={cardStyle}>
+        <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 8 }}>{title}</div>
+        <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No task data available.</div>
+      </div>
+    );
+  }
+
+  const minTime = Math.min(...parsed.map((t) => t.start));
+  const maxTime = Math.max(...parsed.map((t) => t.end));
+  const range = maxTime - minTime || 1;
+  const selected = selectedIdx !== null ? parsed[selectedIdx] : null;
+  const uniqueStatuses = [...new Set(parsed.map((t) => t.status).filter(Boolean))];
+
+  return (
+    <div style={cardStyle}>
+      <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 10 }}>{title}</div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--ink-quaternary, var(--ink-tertiary))", marginBottom: 6, paddingLeft: 100 }}>
+        <span>{fmtGanttDate(minTime)}</span>
+        <span>{fmtGanttDate(maxTime)}</span>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        {parsed.map((task, i) => {
+          const leftPct = ((task.start - minTime) / range) * 100;
+          const widthPct = Math.max(((task.end - task.start) / range) * 100, 2);
+          const color = ganttColor(task.status);
+          const isSelected = selectedIdx === i;
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 92, fontSize: 11, color: "var(--ink-secondary)", textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={task.title}>
+                {task.title}
+              </div>
+              <div style={{ flex: 1, position: "relative", height: 20, background: "var(--bg-surface)", borderRadius: 3 }}>
+                <div
+                  onClick={() => setSelectedIdx(isSelected ? null : i)}
+                  style={{
+                    position: "absolute",
+                    left: `${leftPct}%`,
+                    width: `${widthPct}%`,
+                    height: "100%",
+                    background: color,
+                    borderRadius: 3,
+                    cursor: "pointer",
+                    opacity: isSelected ? 1 : 0.75,
+                    outline: isSelected ? `2px solid ${color}` : "none",
+                    outlineOffset: 2,
+                    transition: "opacity 0.15s",
+                  }}
+                  title={`${task.title}: ${fmtGanttDate(task.start)} – ${fmtGanttDate(task.end)}`}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {selected ? (
+        <div style={{ marginTop: 10, padding: "8px 10px", borderRadius: 4, background: "var(--bg-surface)", boxShadow: "inset 0 0 0 0.5px var(--line-thin)" }}>
+          <div style={{ fontSize: 12, fontWeight: 600 }}>{selected.title}</div>
+          <div style={{ fontSize: 11, color: "var(--ink-secondary)", marginTop: 3 }}>
+            {fmtGanttDate(selected.start)} → {fmtGanttDate(selected.end)}
+          </div>
+          {selected.status ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 5 }}>
+              <div style={{ width: 8, height: 8, borderRadius: 2, background: ganttColor(selected.status), flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: "var(--ink-secondary)" }}>{selected.status}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div style={{ marginTop: 6, fontSize: 10, color: "var(--ink-quaternary, var(--ink-tertiary))", textAlign: "center" }}>
+          Click a bar to see details
+        </div>
+      )}
+
+      {uniqueStatuses.length > 0 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", marginTop: 8 }}>
+          {uniqueStatuses.map((s) => (
+            <div key={s} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--ink-tertiary)" }}>
+              <div style={{ width: 8, height: 8, borderRadius: 2, background: ganttColor(s), flexShrink: 0 }} />
+              {s}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 type ComponentNode = { component_id: string; props?: Record<string, unknown> };
 
@@ -103,10 +239,22 @@ export function AiComponentRenderer({
     );
   }
 
+  if (cid === "chart_gantt") {
+    const tasks = Array.isArray(props.tasks) ? (props.tasks as GanttTask[]) : [];
+    return <GanttChart key={k} title={String(props.title ?? "Timeline")} tasks={tasks} cardStyle={card} />;
+  }
+
   if (cid === "chart_bar") {
-    if (rows.length === 0) return null;
     const groupBy = String(props.group_by ?? "");
     const valueField = String(props.value_field ?? "");
+    if (rows.length === 0 || !groupBy) {
+      return (
+        <div key={k} style={card}>
+          <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 6 }}>{String(props.title ?? (groupBy || "Bar chart"))}</div>
+          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
+        </div>
+      );
+    }
     const agg: Record<string, number> = {};
     for (const row of rows) {
       const gk = String(row[groupBy] ?? "other");
@@ -114,7 +262,14 @@ export function AiComponentRenderer({
       agg[gk] = (agg[gk] ?? 0) + v;
     }
     const entries = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 8);
-    if (entries.length === 0) return null;
+    if (entries.length === 0) {
+      return (
+        <div key={k} style={card}>
+          <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 6 }}>{String(props.title ?? (groupBy || "Bar chart"))}</div>
+          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
+        </div>
+      );
+    }
     const maxV = Math.max(...entries.map(([, v]) => v), 1);
     return (
       <div key={k} style={card}>
@@ -137,9 +292,16 @@ export function AiComponentRenderer({
   }
 
   if (cid === "chart_line") {
-    if (rows.length === 0) return null;
     const xField = String(props.x_field ?? "");
     const yField = String(props.y_field ?? "");
+    if (rows.length === 0 || !xField) {
+      return (
+        <div key={k} style={card}>
+          <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 6 }}>{String(props.title ?? `${yField} over time`)}</div>
+          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
+        </div>
+      );
+    }
     const agg: Record<string, number> = {};
     for (const row of rows) {
       const xk = String(row[xField] ?? "");
@@ -152,7 +314,7 @@ export function AiComponentRenderer({
       <div key={k} style={card}>
         <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 10 }}>{String(props.title ?? `${yField} over time`)}</div>
         {entries.length === 0 ? (
-          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available</div>
+          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
         ) : (
           <>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 56 }}>
@@ -173,9 +335,16 @@ export function AiComponentRenderer({
   }
 
   if (cid === "chart_donut") {
-    if (rows.length === 0) return null;
     const groupBy = String(props.group_by ?? "");
     const valueField = String(props.value_field ?? "");
+    if (rows.length === 0 || !groupBy) {
+      return (
+        <div key={k} style={card}>
+          <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 6 }}>{String((props.title ?? groupBy) || "Composition")}</div>
+          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
+        </div>
+      );
+    }
     const agg: Record<string, number> = {};
     for (const row of rows) {
       const gk = String(row[groupBy] ?? "other");
@@ -212,7 +381,14 @@ export function AiComponentRenderer({
   }
 
   if (cid === "kanban_board") {
-    if (rows.length === 0) return null;
+    if (rows.length === 0) {
+      return (
+        <div key={k} style={card}>
+          <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 6 }}>Board</div>
+          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
+        </div>
+      );
+    }
     const groupBy = String(props.group_by ?? "follow_up_status");
     const titleField = String(props.title_field ?? "invoice_id");
     const subtitleField = String(props.subtitle_field ?? "client_name");
@@ -249,7 +425,13 @@ export function AiComponentRenderer({
   }
 
   if (cid === "entity_cards") {
-    if (rows.length === 0) return null;
+    if (rows.length === 0) {
+      return (
+        <div key={k} style={card}>
+          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
+        </div>
+      );
+    }
     const titleField = String(props.title_field ?? "client_name");
     const subtitleField = String(props.subtitle_field ?? "invoice_id");
     const valueField = String(props.value_field ?? "amount_cents");
@@ -303,7 +485,13 @@ export function AiComponentRenderer({
   }
 
   if (cid === "data_table") {
-    if (rows.length === 0) return null;
+    if (rows.length === 0) {
+      return (
+        <div key={k} style={{ overflowX: "auto" }}>
+          <div style={{ fontSize: 12, color: "var(--ink-tertiary)", padding: 12 }}>No data available.</div>
+        </div>
+      );
+    }
     const prefix = `dt${index}`;
     return (
       <div key={k} style={{ overflowX: "auto" }}>

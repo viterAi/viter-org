@@ -1,4 +1,5 @@
 :root {
+  /* ── Legacy names (kept for backwards compat — TokenProvider overwrites these) ── */
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --bg-page: #f4f2ee;
   --bg-surface: #ffffff;
@@ -20,6 +21,62 @@
   --good-tint: #def0e5;
   --r-zone: 8px;
   --r-card: 6px;
+
+  /* ── Token system — canonical names set by TokenProvider ── */
+  --color-primary: #2f5bff;
+  --color-primary-tint: #e6ecff;
+  --color-background: #f4f2ee;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f7f5f1;
+  --color-surface-tertiary: #efebe4;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #5a5650;
+  --color-text-tertiary: #9a938a;
+  --color-text-quaternary: #c7bfb4;
+  --color-border: rgba(26, 26, 26, 0.08);
+  --color-border-strong: rgba(26, 26, 26, 0.16);
+  --color-success: #2d7a4f;
+  --color-success-tint: #def0e5;
+  --color-warning: #c58a1b;
+  --color-warning-tint: #fbf1dc;
+  --color-danger: #c2410c;
+  --color-danger-tint: #fbe7dc;
+  --color-status-done: #10b981;
+  --color-status-active: #2f5bff;
+  --color-status-blocked: #ef4444;
+  --color-status-at-risk: #f59e0b;
+  --color-status-pending: #94a3b8;
+
+  /* ── Typography ── */
+  --font-family: "Inter", system-ui, -apple-system, sans-serif;
+  --font-size-xs: 10px;
+  --font-size-sm: 11px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-heading: 16px;
+  --font-size-metric: 26px;
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-body: 1.6;
+  --line-height-tight: 1.3;
+
+  /* ── Spacing ── */
+  --spacing-unit: 4px;
+  --spacing-card-padding: 16px;
+  --spacing-section-gap: 24px;
+  --spacing-component-gap: 12px;
+
+  /* ── Radius ── */
+  --radius-card: 6px;
+  --radius-button: 5px;
+  --radius-input: 5px;
+  --radius-badge: 4px;
+  --radius-zone: 8px;
+
+  /* ── Shadows ── */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(26,26,26,0.08);
+  --shadow-overlay: 0 8px 24px rgba(0,0,0,0.12);
 }
 
 @keyframes shimmer {

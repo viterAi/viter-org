@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { TokenProvider } from "@/lib/design/TokenProvider";
 
 export const metadata: Metadata = {
   title: "Autonomous View Builder",
@@ -12,8 +13,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <TokenProvider>{children}</TokenProvider>
+      </body>
     </html>
   );
 }
