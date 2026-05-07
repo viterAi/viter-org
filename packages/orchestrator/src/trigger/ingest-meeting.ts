@@ -93,6 +93,7 @@ export const ingestMeeting = schemaTask({
           tenant_id: tenantId,
           kind: 'meeting',
           identifier: payload.meeting_slug,
+          scope: 'tenant',
           display_name: `meeting: ${payload.meeting_slug}`,
           metadata: { ingest_source: 'inbox', inbox_path: payload.inbox_path },
         },
