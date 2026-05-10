@@ -16,7 +16,7 @@ specs, versions, and drafts to Supabase.
 | Language | TypeScript (strict, ES2022) |
 | Database / Auth | Supabase (`@supabase/ssr`) |
 | AI | OpenRouter HTTP API + Zod |
-| Lint / types | ESLint (`next/core-web-vitals`), `tsc --noEmit` |
+| Lint / types | `tsc --noEmit` (via `npm run typecheck` / `npm run lint`) |
 
 ---
 
@@ -30,7 +30,7 @@ Copy the template and fill in your credentials:
 cp .env.example .env.local
 ```
 
-The app uses **`L0_`-prefixed** variable names throughout. Make sure all six
+The app uses **`L0_`-prefixed** variable names throughout. Make sure all seven
 variables are set:
 
 | Variable | Used in |
@@ -97,12 +97,11 @@ app/
       actions/          # POST — write-back stub (returns 410 in markdown-only mode)
     canvas/refresh/     # GET  — canvas refresh helper
     steer/              # POST — steer hint submission
-    invoices/           # GET  — AR invoice data
 
 lib/
   ai/
-    openrouter.ts       # Table-focused spec generation via OpenRouter
-    page-composer.ts    # Plans pages + fills components (used by canvas route)
+    openrouter.ts       # Deprecated — was table-spec generation; superseded by page-composer.ts
+    page-composer.ts    # Single AI entrypoint: plans pages + fills components with abstract ViewSpec nodes
   auth/UserContext.tsx  # useUser() — loads tenant via /api/bootstrap
   layout/
     component-catalog.ts  # Allowed components, validation, AI prompt block
@@ -181,9 +180,6 @@ Applies a new spec to a view:
 ### `POST /api/views/:viewId/actions`
 Write-back stub. Currently returns **410** (disabled in markdown-only mode).
 
-### `GET /api/invoices`
-Returns AR invoice data from the source datasets.
-
 ---
 
 ## Key concepts
@@ -196,12 +192,15 @@ Returns AR invoice data from the source datasets.
 | Dock | `app/components/Dock.tsx` | Bottom panel — steer / config |
 
 ### Abstract view spec
-`lib/types/spec.ts` defines the north-star spec model (`spatial`, `sequential`, …
-node types). `lib/view/spec-mapper.ts` maps abstract nodes to concrete component
-IDs. `lib/view/spec-quality.ts` normalises specs before they are persisted.
+`lib/types/spec.ts` defines the v1 spec model — renderer-agnostic nodes
+(`metric_summary`, `ranked_list`, `breakdown`, `trend`, etc.). `lib/view/spec-mapper.ts`
+translates those abstract nodes to concrete catalog component IDs at render time.
+`lib/view/spec-quality.ts` normalises specs before they are persisted.
 
-The current OpenRouter helper (`lib/ai/openrouter.ts`) targets a narrower
-table-spec shape; `lib/ai/page-composer.ts` uses the fuller multi-page model.
+`lib/ai/page-composer.ts` is the single AI entrypoint: `planPages` decides which
+pages to create; `fillPageComponents` prompts the AI for abstract ViewSpec nodes,
+then pipes them through the spec-mapper. `lib/ai/openrouter.ts` is deprecated
+(old table-spec path, no longer called).
 
 ### Mock data
 `lib/l0/mock-data.ts` exports `MOCK_CHATS` and per-key `MOCK_MESSAGES`. These

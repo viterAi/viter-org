@@ -250,22 +250,22 @@ const MOCK_MESSAGES_EXTRA: Record<string, SourceDataRow[]> = {
   ],
 
   "monday-q2-roadmap": [
-    { sender: "maya.johnson", message: "Item: Permissions Rewrite | Status: In Progress | Owner: Nina | Due: June 30 | Notes: 3 sprints estimated, started sprint 15", timestamp: "2026-05-01T09:00:00Z", kind: "task" },
-    { sender: "maya.johnson", message: "Item: AI Weekly Summaries | Status: In Dev | Owner: Tom | Due: June 15 | Notes: MVP scoped, prototype ready for Apex demo May 12", timestamp: "2026-05-01T09:01:00Z", kind: "task" },
-    { sender: "tom.okafor", message: "Item: Export Module | Status: Done ✅ | Owner: Tom | Completed: May 3 | Notes: Large CSV chunking handled, deployed to prod", timestamp: "2026-05-03T14:00:00Z", kind: "task" },
-    { sender: "marcus.lee", message: "Item: Pipeline Refactor | Status: Done ✅ | Owner: Marcus | Completed: May 5 | Notes: 4x perf improvement, P99 latency 0.9s", timestamp: "2026-05-05T14:30:00Z", kind: "task" },
-    { sender: "maya.johnson", message: "Item: Mobile App | Status: Planned | Owner: TBD | Due: Q3 | Notes: Blocked on API stabilisation", timestamp: "2026-05-01T09:02:00Z", kind: "task" },
-    { sender: "nina.patel", message: "Item: EU Region CI Coverage | Status: To Do | Owner: Marcus | Due: May 20 | Notes: Added after INC-042 post-mortem", timestamp: "2026-05-07T12:30:00Z", kind: "task" },
-    { sender: "maya.johnson", message: "Item: Anomaly Detection | Status: Planned | Owner: Tom | Due: Q3 | Notes: Phase 2 after AI summaries ship", timestamp: "2026-05-01T09:03:00Z", kind: "task" },
-    { sender: "tom.okafor", message: "Item: API Webhook Enhancements | Status: In Progress | Owner: Marcus | Due: May 31 | Notes: Apex deal dependency — enterprise tier feature", timestamp: "2026-05-06T10:00:00Z", kind: "task" },
+    { task_id: "T-001", task_name: "Permissions Rewrite", status: "in_progress", owner: "Nina Patel", due_date: "2026-06-30", priority: "high", completion_pct: 30, sprint: 15, notes: "3 sprints estimated, started sprint 15" },
+    { task_id: "T-002", task_name: "AI Weekly Summaries", status: "in_progress", owner: "Tom Okafor", due_date: "2026-06-15", priority: "high", completion_pct: 55, sprint: 15, notes: "MVP scoped, prototype ready for Apex demo May 12" },
+    { task_id: "T-003", task_name: "Export Module", status: "done", owner: "Tom Okafor", due_date: "2026-05-03", priority: "medium", completion_pct: 100, sprint: 14, notes: "Large CSV chunking handled, deployed to prod" },
+    { task_id: "T-004", task_name: "Pipeline Refactor", status: "done", owner: "Marcus Lee", due_date: "2026-05-05", priority: "high", completion_pct: 100, sprint: 14, notes: "4x perf improvement, P99 latency 0.9s" },
+    { task_id: "T-005", task_name: "Mobile App", status: "planned", owner: "TBD", due_date: "2026-09-30", priority: "low", completion_pct: 0, sprint: null, notes: "Blocked on API stabilisation" },
+    { task_id: "T-006", task_name: "EU Region CI Coverage", status: "to_do", owner: "Marcus Lee", due_date: "2026-05-20", priority: "high", completion_pct: 0, sprint: 15, notes: "Added after INC-042 post-mortem" },
+    { task_id: "T-007", task_name: "Anomaly Detection", status: "planned", owner: "Tom Okafor", due_date: "2026-09-30", priority: "medium", completion_pct: 0, sprint: null, notes: "Phase 2 after AI summaries ship" },
+    { task_id: "T-008", task_name: "API Webhook Enhancements", status: "in_progress", owner: "Marcus Lee", due_date: "2026-05-31", priority: "high", completion_pct: 40, sprint: 15, notes: "Apex deal dependency — enterprise tier feature" },
   ],
 
   "monday-client-onboarding": [
-    { sender: "james.wright", message: "Client: Bluepeak Financial | Status: Week 3 — Training | Health: 🟡 | Notes: SSO incident resolved, on track for go-live June 1", timestamp: "2026-05-07T12:40:00Z", kind: "task" },
-    { sender: "james.wright", message: "Client: Delta Logistics | Status: Week 1 — Setup | Health: 🟢 | Notes: New contract, environments being provisioned", timestamp: "2026-05-03T10:30:00Z", kind: "task" },
-    { sender: "rachel.torres", message: "Client: Meridian Corp | Status: Active | Health: 🟢 | Notes: Contract expansion signed, 3 new offices added to scope", timestamp: "2026-05-02T16:30:00Z", kind: "task" },
-    { sender: "james.wright", message: "Client: Pinnacle Financial | Status: Active | Health: 🟢 | Notes: Fully live, requesting API access for internal reporting", timestamp: "2026-05-01T10:00:00Z", kind: "task" },
-    { sender: "priya.sharma", message: "Client: Orion Labs | Status: Pre-sales | Health: 🟡 | Notes: Demo done, proposal stage, awaiting commercial sign-off", timestamp: "2026-05-06T16:00:00Z", kind: "task" },
+    { client_id: "C-001", client_name: "Bluepeak Financial", onboarding_status: "training", health: "at_risk", onboarding_week: 3, go_live_date: "2026-06-01", csm: "James Wright", completion_pct: 65, notes: "SSO incident resolved, on track for go-live June 1" },
+    { client_id: "C-002", client_name: "Delta Logistics", onboarding_status: "setup", health: "healthy", onboarding_week: 1, go_live_date: "2026-06-15", csm: "James Wright", completion_pct: 15, notes: "New contract, environments being provisioned" },
+    { client_id: "C-003", client_name: "Meridian Corp", onboarding_status: "active", health: "healthy", onboarding_week: 8, go_live_date: "2026-03-10", csm: "Rachel Torres", completion_pct: 100, notes: "Contract expansion signed, 3 new offices added to scope" },
+    { client_id: "C-004", client_name: "Pinnacle Financial", onboarding_status: "active", health: "healthy", onboarding_week: 12, go_live_date: "2026-02-14", csm: "James Wright", completion_pct: 100, notes: "Fully live, requesting API access for internal reporting" },
+    { client_id: "C-005", client_name: "Orion Labs", onboarding_status: "pre_sales", health: "at_risk", onboarding_week: 0, go_live_date: null, csm: "Priya Sharma", completion_pct: 0, notes: "Demo done, proposal stage, awaiting commercial sign-off" },
   ],
 
   "notion-weekly-sync": [

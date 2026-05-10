@@ -19,6 +19,7 @@ type Props = {
   isSaved: boolean;
   isSavingLayout: boolean;
   isRefreshingContent: boolean;
+  saveError: string;
   /** True when the active page contains at least one dynamic component. */
   hasDynamic: boolean;
   onSaveLayout: () => void;
@@ -31,7 +32,7 @@ export function TabBar({
   aiPages, activeAiPageId, setActiveAiPageId, aiPageStatuses,
   views, activeViewId, setActiveViewId,
   pendingDraft, activeView, applyDraft, busy, sourceName,
-  generating, isSaved, isSavingLayout, isRefreshingContent, hasDynamic,
+  generating, isSaved, isSavingLayout, isRefreshingContent, saveError, hasDynamic,
   onSaveLayout, onRegenerate, onRefreshData,
 }: Props) {
   // Only show save/regenerate after generation fully completes
@@ -60,9 +61,10 @@ export function TabBar({
           <button
             onClick={onSaveLayout}
             disabled={isSavingLayout}
-            style={{ all: "unset", cursor: "pointer", fontSize: 11, padding: "5px 11px", borderRadius: 5, background: "var(--accent)", color: "#fff", fontWeight: 600, opacity: isSavingLayout ? 0.6 : 1 }}
+            title={saveError || undefined}
+            style={{ all: "unset", cursor: "pointer", fontSize: 11, padding: "5px 11px", borderRadius: 5, background: saveError ? "var(--warn)" : "var(--accent)", color: "#fff", fontWeight: 600, opacity: isSavingLayout ? 0.6 : 1 }}
           >
-            {isSavingLayout ? "Saving…" : "Save layout"}
+            {isSavingLayout ? "Saving…" : saveError ? "Retry save" : "Save layout"}
           </button>
         )}
 

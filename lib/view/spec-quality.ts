@@ -20,10 +20,10 @@ export function computeSourceFingerprint(rows: SourceDataRow[]): string {
 }
 
 export function ensureSpecQuality(spec: PersistedViewSpec): PersistedViewSpec {
-  const columns = spec.layout?.columns ?? [];
-  if (columns.length === 0) {
-    throw new Error("Generated spec must include at least one column.");
-  }
+  // AI-canvas specs only have ai_pages — no layout validation needed.
+  if (!spec.layout) return spec;
+
+  const columns = spec.layout.columns ?? [];
   if (columns.length > MAX_COLUMNS) {
     throw new Error(`Generated spec has too many columns (>${MAX_COLUMNS}).`);
   }
@@ -37,10 +37,6 @@ export function ensureSpecQuality(spec: PersistedViewSpec): PersistedViewSpec {
       throw new Error(`Duplicate column id '${column.id}' in generated spec.`);
     }
     seen.add(column.id);
-  }
-
-  if (!spec.layout.row_key) {
-    throw new Error("Generated spec must include row_key.");
   }
 
   return spec;

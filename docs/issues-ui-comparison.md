@@ -32,27 +32,19 @@ _To be filled in before work starts._
 ## Issue 2 — Break up `app/page.tsx` into components
 
 **Labels:** `chore` `size:M`
-**Assignee:** _unassigned_
+**Status:** ✅ Resolved (T-002 complete)
 
-### What
-Break `app/page.tsx` into focused components — LeftRail, MainPanel, RightRail, and the AI component renderers.
+### Resolution
+`app/page.tsx` is now 141 lines and only orchestrates layout. Components extracted to `app/components/`:
+- `LeftSidebar` — source list
+- `Murmur` — top bar
+- `TabBar` — view tabs
+- `CanvasContent` — main canvas
+- `Dock` — steer panel
+- `AiComponentRenderer` — all component rendering cases
+- `LegacyViewRenderer`, `GenerationProgress`, `AiStatusPanel`, `AnimatedTile`, `SourceIcon`
 
-### Why
-`app/page.tsx` is a single ~600+ line file containing the entire UI shell plus 14 AI component renderers. vita-compare colocates small focused components per route. The current structure makes any targeted change risky and slows down parallel development.
-
-### Acceptance criteria
-- [ ] `LeftRail` component extracted (source list, create-source form)
-- [ ] `RightRail` component extracted (Ask viter, status)
-- [ ] `AiComponentRenderer` extracted (all `renderAiComponent()` cases)
-- [ ] `KpiStrip`, `AgingTable`, `FollowUpKanban` extracted as named components
-- [ ] `app/page.tsx` reduced to shell layout only (< 100 lines)
-- [ ] No behaviour change — UI is pixel-identical before and after
-
-### Notes
-All components currently live inline in `app/page.tsx`. No `components/` directory exists yet. Create `app/components/` or `components/` at root. No new dependencies needed — keep raw React + inline styles.
-
-### Scope
-_To be filled in before work starts._
+Hooks extracted to `app/hooks/`: `useCanvas`, `useSources`, `useResizablePanels`.
 
 ---
 

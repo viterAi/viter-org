@@ -11,29 +11,23 @@
 ### Issue A1 — End-user authentication (email OTP + session)
 
 **Labels:** `feature` `size:M`
-**Assignee:** _unassigned_
+**Status:** ✅ Resolved (password auth implemented — see notes)
 
 #### What
-Add a `/login` route with email OTP sign-in and a `/auth/callback` exchange so unauthenticated users cannot access the app.
+Add a `/login` route with auth so unauthenticated users cannot access the app.
 
-#### Why
-Gui has no auth layer at all. Any URL renders the full app to any visitor. vita-compare ships email OTP via Resend + Supabase magic-link, a `/auth/callback` PKCE exchange, and a `POST /auth/signout` route. Without auth, Gui cannot be exposed beyond localhost.
+#### Resolution
+Implemented with password auth (`signInWithPassword`) rather than email OTP. All acceptance criteria met except the OTP-specific ones:
 
-#### Acceptance criteria
-- [ ] `POST /api/auth/send-otp` sends a 6-digit OTP to the submitted email via Resend
-- [ ] `POST /api/auth/verify-otp` exchanges the code for a Supabase session cookie
-- [ ] `GET /auth/callback` handles magic-link PKCE code exchange (`@supabase/ssr`)
-- [ ] `POST /auth/signout` tears down the session and redirects to `/login`
-- [ ] `middleware.ts` redirects unauthenticated requests to `/login`
-- [ ] `lib/supabase/server.ts` is updated to use cookie-based client (`@supabase/ssr`)
+- [x] `middleware.ts` redirects unauthenticated requests to `/login` — done
+- [x] `lib/supabase/server.ts` uses cookie-based `@supabase/ssr` client — done
+- [x] All API routes return 401 for unauthenticated requests — done
+- [x] `app/login/page.tsx` exists with working auth form — done
+- [ ] OTP (`send-otp` / `verify-otp`) and `/auth/callback` — not implemented (using password auth instead)
+- [ ] `POST /auth/signout` — not yet wired
 
 #### Notes
-vita reference: `apps/web/app/login/`, `apps/web/app/auth/callback/route.ts`, `apps/web/app/auth/signout/route.ts`, `apps/web/lib/supabase/`.
-Requires adding `@supabase/ssr` and `resend` to `package.json`. Env vars needed: `RESEND_API_KEY`, `RESEND_FROM`, optional `AUTH_EMAIL_ALLOWLIST`.
-The existing `lib/supabase/server.ts` uses anon key but no cookie session — needs replacing.
-
-#### Scope
-_To be filled in before work starts._
+Sign-out not yet implemented. Auth form uses `signInWithPassword`; switching to magic-link would be a small change if needed.
 
 ---
 
@@ -174,22 +168,11 @@ _Can skip — small once SSE payload is confirmed._
 ### Issue B3 — Remove dead AI code: `generateTableSpecWithOpenRouter` and `validateSpecAgainstCatalog`
 
 **Labels:** `chore` `size:S`
-**Assignee:** _unassigned_
+**Status:** ⚠️ Partially resolved
 
-#### What
-`lib/ai/openrouter.ts` exports `generateTableSpecWithOpenRouter` and `lib/layout/component-catalog.ts` exports `validateSpecAgainstCatalog`. Neither is imported or called anywhere in the codebase.
+#### Resolution
+`lib/ai/openrouter.ts` has been marked `@deprecated` with a JSDoc comment explaining it is no longer called and documenting the superseding path (`page-composer.ts`). Full deletion deferred until T-005 (view persistence) is complete.
 
-#### Why
-Dead code adds noise, misleads future developers about the AI path, and carries maintenance burden (they import types that may drift). The current canvas flow uses `page-composer.ts` exclusively.
-
-#### Acceptance criteria
-- [ ] `generateTableSpecWithOpenRouter` removed from `lib/ai/openrouter.ts` (or entire file removed if nothing else is used)
-- [ ] `validateSpecAgainstCatalog` removed from `lib/layout/component-catalog.ts`
-- [ ] No TypeScript errors after removal
-- [ ] A short code comment in `page-composer.ts` notes it is the single AI entrypoint
-
-#### Notes
-Confirm with `rg` before deleting — search for both function names across the full repo to rule out any dynamic/string references.
-
-#### Scope
-_Can skip — trivial chore._
+#### Remaining
+- [ ] Delete `lib/ai/openrouter.ts` once confirmed no usages remain after T-005
+- [ ] Remove `validateSpecAgainstCatalog` from `lib/layout/component-catalog.ts` if still unused

@@ -181,6 +181,24 @@ export interface ActionPanelNode {
   trigger?: ComponentTrigger;
 }
 
+/**
+ * A timeline communicates tasks or milestones with start/end dates.
+ * Renderer maps to: chart_gantt
+ */
+export interface TimelineNode {
+  node_type: "timeline";
+  id: string;
+  label?: string;
+  data_source: string;
+  title_field: string;      // field for the task/item name
+  start_field?: string;     // field for start date (optional)
+  end_field: string;        // field for end/due date
+  status_field?: string;    // field for status (used for colour coding)
+  max_rows?: number;
+  mode: ComponentMode;
+  trigger?: ComponentTrigger;
+}
+
 /** Union of all possible spec nodes. */
 export type SpecNode =
   | MetricSummaryNode
@@ -190,7 +208,8 @@ export type SpecNode =
   | TextSummaryNode
   | SequenceItemNode
   | FilterControlsNode
-  | ActionPanelNode;
+  | ActionPanelNode
+  | TimelineNode;
 
 // ---------------------------------------------------------------------------
 // Actions

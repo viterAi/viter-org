@@ -1,3 +1,10 @@
+/**
+ * @deprecated
+ * This module is no longer called by any production route.
+ * Initial view generation now uses page-composer.ts (planPages + fillPageComponents),
+ * which prompts for abstract ViewSpec nodes and pipes them through spec-mapper.ts.
+ * This file can be removed once T-005 (view persistence) is complete.
+ */
 import { z } from "zod";
 import type { PersistedViewSpec, SourceDataRow } from "../types/view-builder";
 

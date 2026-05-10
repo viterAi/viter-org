@@ -1,0 +1,143 @@
+{
+  "spec_version": 1,
+  "view_id": "source-config-flow",
+  "view_name": "Source Setup",
+  "view_type": "config",
+
+  "source": {
+    "scope_kind": "source",
+    "scope_key": "finance_email",
+    "semantic_summary": "Configuration surface for connecting the finance email source, mapping its fields, and wiring automation rules that trigger when invoices change state."
+  },
+
+  "nodes": [
+    {
+      "node_type": "metric_summary",
+      "id": "connection_health",
+      "label": "Connection status",
+      "metrics": [
+        {
+          "key": "last_sync_at",
+          "label": "Last synced",
+          "format": "text"
+        },
+        {
+          "key": "record_count",
+          "label": "Records loaded",
+          "format": "number"
+        },
+        {
+          "key": "error_count",
+          "label": "Sync errors",
+          "format": "number"
+        }
+      ],
+      "mode": "dynamic",
+      "trigger": "data_change"
+    },
+
+    {
+      "node_type": "ranked_list",
+      "id": "field_mappings",
+      "label": "Field mappings",
+      "data_source": "source_field_mappings",
+      "row_key": "field_id",
+      "rank_by": "field_id",
+      "rank_direction": "asc",
+      "fields": [
+        { "key": "source_field",   "label": "Source field",  "format": "text", "emphasis": true },
+        { "key": "mapped_to",      "label": "Maps to",       "format": "text" },
+        { "key": "field_type",     "label": "Type",          "format": "text" },
+        { "key": "is_required",    "label": "Required",      "format": "text" },
+        { "key": "sample_value",   "label": "Sample",        "format": "text" }
+      ],
+      "row_actions": [
+        {
+          "id": "edit_mapping",
+          "label": "Edit",
+          "style": "secondary",
+          "routing": "view_only"
+        },
+        {
+          "id": "remove_mapping",
+          "label": "Remove",
+          "style": "destructive",
+          "routing": "write_back",
+          "mcp_method": "source.removeFieldMapping"
+        }
+      ],
+      "mode": "static"
+    },
+
+    {
+      "node_type": "ranked_list",
+      "id": "automation_rules",
+      "label": "Automation rules",
+      "data_source": "automation_rules",
+      "row_key": "rule_id",
+      "rank_by": "rule_id",
+      "rank_direction": "asc",
+      "fields": [
+        { "key": "rule_name",   "label": "Rule",       "format": "text", "emphasis": true },
+        { "key": "trigger",     "label": "When",       "format": "text" },
+        { "key": "action",      "label": "Then",       "format": "text" },
+        { "key": "is_active",   "label": "Active",     "format": "text" }
+      ],
+      "row_actions": [
+        {
+          "id": "toggle_rule",
+          "label": "Toggle",
+          "style": "primary",
+          "routing": "write_back",
+          "mcp_method": "automation.toggleRule"
+        },
+        {
+          "id": "delete_rule",
+          "label": "Delete",
+          "style": "destructive",
+          "routing": "write_back",
+          "mcp_method": "automation.deleteRule"
+        }
+      ],
+      "mode": "static"
+    },
+
+    {
+      "node_type": "action_panel",
+      "id": "config_actions",
+      "label": "Source actions",
+      "actions": [
+        {
+          "id": "sync_now",
+          "label": "Sync now",
+          "style": "primary",
+          "routing": "agent",
+          "mcp_method": "source.triggerSync"
+        },
+        {
+          "id": "add_field_mapping",
+          "label": "Add field mapping",
+          "style": "secondary",
+          "routing": "view_only"
+        },
+        {
+          "id": "add_rule",
+          "label": "Add automation rule",
+          "style": "secondary",
+          "routing": "view_only"
+        },
+        {
+          "id": "disconnect_source",
+          "label": "Disconnect source",
+          "style": "destructive",
+          "routing": "write_back",
+          "mcp_method": "source.disconnect"
+        }
+      ],
+      "mode": "static"
+    }
+  ],
+
+  "generated_at": "2026-05-10T00:00:00Z",
+  "generator": "example"
+}

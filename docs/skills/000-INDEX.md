@@ -20,16 +20,16 @@ This is the orchestration document. Each ticket below is a self-contained scope 
 
 ## Execution Plan
 
-### Wave 1 — Foundation (must happen first, mostly sequential)
+### Wave 1 — Foundation ✅ Complete
 
-These tickets unblock everything else. Do them in order or close to it.
+All Wave 1 tickets are done as of May 10, 2026. Wave 2 is unblocked.
 
-| # | Ticket | Est. | Blocks |
-|---|--------|------|--------|
-| 1 | T-001 — Take Railway offline & secure prototype | 1h | Nothing (do immediately) |
-| 2 | T-002 — Refactor page.tsx into modular components | 0.5d | T-005, T-006, T-007 |
-| 3 | T-003 — Design abstract spec format | 1d | Everything downstream |
-| 4 | T-004 — Add design tokens to all components | 0.5d | All future component work |
+| # | Ticket | Status |
+|---|--------|--------|
+| 1 | T-001 — Take Railway offline & secure prototype | ✅ Done |
+| 2 | T-002 — Refactor page.tsx into modular components | ✅ Done — `page.tsx` 141 lines; components in `app/components/`; hooks in `app/hooks/` |
+| 3 | T-003 — Design abstract spec format | ✅ Done — `lib/types/spec.ts`, `lib/view/spec-mapper.ts`, `docs/spec-format.md`, `docs/spec-examples/`; AI prompt updated |
+| 4 | T-004 — Add design tokens to all components | ✅ Done — `lib/design/tokens.ts`, `lib/design/default-tokens.ts`, `lib/design/TokenProvider.tsx`, `docs/design-tokens.md` |
 
 ### Wave 2 — Core Loop (can run mostly in parallel after Wave 1)
 

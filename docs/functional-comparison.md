@@ -19,10 +19,10 @@
 
 | | Gui | vita |
 |---|---|---|
-| Auth system | None — app is open to any visitor | Email OTP via Resend + Supabase magic-link |
-| Session management | None | `@supabase/ssr` cookie-based sessions |
-| Sign-out | None | `POST /auth/signout` |
-| Route protection | None | `middleware.ts` redirects to `/login` |
+| Auth system | Password auth via Supabase (`signInWithPassword`) at `/login` | Email OTP via Resend + Supabase magic-link |
+| Session management | `@supabase/ssr` cookie-based sessions | `@supabase/ssr` cookie-based sessions |
+| Sign-out | Not yet wired | `POST /auth/signout` |
+| Route protection | `middleware.ts` redirects unauthenticated requests to `/login`; all API routes return 401 if no session | `middleware.ts` redirects to `/login` |
 
 ---
 
@@ -78,7 +78,7 @@
 
 | | Gui | vita |
 |---|---|---|
-| Supabase | Yes — service role only, no auth | Yes — service role + SSR cookie auth + Realtime |
+| Supabase | Yes — SSR cookie auth + service role; no Realtime | Yes — service role + SSR cookie auth + Realtime |
 | OpenRouter / AI | Yes — page planner + component filler | No |
 | WhatsApp (GOWA) | No | Yes — pair, send, device health |
 | Email (Resend) | No | Yes — OTP delivery |
@@ -94,7 +94,6 @@
 
 ## What vita has that Gui doesn't
 
-- End-user authentication
 - Multi-tenant data isolation
 - Real-time inbound data via Supabase subscriptions
 - Outbound actions that actually write back (send message, update status)

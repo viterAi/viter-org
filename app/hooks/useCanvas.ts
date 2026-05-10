@@ -43,6 +43,8 @@ export function useCanvas({ sourceId, sources, setSourceId, setBusy }: UseCanvas
   const aiPagesRef = useRef<AiPage[]>([]);
   aiPagesRef.current = aiPages;
 
+  const [saveError, setSaveError] = useState<string>("");
+
   const [steerMessages, setSteerMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const [steerInput, setSteerInput] = useState("");
   const [steering, setSteering] = useState(false);
@@ -148,6 +150,7 @@ export function useCanvas({ sourceId, sources, setSourceId, setBusy }: UseCanvas
   async function loadOrGenerate(selectedSourceId: string) {
     if (!selectedSourceId) return;
     setCanvasError("");
+    setSaveError("");
     setProgressLog([]);
 
     // ── Step 1: check for a saved view ──────────────────────────────────────
@@ -189,22 +192,26 @@ export function useCanvas({ sourceId, sources, setSourceId, setBusy }: UseCanvas
     await fetchCanvas(selectedSourceId);
   }
 
-  async function saveLayout(selectedSourceId: string) {
-    if (!selectedSourceId || aiPages.length === 0) return;
+  async function saveLayout(selectedSourceId: string, pages?: AiPage[], existingSavedViewId?: string | null): Promise<boolean> {
+    const pagesToSave = pages ?? aiPages;
+    const viewId = existingSavedViewId !== undefined ? existingSavedViewId : savedViewId;
+    if (!selectedSourceId || pagesToSave.length === 0) return false;
     setIsSavingLayout(true);
+    let success = false;
     try {
-      if (savedViewId) {
+      if (viewId) {
         // Update existing view's spec
-        const updateRes = await fetch(`/api/views/${savedViewId}/apply`, {
+        const updateRes = await fetch(`/api/views/${viewId}/apply`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             summary: "Saved layout from AI generation.",
-            spec: { ai_pages: aiPages },
+            spec: { ai_pages: pagesToSave },
           }),
         });
         if (!updateRes.ok) throw new Error(`Update failed: ${updateRes.status}`);
         setIsSaved(true);
+        success = true;
       } else {
         // Create new default view
         const res = await fetch(`/api/sources/${selectedSourceId}/views`, {
@@ -213,7 +220,7 @@ export function useCanvas({ sourceId, sources, setSourceId, setBusy }: UseCanvas
           body: JSON.stringify({
             viewName: "Default",
             viewType: "spatial",
-            aiPages,
+            aiPages: pagesToSave,
             isDefault: true,
           }),
         });
@@ -221,23 +228,27 @@ export function useCanvas({ sourceId, sources, setSourceId, setBusy }: UseCanvas
         const json = (await res.json()) as { view?: { id: string } };
         if (json.view?.id) setSavedViewId(json.view.id);
         setIsSaved(true);
+        success = true;
       }
     } catch (err) {
       console.error("[saveLayout]", err);
+      setSaveError("Failed to save layout. Please try again.");
     }
     setIsSavingLayout(false);
+    return success;
   }
 
   async function regenerate(selectedSourceId: string) {
+    const currentViewId = savedViewId;
     setIsSaved(false);
-    setSavedViewId(null);
-    await fetchCanvas(selectedSourceId);
+    await fetchCanvas(selectedSourceId, currentViewId);
   }
 
-  async function fetchCanvas(selectedSourceId: string) {
+  async function fetchCanvas(selectedSourceId: string, autoSaveViewId?: string | null) {
     if (!selectedSourceId) return;
     setGenerating(true);
     setCanvasError("");
+    setSaveError("");
     setProgressLog([]);
     setAiPages([]);
     setAiPageStatuses([]);
@@ -308,6 +319,8 @@ export function useCanvas({ sourceId, sources, setSourceId, setBusy }: UseCanvas
               if (persisted && pages.some((p) => p.id === persisted)) return persisted;
               return cur && pages.some((p) => p.id === cur) ? cur : pages[0]?.id ?? "";
             });
+            // Auto-save generated layout so it persists across refreshes
+            void saveLayout(selectedSourceId, d.ai_pages, autoSaveViewId ?? null);
           }
           if (d.ai_page_statuses) setAiPageStatuses(d.ai_page_statuses);
           if (d.ai_warnings) setAiWarnings(d.ai_warnings);
@@ -488,7 +501,7 @@ export function useCanvas({ sourceId, sources, setSourceId, setBusy }: UseCanvas
     generating, canvasError,
     aiStatus, aiPages, aiPageStatuses, activeAiPageId, setActiveAiPageId: selectAiPage,
     aiWarnings, progressLog,
-    isSaved, isSavingLayout, isRefreshingContent, refreshingComponentIds,
+    isSaved, isSavingLayout, isRefreshingContent, refreshingComponentIds, saveError,
     steerMessages, steerInput, setSteerInput,
     steering, steerHintIdx, steerScrollRef,
     loadOrGenerate, fetchCanvas, saveLayout, regenerate,

@@ -47,9 +47,22 @@ export function CanvasContent({
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: 20 }}>
-      {mounted && loading ? <p>Loading sources...</p> : null}
+      {mounted && loading ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--ink-tertiary)", fontSize: 12 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", flexShrink: 0, animation: "pulse-dot 1.4s ease-in-out infinite", display: "inline-block" }} />
+          Loading sources…
+        </div>
+      ) : null}
       {mounted && !loading && !sourceId ? (
-        <p style={{ fontSize: 13, color: "var(--ink-tertiary)" }}>Select a source from the left rail to get started.</p>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 10, userSelect: "none" }}>
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" opacity={0.25}>
+            <rect x="4" y="4" width="10" height="10" rx="2.5" fill="currentColor"/>
+            <rect x="18" y="4" width="10" height="10" rx="2.5" fill="currentColor"/>
+            <rect x="4" y="18" width="10" height="10" rx="2.5" fill="currentColor"/>
+            <rect x="18" y="18" width="10" height="10" rx="2.5" fill="currentColor"/>
+          </svg>
+          <span style={{ fontSize: 12, color: "var(--ink-tertiary)", textAlign: "center" }}>Pick a source from the left rail to build your canvas.</span>
+        </div>
       ) : null}
 
       {canvasError ? (

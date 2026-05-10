@@ -1,0 +1,117 @@
+{
+  "spec_version": 1,
+  "view_id": "ar-sequential-triage",
+  "view_name": "Overdue Triage",
+  "view_type": "sequential",
+
+  "source": {
+    "scope_kind": "source",
+    "scope_key": "finance_email",
+    "semantic_summary": "Overdue invoices ranked by amount and risk score that need a decision — pay, escalate, or defer — from the finance team one at a time."
+  },
+
+  "nodes": [
+    {
+      "node_type": "metric_summary",
+      "id": "queue_progress",
+      "label": "Triage queue",
+      "metrics": [
+        {
+          "key": "queue_remaining",
+          "label": "Remaining",
+          "format": "number"
+        },
+        {
+          "key": "queue_total_amount_cents",
+          "label": "Total at stake",
+          "format": "currency"
+        }
+      ],
+      "mode": "dynamic",
+      "trigger": "agent_event"
+    },
+
+    {
+      "node_type": "sequence_item",
+      "id": "invoice_focus",
+      "label": "Current invoice",
+      "data_source": "invoices",
+      "row_key": "invoice_id",
+      "title_field": "client_name",
+      "detail_fields": [
+        { "key": "invoice_id",    "label": "Invoice #",    "format": "text" },
+        { "key": "amount_cents",  "label": "Amount",       "format": "currency" },
+        { "key": "due_date",      "label": "Due",          "format": "date" },
+        { "key": "status",        "label": "Bucket",       "format": "text" },
+        { "key": "risk_score",    "label": "Risk",         "format": "number" },
+        { "key": "context_note",  "label": "Last note",    "format": "text" },
+        { "key": "assignee",      "label": "Owner",        "format": "text" }
+      ],
+      "actions": [
+        {
+          "id": "mark_followed_up",
+          "label": "Mark followed up",
+          "style": "primary",
+          "routing": "write_back",
+          "mcp_method": "invoices.markFollowedUp",
+          "payload_template": { "follow_up_status": "followed_up" }
+        },
+        {
+          "id": "escalate",
+          "label": "Escalate",
+          "style": "secondary",
+          "routing": "agent",
+          "mcp_method": "invoices.escalate"
+        },
+        {
+          "id": "defer",
+          "label": "Defer 7 days",
+          "style": "secondary",
+          "routing": "write_back",
+          "mcp_method": "invoices.snooze",
+          "payload_template": { "snooze_days": 7 }
+        },
+        {
+          "id": "skip",
+          "label": "Skip",
+          "style": "secondary",
+          "routing": "view_only"
+        }
+      ],
+      "mode": "dynamic",
+      "trigger": "agent_event"
+    },
+
+    {
+      "node_type": "text_summary",
+      "id": "ai_context",
+      "label": "Why this invoice is flagged",
+      "content": "",
+      "mode": "dynamic",
+      "trigger": "agent_event"
+    },
+
+    {
+      "node_type": "filter_controls",
+      "id": "triage_filters",
+      "label": "Filter queue",
+      "filters": [
+        {
+          "field": "assignee",
+          "label": "My invoices only",
+          "control": "toggle"
+        },
+        {
+          "field": "status",
+          "label": "Aging bucket",
+          "control": "dropdown",
+          "options": ["due_1_30", "due_31_60", "due_61_plus"]
+        }
+      ],
+      "mode": "static"
+    }
+  ],
+
+  "generated_at": "2026-05-10T00:00:00Z",
+  "generator": "example"
+}

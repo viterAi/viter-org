@@ -2,7 +2,7 @@
 
 **Written:** May 10, 2026  
 **Updated:** May 10, 2026  
-**Status:** Partially implemented — infrastructure done, 4 routes still unguarded  
+**Status:** Steps 1–6 complete — all API routes guarded; step 7 (auth context in views) not yet started  
 **Depends on:** `docs/auth-and-data-access.md` (DB schema reference)
 
 ---
@@ -20,9 +20,8 @@
 | 7 | Pass auth context to generated views | ❌ Not started |
 
 **Remaining work:**
-- Add `getSupabaseServerClient()` + `auth.getUser()` guard to: `api/sources/route.ts`, `api/sources/[sourceId]/canvas/route.ts`, `api/sources/[sourceId]/canvas/refresh/route.ts`, `api/sources/[sourceId]/steer/route.ts`
-- Replace `getMockMessages()` / `getMockChats()` with real DB queries in those routes
-- Pass `{ userId, tenantId }` from `useUser()` into `CanvasContent`
+- Pass `{ userId, tenantId }` from `useUser()` into `CanvasContent` (step 7)
+- Replace `getMockMessages()` / `getMockChats()` with real DB queries (currently backed by mock data)
 
 **Note on Supabase project consolidation:** All three clients (browser, server, admin) now point to the L0 project (`dkccadwohifcqcdzhhnu`). Auth, tenants, and views all live there. The original UI project (`vwqalkghhdgjumjdgtpd`) credentials remain in `.env` but appear unused in active code — confirm with Mordechai before removing.
 

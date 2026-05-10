@@ -1,7 +1,7 @@
 # View Spec Format — Reference
 
 **Author:** Issac Brown  
-**Last updated:** May 7, 2026  
+**Last updated:** May 10, 2026  
 **Status:** v1 — approved for implementation  
 **TypeScript types:** `lib/types/spec.ts`
 
@@ -496,7 +496,12 @@ Declares view-level actions (not row-specific).
 
 ## Design Tokens
 
-Components accept design tokens as parameters from day one. Tokens are fetched from Supabase by the View Builder based on tenant/user context — never passed by Mrodchi.
+There are two separate token systems in the codebase — do not confuse them:
+
+### 1. Spec-embedded overrides (`ViewSpec.design_tokens`)
+
+An optional per-spec field that carries lightweight theming overrides for a specific view.
+TypeScript type: `DesignTokens` in `lib/types/spec.ts`.
 
 ```json
 {
@@ -511,7 +516,16 @@ Components accept design tokens as parameters from day one. Tokens are fetched f
 }
 ```
 
-Token schema: `primary_color`, `secondary_color`, `font_family`, `font_size_base`, `card_radius`, `button_style`, `table_density`.
+Schema: `primary_color`, `secondary_color`, `font_family`, `font_size_base`, `card_radius`, `button_style`, `table_density`.
+
+### 2. App-level CSS token system (`lib/design/`)
+
+A separate, richer system for the app's own UI components.
+TypeScript type: `DesignTokens` in `lib/design/tokens.ts` (different struct — full color palette, typography, spacing, radius, shadows).
+Applied by `lib/design/TokenProvider.tsx` as CSS variables at the `<html>` root.
+Documented in `docs/design-tokens.md`.
+
+The two systems are independent. Spec-embedded tokens are renderer hints; app tokens control the shell UI.
 
 ---
 
@@ -523,8 +537,8 @@ The spec never references React component IDs. The renderer's mapping layer in `
 |-------------|---------------------|-----------------|
 | `metric_summary` | `kpi_row`, `metric_card` | ≤3 metrics → `metric_card`; >3 → `kpi_row` |
 | `ranked_list` | `data_table`, `attention_list`, `entity_cards` | max_rows ≤ 5 → `attention_list`; has row_actions → `data_table`; no actions, emphasis fields → `entity_cards` |
-| `breakdown` | `chart_bar`, `chart_donut` | ≤5 groups → `chart_donut`; >5 groups → `chart_bar` |
-| `trend` | `chart_line`, `activity_feed` | x_field is a date → `chart_line`; otherwise `activity_feed` |
+| `breakdown` | `chart_bar`, `chart_donut` | `max_groups` ≤ 5 → `chart_donut`; `max_groups` > 5 or omitted → `chart_bar` |
+| `trend` | `chart_line`, `activity_feed` | `x_field` name contains `"date"` or `"at"` → `chart_line`; otherwise `activity_feed` |
 | `text_summary` | `text_block` | Always `text_block` |
 | `sequence_item` | *(custom sequential renderer)* | Always sequential card |
 | `filter_controls` | `filter_bar` | Always `filter_bar` |
@@ -540,7 +554,7 @@ The spec never references React component IDs. The renderer's mapping layer in `
 | `write_back` | Writes to source system via Mrodchi's MCP server | Yes — `mcp_method` required |
 | `agent` | Triggers an agent or automation via Mrodchi's MCP server | Yes — `mcp_method` required |
 
-All boundary-crossing actions (`write_back`, `agent`) are logged to the Supabase `events` table.
+All boundary-crossing actions (`write_back`, `agent`) are intended to be logged to the Supabase `view_events` table (schema exists; write-back logging not yet wired — tracked in Issue A4).
 
 ---
 

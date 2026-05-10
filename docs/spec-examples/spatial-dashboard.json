@@ -1,0 +1,158 @@
+{
+  "spec_version": 1,
+  "view_id": "ar-spatial-dashboard",
+  "view_name": "AR Overview",
+  "view_type": "spatial",
+
+  "source": {
+    "scope_kind": "source",
+    "scope_key": "finance_email",
+    "semantic_summary": "Finance team email thread data — invoice lifecycle from issue to collection, including aging buckets, department breakdowns, and individual follow-up state."
+  },
+
+  "nodes": [
+    {
+      "node_type": "metric_summary",
+      "id": "top_kpis",
+      "label": "Portfolio snapshot",
+      "metrics": [
+        {
+          "key": "amount_cents",
+          "label": "Total Outstanding",
+          "format": "currency",
+          "trend_key": "amount_delta_cents"
+        },
+        {
+          "key": "overdue_count",
+          "label": "Overdue Invoices",
+          "format": "number",
+          "trend_key": "overdue_delta"
+        },
+        {
+          "key": "avg_days_overdue",
+          "label": "Avg Days Overdue",
+          "format": "number"
+        }
+      ],
+      "mode": "static"
+    },
+
+    {
+      "node_type": "ranked_list",
+      "id": "overdue_invoices",
+      "label": "Overdue — needs action",
+      "data_source": "invoices",
+      "row_key": "invoice_id",
+      "rank_by": "amount_cents",
+      "rank_direction": "desc",
+      "fields": [
+        { "key": "invoice_id",       "label": "Invoice",    "format": "text",     "emphasis": true },
+        { "key": "client_name",      "label": "Client",     "format": "text" },
+        { "key": "amount_cents",     "label": "Amount",     "format": "currency", "emphasis": true },
+        { "key": "due_date",         "label": "Due",        "format": "date" },
+        { "key": "status",           "label": "Bucket",     "format": "text" },
+        { "key": "follow_up_status", "label": "Follow-up",  "format": "text" },
+        { "key": "assignee",         "label": "Owner",      "format": "text" }
+      ],
+      "max_rows": 25,
+      "row_actions": [
+        {
+          "id": "mark_followed_up",
+          "label": "Mark followed up",
+          "style": "primary",
+          "routing": "write_back",
+          "mcp_method": "invoices.markFollowedUp",
+          "payload_template": { "status": "followed_up" }
+        },
+        {
+          "id": "reassign",
+          "label": "Reassign",
+          "style": "secondary",
+          "routing": "agent",
+          "mcp_method": "invoices.reassign"
+        }
+      ],
+      "mode": "static"
+    },
+
+    {
+      "node_type": "breakdown",
+      "id": "by_status_bucket",
+      "label": "Outstanding by aging bucket",
+      "data_source": "invoices",
+      "group_by": "status",
+      "value_field": "amount_cents",
+      "value_format": "currency",
+      "max_groups": 4,
+      "mode": "static"
+    },
+
+    {
+      "node_type": "breakdown",
+      "id": "by_department",
+      "label": "Outstanding by department",
+      "data_source": "invoices",
+      "group_by": "department",
+      "value_field": "amount_cents",
+      "value_format": "currency",
+      "max_groups": 6,
+      "mode": "static"
+    },
+
+    {
+      "node_type": "trend",
+      "id": "collection_trend",
+      "label": "Collection activity (30 days)",
+      "data_source": "invoices",
+      "x_field": "due_date",
+      "y_field": "amount_cents",
+      "y_format": "currency",
+      "mode": "static"
+    },
+
+    {
+      "node_type": "filter_controls",
+      "id": "view_filters",
+      "label": "Filters",
+      "filters": [
+        {
+          "field": "status",
+          "label": "Aging bucket",
+          "control": "dropdown",
+          "options": ["current", "due_1_30", "due_31_60", "due_61_plus"]
+        },
+        {
+          "field": "assignee",
+          "label": "Owner",
+          "control": "dropdown"
+        },
+        {
+          "field": "department",
+          "label": "Department",
+          "control": "dropdown"
+        },
+        {
+          "field": "due_date",
+          "label": "Due date range",
+          "control": "date_range"
+        }
+      ],
+      "mode": "static"
+    }
+  ],
+
+  "layout_hints": {
+    "columns": 2,
+    "node_columns": {
+      "top_kpis":         0,
+      "view_filters":     0,
+      "overdue_invoices": 0,
+      "by_status_bucket": 1,
+      "by_department":    1,
+      "collection_trend": 1
+    }
+  },
+
+  "generated_at": "2026-05-10T00:00:00Z",
+  "generator": "example"
+}

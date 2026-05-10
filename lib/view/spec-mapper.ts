@@ -11,6 +11,7 @@ import type {
   RankedListNode,
   BreakdownNode,
   TrendNode,
+  TimelineNode,
 } from "../types/spec";
 
 export interface MappedComponent {
@@ -37,6 +38,8 @@ export function mapSpecNode(node: SpecNode): MappedComponent | null {
       return mapBreakdown(node);
     case "trend":
       return mapTrend(node);
+    case "timeline":
+      return mapTimeline(node);
     case "text_summary":
       return {
         component_id: "text_block",
@@ -46,13 +49,16 @@ export function mapSpecNode(node: SpecNode): MappedComponent | null {
     case "filter_controls":
       return {
         component_id: "filter_bar",
-        props: { title: node.label, fields: node.filters.map((f) => f.field) },
+        props: {
+          title: node.label,
+          fields: node.filters.map((f) => ({ field: f.field, label: f.label, control: f.control })),
+        },
         spec_node_id: node.id,
       };
     case "action_panel":
       return {
         component_id: "action_panel",
-        props: { title: node.label, actions: node.actions.map((a) => a.id) },
+        props: { title: node.label, actions: node.actions.map((a) => ({ id: a.id, label: a.label })) },
         spec_node_id: node.id,
       };
     case "sequence_item":
@@ -111,16 +117,23 @@ function mapRankedList(node: RankedListNode): MappedComponent {
     kind: deriveColumnKind(f.format),
   }));
 
+  // For attention_list: expose which fields to use for row labels/details
+  const emphasisField = node.fields.find((f) => f.emphasis);
+  const labelField = emphasisField?.key ?? node.fields[0]?.key;
+  const detailField = node.fields.find((f) => f !== emphasisField && f.key !== labelField)?.key;
+
   return {
     component_id,
     props: {
       title: node.label,
       row_key: node.row_key,
       columns,
+      label_field: labelField,
+      detail_field: detailField,
       rank_by: node.rank_by,
       rank_direction: node.rank_direction ?? "desc",
       max_items: node.max_rows,
-      actions: node.row_actions?.map((a) => a.id),
+      actions: node.row_actions?.map((a) => ({ id: a.id, label: a.label })),
     },
     spec_node_id: node.id,
   };
@@ -137,6 +150,21 @@ function mapBreakdown(node: BreakdownNode): MappedComponent {
       title: node.label,
       group_by: node.group_by,
       value_field: node.value_field,
+    },
+    spec_node_id: node.id,
+  };
+}
+
+function mapTimeline(node: TimelineNode): MappedComponent {
+  return {
+    component_id: "chart_gantt",
+    props: {
+      title: node.label,
+      title_field: node.title_field,
+      start_field: node.start_field,
+      end_field: node.end_field,
+      status_field: node.status_field,
+      max_items: node.max_rows,
     },
     spec_node_id: node.id,
   };

@@ -100,6 +100,7 @@ export default function HomePage() {
             generating={canvas.generating}
             isSaved={canvas.isSaved} isSavingLayout={canvas.isSavingLayout}
             isRefreshingContent={canvas.isRefreshingContent}
+            saveError={canvas.saveError}
             hasDynamic={hasDynamic}
             onSaveLayout={() => void canvas.saveLayout(src.sourceId)}
             onRegenerate={() => void canvas.regenerate(src.sourceId)}

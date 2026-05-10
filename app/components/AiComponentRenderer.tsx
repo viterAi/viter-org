@@ -282,6 +282,46 @@ function FilterBar({ card, title, fields, onAgentAction }: {
   );
 }
 
+/**
+ * Spec-mapper sets metric `value` to the field key so the renderer can resolve
+ * the actual value from row data at display time. This function handles that
+ * resolution: if `raw` matches a field in rows, aggregate; otherwise return as-is.
+ */
+function resolveMetricValue(raw: string, format: string, rows: Row[]): string {
+  if (!raw) return "—";
+
+  // Check if `raw` looks like a literal value (has spaces, digits with units, starts with number, etc.)
+  const looksLiteral = /\s/.test(raw) || /^\d/.test(raw) || raw.includes("€") || raw.includes("$") || raw.includes("%");
+  if (looksLiteral) return raw;
+
+  // Check if this field exists in any row
+  const fieldExists = rows.length > 0 && rows.some((r) => raw in r);
+  if (!fieldExists) {
+    // Field doesn't exist in data — show "—" instead of the raw field name
+    return "—";
+  }
+
+  // Aggregate the field based on format
+  const values = rows.map((r) => r[raw]);
+
+  if (format === "percent") {
+    const truthy = values.filter((v) => v && v !== "0" && v !== "false" && v !== "").length;
+    return `${Math.round((truthy / values.length) * 100)}%`;
+  }
+
+  if (format === "currency" || format === "number") {
+    const nums = values.map((v) => (typeof v === "number" ? v : parseFloat(String(v ?? 0)))).filter((n) => !isNaN(n));
+    if (nums.length === 0) return "—";
+    const total = nums.reduce((s, n) => s + n, 0);
+    if (format === "currency") return eur(total);
+    return total.toLocaleString();
+  }
+
+  // For count / text: count non-empty rows
+  const count = values.filter((v) => v != null && v !== "" && v !== false).length;
+  return String(count);
+}
+
 interface AiComponentRendererProps {
   component: AiComponent;
   index: number;
@@ -314,36 +354,61 @@ function AiComponentBody({
   };
 
   if (cid === "text_block") {
+    const body = String(props.body ?? "");
+    if (!body) return null;
     return (
       <div key={k} style={card}>
-        <div style={{ fontSize: 13, fontWeight: 600 }}>{String(props.title ?? "Text")}</div>
-        <div style={{ marginTop: 6, fontSize: 12, color: "var(--ink-secondary)", lineHeight: 1.6 }}>{String(props.body ?? "")}</div>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>{String(props.title ?? "")}</div>
+        <div style={{ marginTop: props.title ? 6 : 0, fontSize: 12, color: "var(--ink-secondary)", lineHeight: 1.6 }}>{body}</div>
       </div>
     );
   }
 
   if (cid === "kpi_row") {
     const metrics = Array.isArray(props.metrics) ? props.metrics : [];
+    const resolved = metrics.slice(0, 4).map((m) => {
+      const item = (m ?? {}) as Record<string, unknown>;
+      return { label: String(item.label ?? "Metric"), value: resolveMetricValue(String(item.value ?? ""), String(item.format ?? "text"), rows) };
+    }).filter((m) => m.value !== "—");
+    if (resolved.length === 0) return null;
     return (
-      <div key={k} style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(metrics.length || 4, 4)}, 1fr)`, gap: 8 }}>
-        {metrics.slice(0, 4).map((m, mi) => {
-          const item = (m ?? {}) as Record<string, unknown>;
-          return (
-            <div key={`kpi-${mi}`} style={card}>
-              <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{String(item.label ?? "Metric")}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{item.value != null && item.value !== "" ? String(item.value) : "—"}</div>
-            </div>
-          );
-        })}
+      <div key={k} style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(resolved.length, 4)}, 1fr)`, gap: 8 }}>
+        {resolved.map((m, mi) => (
+          <div key={`kpi-${mi}`} style={card}>
+            <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{m.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{m.value}</div>
+          </div>
+        ))}
       </div>
     );
   }
 
   if (cid === "metric_card") {
+    const metrics = Array.isArray(props.metrics) ? props.metrics : null;
+    if (metrics && metrics.length > 0) {
+      const resolved = metrics.slice(0, 4).map((m) => {
+        const item = (m ?? {}) as Record<string, unknown>;
+        return { label: String(item.label ?? "Metric"), value: resolveMetricValue(String(item.value ?? ""), String(item.format ?? "text"), rows), hint: item.hint ? String(item.hint) : null };
+      }).filter((m) => m.value !== "—");
+      if (resolved.length === 0) return null;
+      return (
+        <div key={k} style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(resolved.length, 4)}, 1fr)`, gap: 8 }}>
+          {resolved.map((m, mi) => (
+            <div key={`mc-${mi}`} style={card}>
+              <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{m.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{m.value}</div>
+              {m.hint && <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginTop: 2 }}>{m.hint}</div>}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    const resolved = resolveMetricValue(String(props.value ?? ""), "text", rows);
+    if (resolved === "—") return null;
     return (
       <div key={k} style={{ ...card, display: "flex", flexDirection: "column", gap: 4 }}>
         <div style={{ fontSize: 10, color: "var(--ink-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{String(props.label ?? "Metric")}</div>
-        <div style={{ fontSize: 26, fontWeight: 700 }}>{props.value != null && props.value !== "" ? String(props.value) : "—"}</div>
+        <div style={{ fontSize: 26, fontWeight: 700 }}>{resolved}</div>
         {props.hint ? <div style={{ fontSize: 11, color: "var(--ink-tertiary)" }}>{String(props.hint)}</div> : null}
       </div>
     );
@@ -351,18 +416,39 @@ function AiComponentBody({
 
   if (cid === "attention_list" || cid === "activity_feed") {
     const title = String(props.title ?? (cid === "attention_list" ? "Needs attention" : "Activity"));
+    const labelField = props.label_field ? String(props.label_field) : null;
+    const detailField = props.detail_field ? String(props.detail_field) : null;
+
+    // Priority: explicit items → label_field from rows → generic row fallback
     const items: unknown[] = Array.isArray(props.items) && (props.items as unknown[]).length > 0
       ? props.items
-      : attentionRows.map((r) => `${String(r.client_name ?? r.invoice_id ?? "")} — ${String(r.status ?? r.follow_up_status ?? "")}`);
+      : labelField && rows.some((r) => labelField in r)
+        ? rows.map((r) => {
+            const name = r[labelField] != null ? String(r[labelField]) : null;
+            if (!name) return null;
+            const detail = detailField && r[detailField] != null ? String(r[detailField]) : null;
+            return detail ? `${name} — ${detail}` : name;
+          }).filter(Boolean)
+        : attentionRows.map((r) => {
+            const name = String(r.client_name ?? r.invoice_id ?? r.title ?? r.name ?? r.sender ?? "");
+            const status = String(r.status ?? r.follow_up_status ?? r.kind ?? "");
+            if (!name && !status) return null;
+            if (!name) return status;
+            if (!status) return name;
+            return `${name} — ${status}`;
+          }).filter(Boolean);
     if (items.length === 0) return null;
+    const visible = items.slice(0, Number(props.max_items ?? 6));
+    if (visible.length === 0) return null;
     return (
       <div key={k} style={card}>
         <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 8 }}>{title}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          {items.slice(0, Number(props.max_items ?? 6)).map((item, ii) => {
+          {visible.map((item, ii) => {
             const label = typeof item === "object" && item !== null
               ? String((item as Record<string, unknown>).title ?? (item as Record<string, unknown>).name ?? (item as Record<string, unknown>).label ?? (item as Record<string, unknown>).message ?? (item as Record<string, unknown>).text ?? (item as Record<string, unknown>).description ?? JSON.stringify(item))
               : String(item);
+            if (!label) return null;
             return (
               <div key={`ai-${ii}`} style={{ fontSize: 12, color: "var(--ink-secondary)", display: "flex", gap: 8, alignItems: "flex-start" }}>
                 <span style={{ color: "var(--ink-tertiary)", flexShrink: 0, marginTop: 2 }}>•</span>
@@ -377,6 +463,7 @@ function AiComponentBody({
 
   if (cid === "filter_bar") {
     const fields: unknown[] = Array.isArray(props.fields) ? props.fields : [];
+    if (fields.length === 0) return null;
     return (
       <FilterBar
         key={k}
@@ -390,6 +477,9 @@ function AiComponentBody({
 
   if (cid === "chart_gantt") {
     const tasks = Array.isArray(props.tasks) ? (props.tasks as GanttTask[]) : [];
+    const hasFields = props.start_field && props.end_field;
+    // If no static tasks and no field mappings, nothing to render
+    if (tasks.length === 0 && !hasFields) return null;
     return (
       <GanttChart
         key={k}
@@ -410,14 +500,9 @@ function AiComponentBody({
   if (cid === "chart_bar") {
     const groupBy = String(props.group_by ?? "");
     const valueField = String(props.value_field ?? "");
-    if (rows.length === 0 || !groupBy) {
-      return (
-        <div key={k} style={card}>
-          <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 6 }}>{String(props.title ?? (groupBy || "Bar chart"))}</div>
-          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
-        </div>
-      );
-    }
+    if (rows.length === 0 || !groupBy) return null;
+    const fieldExists = rows.some((r) => groupBy in r && r[groupBy] != null);
+    if (!fieldExists) return null;
     const agg: Record<string, number> = {};
     for (const row of rows) {
       const gk = String(row[groupBy] ?? "other");
@@ -425,18 +510,12 @@ function AiComponentBody({
       agg[gk] = (agg[gk] ?? 0) + v;
     }
     const entries = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 8);
-    if (entries.length === 0) {
-      return (
-        <div key={k} style={card}>
-          <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 6 }}>{String(props.title ?? (groupBy || "Bar chart"))}</div>
-          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
-        </div>
-      );
-    }
+    // Single bucket named "other" means the field had no real values — hide
+    if (entries.length === 0 || (entries.length === 1 && entries[0][0] === "other")) return null;
     const maxV = Math.max(...entries.map(([, v]) => v), 1);
     return (
       <div key={k} style={card}>
-        <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 10 }}>{String(props.title ?? (groupBy || "Bar chart"))}</div>
+        <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 10 }}>{String(props.title ?? groupBy)}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
           {entries.map(([label, val]) => (
             <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -457,14 +536,9 @@ function AiComponentBody({
   if (cid === "chart_line") {
     const xField = String(props.x_field ?? "");
     const yField = String(props.y_field ?? "");
-    if (rows.length === 0 || !xField) {
-      return (
-        <div key={k} style={card}>
-          <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 6 }}>{String(props.title ?? `${yField} over time`)}</div>
-          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
-        </div>
-      );
-    }
+    if (rows.length === 0 || !xField) return null;
+    const fieldExists = rows.some((r) => xField in r && r[xField] != null);
+    if (!fieldExists) return null;
     const agg: Record<string, number> = {};
     for (const row of rows) {
       const xk = String(row[xField] ?? "");
@@ -472,27 +546,22 @@ function AiComponentBody({
       if (xk) agg[xk] = (agg[xk] ?? 0) + v;
     }
     const entries = Object.entries(agg).sort(([a], [b]) => a.localeCompare(b)).slice(0, 14);
+    if (entries.length === 0) return null;
     const maxV = Math.max(...entries.map(([, v]) => v), 1);
     return (
       <div key={k} style={card}>
         <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 10 }}>{String(props.title ?? `${yField} over time`)}</div>
-        {entries.length === 0 ? (
-          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
-        ) : (
-          <>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 56 }}>
-              {entries.map(([label, val]) => (
-                <div key={label} title={`${label}: ${val}`} style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                  <div style={{ width: "100%", background: "var(--accent)", borderRadius: "2px 2px 0 0", height: `${Math.max(Math.round((val / maxV) * 100), 4)}%`, opacity: 0.85 }} />
-                </div>
-              ))}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 56 }}>
+          {entries.map(([label, val]) => (
+            <div key={label} title={`${label}: ${val}`} style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <div style={{ width: "100%", background: "var(--accent)", borderRadius: "2px 2px 0 0", height: `${Math.max(Math.round((val / maxV) * 100), 4)}%`, opacity: 0.85 }} />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: "var(--ink-tertiary)" }}>
-              <span>{entries[0]?.[0]}</span>
-              <span>{entries[entries.length - 1]?.[0]}</span>
-            </div>
-          </>
-        )}
+          ))}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: "var(--ink-tertiary)" }}>
+          <span>{entries[0]?.[0]}</span>
+          <span>{entries[entries.length - 1]?.[0]}</span>
+        </div>
       </div>
     );
   }
@@ -500,14 +569,9 @@ function AiComponentBody({
   if (cid === "chart_donut") {
     const groupBy = String(props.group_by ?? "");
     const valueField = String(props.value_field ?? "");
-    if (rows.length === 0 || !groupBy) {
-      return (
-        <div key={k} style={card}>
-          <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 6 }}>{String((props.title ?? groupBy) || "Composition")}</div>
-          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
-        </div>
-      );
-    }
+    if (rows.length === 0 || !groupBy) return null;
+    const fieldExists = rows.some((r) => groupBy in r && r[groupBy] != null);
+    if (!fieldExists) return null;
     const agg: Record<string, number> = {};
     for (const row of rows) {
       const gk = String(row[groupBy] ?? "other");
@@ -515,50 +579,41 @@ function AiComponentBody({
       agg[gk] = (agg[gk] ?? 0) + v;
     }
     const entries = Object.entries(agg);
+    if (entries.length === 0 || (entries.length === 1 && entries[0][0] === "other")) return null;
     const total = entries.reduce((s, [, v]) => s + v, 0);
     const PALETTE = ["var(--accent)", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899"];
     return (
       <div key={k} style={card}>
-        <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 10 }}>{String(props.title ?? (groupBy || "Composition"))}</div>
-        {entries.length === 0 ? (
-          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available</div>
-        ) : (
-          <>
-            <div style={{ height: 16, display: "flex", borderRadius: 6, overflow: "hidden", gap: 1 }}>
-              {entries.map(([label, val], pi) => (
-                <div key={label} title={`${label}: ${val}`} style={{ flex: val, background: PALETTE[pi % PALETTE.length] }} />
-              ))}
+        <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 10 }}>{String(props.title ?? groupBy)}</div>
+        <div style={{ height: 16, display: "flex", borderRadius: 6, overflow: "hidden", gap: 1 }}>
+          {entries.map(([label, val], pi) => (
+            <div key={label} title={`${label}: ${val}`} style={{ flex: val, background: PALETTE[pi % PALETTE.length] }} />
+          ))}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: 8 }}>
+          {entries.map(([label, val], pi) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--ink-secondary)" }}>
+              <div style={{ width: 8, height: 8, borderRadius: 2, background: PALETTE[pi % PALETTE.length], flexShrink: 0 }} />
+              {label} <span style={{ color: "var(--ink-tertiary)" }}>({total > 0 ? Math.round((val / total) * 100) : 0}%)</span>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: 8 }}>
-              {entries.map(([label, val], pi) => (
-                <div key={label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--ink-secondary)" }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: PALETTE[pi % PALETTE.length], flexShrink: 0 }} />
-                  {label} <span style={{ color: "var(--ink-tertiary)" }}>({total > 0 ? Math.round((val / total) * 100) : 0}%)</span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+          ))}
+        </div>
       </div>
     );
   }
 
   if (cid === "kanban_board") {
-    if (rows.length === 0) {
-      return (
-        <div key={k} style={card}>
-          <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginBottom: 6 }}>Board</div>
-          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
-        </div>
-      );
-    }
+    if (rows.length === 0) return null;
     const groupBy = String(props.group_by ?? "follow_up_status");
+    const fieldExists = rows.some((r) => groupBy in r && r[groupBy] != null);
+    if (!fieldExists) return null;
     const titleField = String(props.title_field ?? "invoice_id");
     const subtitleField = String(props.subtitle_field ?? "client_name");
     const valueField = String(props.value_field ?? "amount_cents");
     const lanesProp = Array.isArray(props.lanes) ? props.lanes.map(String) : null;
-    const uniqueGroups = [...new Set(rows.map((r) => String(r[groupBy] ?? "other")))];
+    const uniqueGroups = [...new Set(rows.map((r) => String(r[groupBy] ?? "other")))].filter((g) => g !== "other");
     const laneKeys = lanesProp ?? uniqueGroups.slice(0, 4);
+    if (laneKeys.length === 0) return null;
     return (
       <div key={k} style={{ display: "grid", gridTemplateColumns: `repeat(${laneKeys.length}, 1fr)`, gap: 8 }}>
         {laneKeys.map((lane) => {
@@ -588,38 +643,69 @@ function AiComponentBody({
   }
 
   if (cid === "entity_cards") {
-    if (rows.length === 0) {
-      return (
-        <div key={k} style={card}>
-          <div style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No data available.</div>
-        </div>
-      );
-    }
+    if (rows.length === 0) return null;
     const titleField = String(props.title_field ?? "client_name");
-    const subtitleField = String(props.subtitle_field ?? "invoice_id");
-    const valueField = String(props.value_field ?? "amount_cents");
+    // Verify the title field actually exists in the data
+    const titleFieldExists = rows.some((r) => titleField in r && r[titleField] != null);
+    if (!titleFieldExists) return null;
+    const subtitleField = String(props.subtitle_field ?? "");
+    const valueField = String(props.value_field ?? "");
+    const rankBy = props.rank_by ? String(props.rank_by) : null;
+    const rankDir = String(props.rank_direction ?? "desc");
     const maxItems = Number(props.max_items ?? 6);
-    const cards = rows.slice(0, maxItems);
+    const colDefs = Array.isArray(props.columns) ? (props.columns as Array<Record<string, unknown>>) : null;
+    const sorted = rankBy
+      ? [...rows].sort((a, b) => {
+          const av = a[rankBy], bv = b[rankBy];
+          if (typeof av === "number" && typeof bv === "number") return rankDir === "asc" ? av - bv : bv - av;
+          return rankDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+        })
+      : rows;
+    const cards = sorted.slice(0, maxItems);
+    if (cards.length === 0) return null;
+    const headerTitle = props.title ? String(props.title) : null;
     return (
-      <div key={k} style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-        {cards.map((r, ri) => (
-          <div key={ri} style={{ ...card, display: "flex", flexDirection: "column", gap: 3 }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{String(r[titleField] ?? "—")}</div>
-            {subtitleField && r[subtitleField] != null ? <div style={{ fontSize: 11, color: "var(--ink-secondary)" }}>{String(r[subtitleField])}</div> : null}
-            {valueField && r[valueField] != null ? (
-              <div style={{ fontSize: 12, color: "var(--ink-tertiary)", marginTop: 2 }}>
-                {valueField.includes("cents") && typeof r[valueField] === "number" ? eur(r[valueField] as number) : String(r[valueField])}
-              </div>
-            ) : null}
-          </div>
-        ))}
-        {cards.length === 0 && <div style={{ gridColumn: "1/-1", fontSize: 12, color: "var(--ink-tertiary)" }}>No entities to display.</div>}
+      <div key={k} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {headerTitle && <div style={{ fontSize: 11, color: "var(--ink-tertiary)" }}>{headerTitle}</div>}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+          {cards.map((r, ri) => (
+            <div key={ri} style={{ ...card, display: "flex", flexDirection: "column", gap: 3 }}>
+              {colDefs ? (
+                colDefs.map((col, ci) => {
+                  const field = String(col.field ?? col.id ?? "");
+                  const label = col.label ? String(col.label) : null;
+                  const val = r[field];
+                  if (val == null) return null;
+                  return (
+                    <div key={ci}>
+                      {label && ci > 0 && <div style={{ fontSize: 10, color: "var(--ink-tertiary)" }}>{label}</div>}
+                      <div style={{ fontSize: ci === 0 ? 13 : 11, fontWeight: ci === 0 ? 600 : 400, color: ci === 0 ? "var(--ink-primary)" : "var(--ink-secondary)" }}>
+                        {String(col.kind) === "number" && typeof val === "number" && field.includes("cents") ? eur(val) : String(val)}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{String(r[titleField] ?? "—")}</div>
+                  {subtitleField && r[subtitleField] != null ? <div style={{ fontSize: 11, color: "var(--ink-secondary)" }}>{String(r[subtitleField])}</div> : null}
+                  {valueField && r[valueField] != null ? (
+                    <div style={{ fontSize: 12, color: "var(--ink-tertiary)", marginTop: 2 }}>
+                      {valueField.includes("cents") && typeof r[valueField] === "number" ? eur(r[valueField] as number) : String(r[valueField])}
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (cid === "action_panel") {
     const actions: unknown[] = Array.isArray(props.actions) ? props.actions : [];
+    if (actions.length === 0) return null;
     return (
       <div key={k} style={{ ...card, display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ fontSize: 11, color: "var(--ink-tertiary)" }}>{String(props.title ?? "Actions")}</div>
@@ -638,7 +724,6 @@ function AiComponentBody({
               </button>
             );
           })}
-          {actions.length === 0 && <span style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>No actions defined.</span>}
         </div>
       </div>
     );
@@ -693,11 +778,8 @@ function AiComponentBody({
     );
   }
 
-  return (
-    <div key={k} style={{ background: "var(--bg-secondary)", borderRadius: "var(--r-card)", padding: 12, fontSize: 12, color: "var(--ink-tertiary)", fontStyle: "italic" }}>
-      [{cid}]
-    </div>
-  );
+  // Unknown component type — render nothing rather than a confusing placeholder.
+  return null;
 }
 
 /**

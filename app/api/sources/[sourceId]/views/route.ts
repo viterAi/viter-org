@@ -52,9 +52,13 @@ export async function POST(
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
 
-  // Resolve tenant from the authenticated user
-  const { data: tenantData } = await supabase
-    .rpc("current_tenant_id") as { data: string | null };
+  // Resolve tenant for the record. Falls back to null when the RLS context cannot resolve it.
+  const { data: memberData } = await supabase
+    .from("tenant_members")
+    .select("tenant_id")
+    .limit(1)
+    .maybeSingle();
+  const tenantData = memberData?.tenant_id ?? null;
 
   const { data: maxSortRecord } = await supabase
     .from("views")
