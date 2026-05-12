@@ -2,14 +2,14 @@
 
 **Wave:** 5 — Month 3+ (can start once schema ownership is clear)  
 **Estimate:** 2–3 days  
-**Depends on:** Existing `public.genui_l2` in `vita-compare` (see migration `20260511084339_genui_l2.sql`)  
+**Depends on:** `public.genui_l2` and related migrations in `vita-compare/infra/supabase/migrations/` and mirrored under **`Gui/supabase/migrations/`** (baseline `20260511084339_genui_l2.sql`, channels/queue `20260512090000_…`, ownership **`20260513120000_genui_l2_created_by_visibility.sql`**)  
 **Blocks:** Automated genUI freshness from GitHub (and later other sources)
 
 ---
 
 ## Context
 
-genUI synthesis rows live in **`public.genui_l2`** (`tenant_id`, optional `view_id`, `payload`, `generator`, timestamps). There is no durable notion of an external **channel** (GitHub repo, inbox, etc.), and nothing today turns **webhooks** or **scheduled polls** into **append-only** L2 rows under **Supabase Auth + RLS**.
+genUI synthesis rows live in **`public.genui_l2`** (`tenant_id`, optional `view_id` / `genui_channel_id`, `payload`, `generator`, timestamps, optional mail dedupe columns). Each row has **`created_by`** (Supabase Auth user, enforced by trigger — **no** routine `service_role` inserts) and **`visibility`** `private` \| `tenant` (default `private`). **`genui_channels`** models external surfaces (GitHub repo, Gmail, Outlook). Ingest can append L2 rows under **RLS + machine-user JWT** or interactive users.
 
 **Product goal:** **event-first** where GitHub supports webhooks, **reconciliation** to heal gaps, **last N** from existing **`genui_l2`** rows for that channel, **one agent** run, then **one new `genui_l2` insert** per completed job.
 
@@ -19,7 +19,7 @@ genUI synthesis rows live in **`public.genui_l2`** (`tenant_id`, optional `view_
 2. **Arcade → your HTTPS** — Arcade **transparently forwards** the **raw body** and **GitHub signature / delivery headers** (`X-Hub-Signature-256`, `X-GitHub-*`, etc.). **Do not ship** until docs + smoke test prove byte-stable relay (**v1 gate**).
 3. **Fast handler** — Verifies **GitHub HMAC** on the raw payload, authenticates the **Arcade→you** hop (shared secret / mTLS), **enqueues** a row in **`genui_ingest_jobs`**, returns **2xx within seconds** so Arcade can satisfy GitHub’s delivery window. **No LLM** on this path.
 4. **Polling worker** — Claims **`pending`** jobs (`FOR UPDATE SKIP LOCKED` or equivalent), uses the **per-tenant machine user** JWT (refresh per job) for **RLS**: resolve `genui_channels`, **select** last **N** `genui_l2`, run **one** LLM, **insert** one `genui_l2` row, mark job **`done` / `failed`**.
-5. **Split auth (locked):** the **handler** may use **`service_role`** or a **narrow `SECURITY DEFINER` RPC** **only** to insert **`genui_ingest_jobs`** (and optionally resolve `tenant_id` / `genui_channel_id`). The **worker** uses **machine user + RLS** for all tenant reads/writes on `genui_l2` / `genui_channels` / job updates the machine role is allowed to perform.
+5. **Split auth (locked):** the **handler** may use **`service_role`** or a **narrow `SECURITY DEFINER` RPC** **only** to insert **`genui_ingest_jobs`** (and optionally resolve `tenant_id` / `genui_channel_id`). The **worker** uses **machine user + RLS** for reads/writes on `genui_l2` / `genui_channels` / job updates. **`genui_l2` INSERT** requires **`auth.uid()`** (DB trigger); use **machine-user JWT**, not service role, for automated L2 rows.
 6. **Reconciliation** — Same **`genui_ingest_jobs`** pipeline: scheduler inserts **`pending`** jobs with **`ingest_kind: "reconciliation"`**; worker is **one codebase** for webhook- and reconciliation-driven work.
 7. **Arcade MCP (separate concern)** — Interactive agents may call **Arcade MCP** for tools; **ingest LLM** runs on **your** worker, not inside Arcade’s agent step for this ticket.
 
@@ -38,16 +38,16 @@ genUI synthesis rows live in **`public.genui_l2`** (`tenant_id`, optional `view_
 **Out of scope**
 
 - Second parallel model per event.
-- Email / other sources unless added explicitly.
-- Using **service role** for **bulk** `genui_l2` writes (worker stays **machine user + RLS**).
+- **Push** inbox delivery (Gmail watch / Graph subscriptions) — Gui ships **polling** mail path only; push is follow-up.
+- Using **service role** for **bulk** `genui_l2` writes (L2 requires JWT + trigger; worker stays **machine user + RLS**).
 
 ---
 
 ## Deliverables
 
-1. Supabase migrations: **`genui_channels`**, **`genui_l2.genui_channel_id`**, **`genui_ingest_jobs`**, RLS + **narrow** handler path (RPC or documented service-role use).
+1. Supabase migrations: **`genui_channels`**, **`genui_l2.genui_channel_id`**, **`genui_ingest_jobs`**, **`genui_l2` ownership** (`Gui/supabase/migrations/` + `vita-compare/infra/supabase/migrations/`) + RLS + **narrow** handler path (service-role **enqueue only**).
 2. **Arcade** config: webhook → **raw forward** to your URL; **secrets** for Arcade→you auth.
-3. **Handler + worker** implementation (repo location TBD) with runbooks: token rotation, add channel, replay failed jobs.
+3. **Handler + worker** implementation (**Gui** `app/api/integrations/github/genui`, **vita-compare** worker script) with runbooks: token rotation, add channel, replay failed jobs.
 4. **Smoke test evidence** that HMAC verification passes through Arcade’s forward.
 
 ---
@@ -70,6 +70,11 @@ CREATE TABLE public.genui_channels (
 
 ALTER TABLE public.genui_l2
   ADD COLUMN genui_channel_id UUID REFERENCES public.genui_channels(id) ON DELETE SET NULL;
+
+-- Ownership (see migration 20260513120000_genui_l2_created_by_visibility.sql)
+-- created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT
+-- visibility TEXT NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'tenant'))
+-- BEFORE INSERT OR UPDATE trigger sets / locks created_by from auth.uid()
 
 -- genui_ingest_jobs: durable queue (columns to finalize)
 CREATE TABLE public.genui_ingest_jobs (
@@ -118,15 +123,7 @@ Store **raw body** policy: if bodies are large, **store pointer** or truncated h
 
 ### Deferrals
 
-- [ ] Email / other sources explicitly listed as out of v1 or follow-up ticket.
-
----
-
-## Notes for the agent
-
-- Migrations: **`vita-compare/infra/supabase/migrations/`**; mirror **`genui_l2`** RLS style from `20260511084339_genui_l2.sql`.
-- **Last-N-from-GenUI-only** still implies reconciliation matters—same job pipeline keeps one observability story.
-- **Arcade MCP** is **not** required for the ingest worker’s LLM; keep MCP for **other** agent surfaces if needed.
+- [x] **Gmail / Outlook polling** in Gui — tracked; **push** inbox still follow-up.
 
 ---
 
@@ -134,16 +131,29 @@ Store **raw body** policy: if bodies are large, **store pointer** or truncated h
 
 | Piece | Location |
 |--------|-----------|
-| Schema + RLS + `genui_claim_next_job` | `vita-compare/infra/supabase/migrations/20260512090000_genui_channels_ingest_jobs.sql` |
-| GitHub HMAC helpers | `vita-compare/apps/web/lib/genui/github-webhook.ts` |
-| Fast enqueue HTTP handler | `vita-compare/apps/web/app/api/integrations/github/genui/route.ts` (`POST`) |
-| Polling worker (one job per run) | `vita-compare/packages/runtime/scripts/genui-ingest-worker.ts` — `pnpm --filter @vita/runtime genui-ingest-worker` |
-| Env template | `vita-compare/.env.example` (`GENUI_*`, `GITHUB_WEBHOOK_SECRET`) |
-| **UI:** repo + webhook secret + agent goal | **Primary:** View Builder **Corn jobs** (`app/components/GenUIIngestJobsPanel.tsx` + `CornJobsCanvas`). **Also:** `vita-compare/apps/web/app/settings/genui/` (vita web). |
+| Schema + queue + `genui_claim_next_job` | `vita-compare/infra/supabase/migrations/20260512090000_genui_channels_ingest_jobs.sql` (mirrored under `Gui/supabase/migrations/`) |
+| **`genui_l2` ownership + visibility RLS + trigger** | `20260513120000_genui_l2_created_by_visibility.sql` (`is_tenant_admin`, `genui_l2_enforce_created_by`) |
+| GitHub HMAC helpers | `lib/genui/github-webhook.ts` (Gui) · `vita-compare/apps/web/lib/genui/github-webhook.ts` |
+| Fast enqueue HTTP handler | **`app/api/integrations/github/genui/route.ts`** (Gui) · `vita-compare/apps/web/app/api/integrations/github/genui/route.ts` |
+| Polling worker (one job per run) | `vita-compare/packages/runtime/scripts/genui-ingest-worker.ts` — `pnpm --filter @vita/runtime genui-ingest-worker` (sets `visibility: 'tenant'`) |
+| Machine-user Supabase client | **`lib/genui/machine-supabase.ts`** — `GENUI_L2_MACHINE_*` or `GENUI_WORKER_*` |
+| **Gmail / Outlook poll** | **`lib/mail-poll/run-mail-poll.ts`**, **`GET /api/cron/mail-poll`**, optional **`instrumentation.ts`** + **`MAIL_POLL_INTERVAL_MS`** |
+| Env template | **`Gui/.env.example`** · `vita-compare/.env.example` |
+| **UI:** repo + webhook secret + agent goal | View Builder **Corn jobs** (`app/components/GenUIIngestJobsPanel.tsx` + `CornJobsCanvas`). **Also:** `vita-compare/apps/web/app/settings/genui/` |
 
-**Ops:** Create a Supabase Auth user, add it to `tenant_members` for the target tenant, set `GENUI_WORKER_*` envs. Apply migrations. Users configure each GitHub repo (and signing secret + prompt) in **Settings → genUI ingest** before webhooks are accepted (`unknown_repo` otherwise).
+**Ops:** Create a Supabase Auth **machine** user, add to **`tenant_members`** for every tenant that runs ingest or mail poll, set **`GENUI_L2_MACHINE_*`** or **`GENUI_WORKER_*`** plus L0 URL + anon key. Apply migrations. Users configure each GitHub repo (and signing secret + prompt) in **Corn / genUI settings** before webhooks are accepted (`unknown_repo` otherwise).
 
-**Reconciliation:** Same job table — insert `genui_ingest_jobs` rows with `ingest_kind = 'reconciliation'` (via service role / SQL / small internal route) and run the worker; not yet automated as a cron in code.
+**Mail poll scheduling:** This repo does not ship `vercel.json` cron. Use **`MAIL_POLL_INTERVAL_MS`** with long-lived **`next start`**, **`GET /api/cron/mail-poll`** from any external scheduler (optional **`CRON_SECRET`**), or configure cron in the host dashboard. On **Vercel serverless**, in-process polling is **off** unless `MAIL_POLL_ALLOW_VERCEL_INTERVAL=1` (can duplicate work across instances).
+
+**Reconciliation:** Same job table — insert `genui_ingest_jobs` rows with `ingest_kind = 'reconciliation'` (via service role / SQL / small internal route) and run the worker; not yet automated as a scheduled job in code.
+
+---
+
+## Notes for the agent
+
+- Migrations: **`vita-compare/infra/supabase/migrations/`** and **`Gui/supabase/migrations/`** (keep in sync). Baseline `genui_l2` in `20260511084339_genui_l2.sql`; ownership in **`20260513120000_genui_l2_created_by_visibility.sql`**.
+- **Last-N-from-GenUI-only** still implies reconciliation matters—same job pipeline keeps one observability story.
+- **Arcade MCP** is **not** required for the ingest worker’s LLM; keep MCP for **other** agent surfaces if needed.
 
 ---
 

@@ -24,7 +24,7 @@ Product goal: **any signed-in user can connect a GitHub repo, Gmail inbox, or Ou
 | Decision | Choice |
 |----------|--------|
 | GitHub connection | GitHub OAuth App via **Arcade Auth** — app auto-installs webhook |
-| Email / Outlook | **Incoming ingest** via Arcade Auth + Trigger.dev polling every 5 min |
+| Email / Outlook | **Incoming ingest** via Arcade Auth + **`runMailPoll()`** (`lib/mail-poll/run-mail-poll.ts`): **`MAIL_POLL_INTERVAL_MS`** on long-lived Node, and/or **`GET /api/cron/mail-poll`** from any scheduler (see `instrumentation.ts`, `README.md`) |
 | OAuth UX | Multi-step **modal** on the Corn jobs page |
 | OAuth popup | `window.open()` to Arcade auth URL; Arcade redirects to `/auth/arcade/done`; page `postMessage`s back |
 | Agent goal | **Auto-generated** from repo/mailbox description via LLM; overridable via "Advanced" |

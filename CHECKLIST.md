@@ -1,7 +1,7 @@
 # View Builder — Requirements Checklist v2
 
 **For:** Issac Brown  
-**Last updated:** May 11, 2026  
+**Last updated:** May 13, 2026  
 **Converged with:** Platform Agent & Personnel OS conversations
 
 Check off each item when complete. Items marked ⚡ are blocking other work.
@@ -264,29 +264,40 @@ Each skill = a SKILL.md file in the repo. Not a prompt buried in code.
 
 ---
 
-## 16. genUI ingest & channels (vita-compare)
+## 16. genUI ingest & channels (Gui + vita-compare)
 
-Ticket: `docs/skills/T-023-genui-webhook-ingest.md`. New tables use the **`genui_`** prefix. **Flow:** GitHub → **Arcade** (raw relay) → **your HTTPS handler** (GitHub HMAC + fast **enqueue**) → **`genui_ingest_jobs`** → **polling worker** (per-tenant **machine user JWT**, last **N** `genui_l2`, LLM, **insert** `genui_l2`). **Split auth:** narrow **service_role / definer RPC** for **job insert only**; worker stays **RLS + machine user**. **Reconciliation** uses the **same job table** (`ingest_kind: reconciliation`). **Arcade MCP** = separate tool-calling surface for other agents, not the ingest LLM host.
+Ticket: `docs/skills/T-023-genui-webhook-ingest.md`. New tables use the **`genui_`** prefix. **Flow:** GitHub → **Arcade** (raw relay) → **HTTPS handler** (GitHub HMAC + fast **enqueue**) → **`genui_ingest_jobs`** → **polling worker** (per-tenant **machine user JWT**, last **N** `genui_l2`, LLM, **insert** `genui_l2`). **Split auth:** **service_role** only for **`genui_ingest_jobs` enqueue** (and admin paths such as channel secrets); **`genui_l2` inserts use machine-user JWT** (trigger requires `auth.uid()` — no routine service-role writes on L2). **Reconciliation** uses the **same job table** (`ingest_kind: reconciliation`). **Arcade MCP** = separate tool-calling surface for other agents, not the ingest LLM host.
 
-**Schema & RLS**
+**`genui_l2` ownership & visibility (L0 migrations)**
 
-- [ ] Migration: **`public.genui_channels`** — `tenant_id`, `source` (e.g. `github`), stable `external_key`, display/metadata, timestamps; unique `(tenant_id, source, external_key)`; indexes for tenant list + lookup
-- [ ] Migration: **`genui_l2.genui_channel_id`** → `genui_channels(id)` + index; null vs required for existing rows decided and documented (backfill or nullable period)
-- [ ] Migration: **`public.genui_ingest_jobs`** — `status`, `ingest_kind`, idempotency, tenant/channel FKs, timestamps; claim-friendly indexes; storage strategy for raw/large payloads documented
-- [ ] **RLS on `genui_channels`** — tenant + machine-user policies aligned with `current_tenant_id()` / JWT claims
-- [ ] **RLS on `genui_l2`** — automation may **`insert`** only (no bot `update`/`delete` on L2); **`select`** supports last-N reads for the worker
-- [ ] **Jobs table + handler path** — definer RPC and/or documented **narrow** service-role use for **enqueue only**; Arcade→you **shared secret** (or mTLS)
+- [x] Migration **`20260513120000_genui_l2_created_by_visibility.sql`** (mirrored under `supabase/migrations/` and `vita-compare/infra/supabase/migrations/`) — `created_by` → `auth.users` (`ON DELETE RESTRICT`), **`visibility`** `private` \| `tenant` (default `private`), **`is_tenant_admin`**, RLS (`SELECT` / `INSERT` / `UPDATE` / `DELETE`), **`genui_l2_enforce_created_by`** trigger (no `auth.uid()` on insert → error)
+- [x] Ingest worker + mail poll pass **`visibility: 'tenant'`** on automated rows; **`GENUI_L2_MACHINE_*`** or **`GENUI_WORKER_*`** for L2 writes (`lib/genui/machine-supabase.ts`)
+
+**Schema & RLS (baseline tables)**
+
+- [x] Migration: **`public.genui_channels`** — `tenant_id`, `source`, `external_key`, metadata, timestamps; unique `(tenant_id, source, external_key)`; RLS via **`is_tenant_member`**
+- [x] Migration: **`genui_l2.genui_channel_id`** → `genui_channels(id)` + index (nullable for non-channel rows)
+- [x] Migration: **`public.genui_ingest_jobs`** — `status`, `ingest_kind`, idempotency, tenant/channel FKs, `raw_body`, timestamps; **`genui_claim_next_job`**; storage strategy for oversized payloads still TBD
+- [x] **RLS on `genui_channels`** — authenticated member read/insert/update
+- [x] **RLS on `genui_l2`** — member `SELECT` when row is `tenant`-visible, self-owned `private`, or viewer is tenant **admin**; **creator-only** `UPDATE`/`DELETE`; **`INSERT`** for members ( **`created_by`** set by trigger)
+- [x] **Jobs enqueue path** — Gui **`POST /api/integrations/github/genui`** uses service role for **`genui_ingest_jobs`** only; Arcade→you **`GENUI_ARCADE_FORWARD_SECRET`**
 
 **Arcade & handler**
 
 - [ ] Arcade **raw forward** to your URL proven (docs + **smoke test**) so **GitHub HMAC** on your server is valid
-- [ ] Handler **2xx fast** (enqueue only, **no LLM**); meets GitHub timeout via Arcade upstream chain
-- [ ] **Duplicate deliveries** — idempotency chosen, documented, implemented
+- [x] Handler **2xx fast** (enqueue only, **no LLM**) — implemented (Gui + vita-compare routes)
+- [ ] **Duplicate deliveries** — idempotency fully documented + verified in prod
 
 **Worker**
 
-- [ ] **Polling** worker with safe **claim** (`SKIP LOCKED` or equivalent)
-- [ ] **Per-tenant machine user** JWT for claim + last **N** + `genui_l2` insert; refresh/rotation **documented**
+- [x] **Polling** worker with **claim** — `genui_claim_next_job` (`SKIP LOCKED` pattern in migration)
+- [x] **Machine user** JWT for claim + last **N** + `genui_l2` insert — `vita-compare/packages/runtime/scripts/genui-ingest-worker.ts`; env in **`vita-compare/.env.example`** / **`.env.example`**
+
+**Mail poll (Gmail / Outlook — Gui only)**
+
+- [x] **`lib/mail-poll/run-mail-poll.ts`** + **`GET /api/cron/mail-poll`** (optional **`CRON_SECRET`**); service role for **`genui_channels`** reads/updates, machine user for **`genui_l2`**
+- [x] **`instrumentation.ts`** — in-process interval when **`MAIL_POLL_INTERVAL_MS`** ≥ 60000 (intended for **`next start`** / local dev; **ignored on `VERCEL=1`** unless **`MAIL_POLL_ALLOW_VERCEL_INTERVAL=1`**)
+- [ ] **Production schedule on Vercel serverless** — use an **external** scheduler hitting **`GET /api/cron/mail-poll`**, or deploy long-lived Node, or move to **push** (Gmail watch / Graph subscriptions)
 
 **Reconciliation**
 
@@ -299,7 +310,8 @@ Ticket: `docs/skills/T-023-genui-webhook-ingest.md`. New tables use the **`genui
 
 **Deferrals (explicit)**
 
-- [ ] Email / other sources **out of v1** unless tracked here: _…_
+- [x] **Gmail / Outlook polling** — in Gui (`MAIL_POLL_INTERVAL_MS` or HTTP cron); **push-based** inbox delivery still a follow-up
+- [ ] Other email sources / non-Arcade OAuth **out of v1** unless tracked here: _…_
 
 ---
 
@@ -327,5 +339,5 @@ Weighted Card View and Configuration View skills complete. Home surface renders 
 **Gate 7 — MCP Apps + Multi-Surface:**
 Section 15 complete. Views serve as MCP Apps. Platform hosts MCP App views. At least one non-platform surface working (WhatsApp or email).
 
-**Gate 8 — genUI data plane (vita-compare):**
-Section 16 complete. `genui_channels` + `genui_l2` ingest path live under RLS; GitHub webhook + reconciliation documented and operating.
+**Gate 8 — genUI data plane (vita-compare + Gui):**
+Section 16 substantially complete: `genui_channels`, `genui_l2` (with ownership/visibility RLS), ingest queue, Gui GitHub handler, worker script, Gmail/Outlook mail poll + scheduling options. Remaining: Arcade forward proof, reconciliation automation, payload contract + runbook, production schedule choice on Vercel.

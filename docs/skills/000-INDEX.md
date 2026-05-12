@@ -68,7 +68,7 @@ All Wave 1 tickets are done as of May 10, 2026. Wave 2 is unblocked.
 | 20 | T-020 — Configuration View skill (source config + flow board) | 2d | T-014, T-006 |
 | 21 | T-021 — Source design tokens from screenshots | 1d | T-004 |
 | 22 | T-022 — Multi-surface renderer: WhatsApp + email | 1.5d | T-018 |
-| 23 | T-023 — genUI ingest: Arcade raw relay, `genui_ingest_jobs`, worker, `genui_channels` | 2–3d | `genui_l2` migration in vita-compare |
+| 23 | T-023 — genUI ingest: Arcade raw relay, `genui_ingest_jobs`, worker, `genui_channels`, `genui_l2` RLS + ownership | 2–3d | Gui + `vita-compare/infra/supabase/migrations/` (see `20260513120000_genui_l2_created_by_visibility.sql`) |
 
 ---
 

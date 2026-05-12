@@ -62,6 +62,20 @@ Apply the schema to your Supabase project. You can either:
 Tables created: `sources`, `views`, `view_versions`, `view_drafts`, `view_events`,
 `tenant_memberships`.
 
+**L0 genUI (same Supabase project when wired):** migrations under `supabase/migrations/` mirror `vita-compare/infra/supabase/migrations/` for `genui_channels`, `genui_l2`, `genui_ingest_jobs`, and L2 ownership (`created_by`, `visibility`). Apply with Supabase CLI or SQL editor.
+
+### 2b. genUI ingest + mail poll (optional)
+
+| Variable | Purpose |
+|---|---|
+| `GENUI_ARCADE_FORWARD_SECRET` | Validates Arcade → your app on `POST /api/integrations/github/genui` |
+| `GENUI_L2_MACHINE_EMAIL` / `GENUI_L2_MACHINE_PASSWORD` | Supabase Auth **machine user** for `genui_l2` inserts (falls back to `GENUI_WORKER_*`) |
+| `GENUI_WORKER_EMAIL` / `GENUI_WORKER_PASSWORD` | Same machine account if you do not set `GENUI_L2_MACHINE_*` |
+| `MAIL_POLL_INTERVAL_MS` | e.g. `300000` — in-process mail poll every 5 min via `instrumentation.ts` (**local dev** or long-lived `next start`; **not** on Vercel serverless unless you opt in — see `.env.example`) |
+| `CRON_SECRET` | If set, `GET /api/cron/mail-poll` requires `Authorization: Bearer …` |
+
+**Scheduling:** There is no `vercel.json` cron in this repo. Choose one: set **`MAIL_POLL_INTERVAL_MS`** for a long-lived Node host, **`curl` the mail-poll route** from any external scheduler, or add your own Vercel Cron in the dashboard / config.
+
 ### 3. Install & run
 
 ```bash
@@ -88,6 +102,9 @@ app/
   login/page.tsx        # Login page
   api/
     bootstrap/          # GET  — session info (userId, email, tenantId, role)
+    cron/mail-poll/     # GET  — Gmail/Outlook poll → genui_l2 (optional CRON_SECRET)
+    genui/              # GET/POST — genUI channels + config (Corn jobs)
+    integrations/github/genui/  # POST — GitHub ingest enqueue (Arcade relay)
     sources/            # GET  — list sources (mock L0 chats)
     sources/[sourceId]/
       canvas/           # GET  — SSE stream: AI multi-page layout generation
@@ -106,6 +123,10 @@ lib/
   layout/
     component-catalog.ts  # Allowed components, validation, AI prompt block
   l0/mock-data.ts       # MOCK_CHATS + MOCK_MESSAGES (drives sidebar & canvas)
+  genui/
+    machine-supabase.ts # Machine-user JWT for RLS-gated `genui_l2` inserts
+  mail-poll/
+    run-mail-poll.ts    # Gmail/Outlook poll (used by route + instrumentation)
   supabase/
     browser.ts          # createBrowserClient (NEXT_PUBLIC_L0_ vars)
     server.ts           # createServerClient (L0_ vars)
@@ -120,6 +141,7 @@ lib/
     parse-source-data.ts  # Source data parsing (markdown / JSON / CSV)
 
 middleware.ts           # Supabase SSR session refresh; redirect to /login or 401
+instrumentation.ts      # Optional in-process mail poll (`MAIL_POLL_INTERVAL_MS`) on long-lived Node
 supabase/
   schema.sql            # Full DDL
   migrations/           # Incremental SQL migrations
