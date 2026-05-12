@@ -1,7 +1,7 @@
 # View Builder — Requirements Checklist v2
 
 **For:** Issac Brown  
-**Last updated:** May 10, 2026 (codebase audit)  
+**Last updated:** May 11, 2026  
 **Converged with:** Platform Agent & Personnel OS conversations
 
 Check off each item when complete. Items marked ⚡ are blocking other work.
@@ -264,6 +264,45 @@ Each skill = a SKILL.md file in the repo. Not a prompt buried in code.
 
 ---
 
+## 16. genUI ingest & channels (vita-compare)
+
+Ticket: `docs/skills/T-023-genui-webhook-ingest.md`. New tables use the **`genui_`** prefix. **Flow:** GitHub → **Arcade** (raw relay) → **your HTTPS handler** (GitHub HMAC + fast **enqueue**) → **`genui_ingest_jobs`** → **polling worker** (per-tenant **machine user JWT**, last **N** `genui_l2`, LLM, **insert** `genui_l2`). **Split auth:** narrow **service_role / definer RPC** for **job insert only**; worker stays **RLS + machine user**. **Reconciliation** uses the **same job table** (`ingest_kind: reconciliation`). **Arcade MCP** = separate tool-calling surface for other agents, not the ingest LLM host.
+
+**Schema & RLS**
+
+- [ ] Migration: **`public.genui_channels`** — `tenant_id`, `source` (e.g. `github`), stable `external_key`, display/metadata, timestamps; unique `(tenant_id, source, external_key)`; indexes for tenant list + lookup
+- [ ] Migration: **`genui_l2.genui_channel_id`** → `genui_channels(id)` + index; null vs required for existing rows decided and documented (backfill or nullable period)
+- [ ] Migration: **`public.genui_ingest_jobs`** — `status`, `ingest_kind`, idempotency, tenant/channel FKs, timestamps; claim-friendly indexes; storage strategy for raw/large payloads documented
+- [ ] **RLS on `genui_channels`** — tenant + machine-user policies aligned with `current_tenant_id()` / JWT claims
+- [ ] **RLS on `genui_l2`** — automation may **`insert`** only (no bot `update`/`delete` on L2); **`select`** supports last-N reads for the worker
+- [ ] **Jobs table + handler path** — definer RPC and/or documented **narrow** service-role use for **enqueue only**; Arcade→you **shared secret** (or mTLS)
+
+**Arcade & handler**
+
+- [ ] Arcade **raw forward** to your URL proven (docs + **smoke test**) so **GitHub HMAC** on your server is valid
+- [ ] Handler **2xx fast** (enqueue only, **no LLM**); meets GitHub timeout via Arcade upstream chain
+- [ ] **Duplicate deliveries** — idempotency chosen, documented, implemented
+
+**Worker**
+
+- [ ] **Polling** worker with safe **claim** (`SKIP LOCKED` or equivalent)
+- [ ] **Per-tenant machine user** JWT for claim + last **N** + `genui_l2` insert; refresh/rotation **documented**
+
+**Reconciliation**
+
+- [ ] Scheduler enqueues **`genui_ingest_jobs`** with **`ingest_kind: reconciliation`**; **same worker** as webhooks; `genui_l2.payload` reflects kind
+
+**Contract & ops**
+
+- [ ] **`genui_l2.payload` contract** documented (schema version, `ingest_kind`, optional `external_event_id` / dedupe) — aligned with genUI consumers
+- [ ] **Runbook:** add/remove channel, rotate machine-user token, failed job replay, Arcade forward troubleshooting
+
+**Deferrals (explicit)**
+
+- [ ] Email / other sources **out of v1** unless tracked here: _…_
+
+---
+
 ## Phase Gates
 
 **Gate 1 — Foundation (current):**
@@ -287,3 +326,6 @@ Weighted Card View and Configuration View skills complete. Home surface renders 
 
 **Gate 7 — MCP Apps + Multi-Surface:**
 Section 15 complete. Views serve as MCP Apps. Platform hosts MCP App views. At least one non-platform surface working (WhatsApp or email).
+
+**Gate 8 — genUI data plane (vita-compare):**
+Section 16 complete. `genui_channels` + `genui_l2` ingest path live under RLS; GitHub webhook + reconciliation documented and operating.

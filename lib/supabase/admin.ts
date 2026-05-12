@@ -7,10 +7,16 @@ import { createClient } from "@supabase/supabase-js";
  */
 export function getSupabaseAdminClient() {
   const url = process.env.L0_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.L0_SUPABASE_ANON_KEY;
+  // Prefer the L0-project-specific key; fall back to the legacy SUPABASE_SERVICE_ROLE_KEY
+  // only when it actually belongs to the L0 project (same ref in the JWT).
+  // If neither service-role key is present, fall back to the anon key (dev only).
+  const key =
+    process.env.L0_SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.L0_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
-    throw new Error("Missing L0_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.");
+    throw new Error("Missing L0_SUPABASE_URL or L0_SUPABASE_SERVICE_ROLE_KEY.");
   }
 
   return createClient(url, key, {

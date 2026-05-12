@@ -7,6 +7,7 @@ import { LeftSidebar } from "./components/LeftSidebar";
 import { TabBar } from "./components/TabBar";
 import { Dock } from "./components/Dock";
 import { CanvasContent } from "./components/CanvasContent";
+import { CornJobsCanvas } from "./components/CornJobsCanvas";
 import { useResizablePanels } from "./hooks/useResizablePanels";
 import { useSources } from "./hooks/useSources";
 import { useCanvas } from "./hooks/useCanvas";
@@ -19,6 +20,7 @@ const dragPip: React.CSSProperties = {
 export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [cornJobsPage, setCornJobsPage] = useState(false);
 
   const panels = useResizablePanels();
   const src = useSources();
@@ -69,9 +71,16 @@ export default function HomePage() {
       {/* Surface — sidebar + canvas */}
       <div style={{ flex: 1, display: "flex", gap: 0, minHeight: 0 }}>
         <LeftSidebar
-          sources={src.sources} sourceId={src.sourceId} setSourceId={src.setSourceId}
+          sources={src.sources}
+          sourceId={src.sourceId}
+          setSourceId={(id) => {
+            setCornJobsPage(false);
+            src.setSourceId(id);
+          }}
           expandedChannels={src.expandedChannels} setExpandedChannels={src.setExpandedChannels}
           width={panels.leftWidth}
+          cornJobsActive={cornJobsPage}
+          onCornJobs={() => setCornJobsPage(true)}
         />
 
         <div
@@ -91,39 +100,44 @@ export default function HomePage() {
           flexDirection: "column",
           overflow: "hidden",
         }}>
-          <TabBar
-            aiPages={canvas.aiPages} activeAiPageId={canvas.activeAiPageId} setActiveAiPageId={canvas.setActiveAiPageId}
-            aiPageStatuses={canvas.aiPageStatuses} views={canvas.views} activeViewId={canvas.activeViewId}
-            setActiveViewId={canvas.setActiveViewId} pendingDraft={canvas.pendingDraft} activeView={activeView}
-            applyDraft={() => { if (activeView && canvas.pendingDraft) void canvas.applyDraft(activeView.id, canvas.pendingDraft); }}
-            busy={src.busy} sourceName={sourceName}
-            generating={canvas.generating}
-            isSaved={canvas.isSaved} isSavingLayout={canvas.isSavingLayout}
-            isRefreshingContent={canvas.isRefreshingContent}
-            saveError={canvas.saveError}
-            hasDynamic={hasDynamic}
-            onSaveLayout={() => void canvas.saveLayout(src.sourceId)}
-            onRegenerate={() => void canvas.regenerate(src.sourceId)}
-            onRefreshData={() => canvas.refreshDynamic("data_change")}
-          />
-
-          <CanvasContent
-            loading={loading} mounted={mounted} sourceId={src.sourceId}
-            generating={canvas.generating} canvasError={canvas.canvasError}
-            aiStatus={canvas.aiStatus} aiPages={canvas.aiPages} aiPageStatuses={canvas.aiPageStatuses}
-            activeAiPageId={canvas.activeAiPageId} progressLog={canvas.progressLog}
-            activeView={activeView} rows={canvas.rows}
-            activeColumns={activeColumns} rowKey={String(rowKey)} busy={src.busy}
-            pendingDraft={canvas.pendingDraft}
-            isRefreshingContent={canvas.isRefreshingContent}
-            refreshingComponentIds={canvas.refreshingComponentIds}
-            onRetryAi={() => { if (src.sourceId) void canvas.fetchCanvas(src.sourceId); }}
-            onMarkFollowedUp={() => { canvas.addOfflineMessage(); }}
-            onAgentAction={(msg) => {
-              if (msg) void canvas.sendSteerMessage(msg);
-              else canvas.addOfflineMessage();
-            }}
-          />
+          {cornJobsPage ? (
+            <CornJobsCanvas />
+          ) : (
+            <>
+              <TabBar
+                aiPages={canvas.aiPages} activeAiPageId={canvas.activeAiPageId} setActiveAiPageId={canvas.setActiveAiPageId}
+                aiPageStatuses={canvas.aiPageStatuses} views={canvas.views} activeViewId={canvas.activeViewId}
+                setActiveViewId={canvas.setActiveViewId} pendingDraft={canvas.pendingDraft} activeView={activeView}
+                applyDraft={() => { if (activeView && canvas.pendingDraft) void canvas.applyDraft(activeView.id, canvas.pendingDraft); }}
+                busy={src.busy} sourceName={sourceName}
+                generating={canvas.generating}
+                isSaved={canvas.isSaved} isSavingLayout={canvas.isSavingLayout}
+                isRefreshingContent={canvas.isRefreshingContent}
+                saveError={canvas.saveError}
+                hasDynamic={hasDynamic}
+                onSaveLayout={() => void canvas.saveLayout(src.sourceId)}
+                onRegenerate={() => void canvas.regenerate(src.sourceId)}
+                onRefreshData={() => canvas.refreshDynamic("data_change")}
+              />
+              <CanvasContent
+                loading={loading} mounted={mounted} sourceId={src.sourceId}
+                generating={canvas.generating} canvasError={canvas.canvasError}
+                aiStatus={canvas.aiStatus} aiPages={canvas.aiPages} aiPageStatuses={canvas.aiPageStatuses}
+                activeAiPageId={canvas.activeAiPageId} progressLog={canvas.progressLog}
+                activeView={activeView} rows={canvas.rows}
+                activeColumns={activeColumns} rowKey={String(rowKey)} busy={src.busy}
+                pendingDraft={canvas.pendingDraft}
+                isRefreshingContent={canvas.isRefreshingContent}
+                refreshingComponentIds={canvas.refreshingComponentIds}
+                onRetryAi={() => { if (src.sourceId) void canvas.fetchCanvas(src.sourceId); }}
+                onMarkFollowedUp={() => { canvas.addOfflineMessage(); }}
+                onAgentAction={(msg) => {
+                  if (msg) void canvas.sendSteerMessage(msg);
+                  else canvas.addOfflineMessage();
+                }}
+              />
+            </>
+          )}
         </main>
       </div>
 

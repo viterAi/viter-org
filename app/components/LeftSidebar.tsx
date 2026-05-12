@@ -20,11 +20,14 @@ type Props = {
   expandedChannels: Set<string>;
   setExpandedChannels: React.Dispatch<React.SetStateAction<Set<string>>>;
   width: number;
+  cornJobsActive: boolean;
+  onCornJobs: () => void;
 };
 
 export function LeftSidebar({
   sources, sourceId, setSourceId,
   expandedChannels, setExpandedChannels, width,
+  cornJobsActive, onCornJobs,
 }: Props) {
   const channelGroups = useMemo(() => {
     const map = new Map<string, Source[]>();
@@ -158,6 +161,34 @@ export function LeftSidebar({
             </div>
           );
         })}
+      </div>
+
+      <div style={{
+        flexShrink: 0,
+        borderTop: "0.5px solid var(--line-thin)",
+        padding: "8px 10px 10px",
+      }}>
+        <button
+          type="button"
+          onClick={onCornJobs}
+          className={cornJobsActive ? undefined : "btn-ghost"}
+          style={{
+            all: "unset",
+            cursor: "pointer",
+            display: "block",
+            width: "100%",
+            boxSizing: "border-box",
+            padding: "8px 10px",
+            borderRadius: 6,
+            fontSize: 12,
+            fontWeight: cornJobsActive ? 500 : 400,
+            color: cornJobsActive ? "var(--accent)" : "var(--ink-primary)",
+            background: cornJobsActive ? "var(--accent-tint)" : "transparent",
+            textAlign: "center",
+          }}
+        >
+          Corn jobs
+        </button>
       </div>
     </aside>
   );

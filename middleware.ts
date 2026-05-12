@@ -31,9 +31,15 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isLoginPage = pathname.startsWith("/login");
   const isApiRoute = pathname.startsWith("/api/");
+  const isGenuiGithubIngestWebhook =
+    pathname === "/api/integrations/github/genui" && request.method === "POST";
+  const isCronRoute = pathname.startsWith("/api/cron/");
 
   if (!user && !isLoginPage) {
     if (isApiRoute) {
+      if (isGenuiGithubIngestWebhook || isCronRoute) {
+        return supabaseResponse;
+      }
       return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
     }
     const url = request.nextUrl.clone();

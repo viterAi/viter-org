@@ -68,6 +68,7 @@ All Wave 1 tickets are done as of May 10, 2026. Wave 2 is unblocked.
 | 20 | T-020 — Configuration View skill (source config + flow board) | 2d | T-014, T-006 |
 | 21 | T-021 — Source design tokens from screenshots | 1d | T-004 |
 | 22 | T-022 — Multi-surface renderer: WhatsApp + email | 1.5d | T-018 |
+| 23 | T-023 — genUI ingest: Arcade raw relay, `genui_ingest_jobs`, worker, `genui_channels` | 2–3d | `genui_l2` migration in vita-compare |
 
 ---
 
@@ -85,6 +86,7 @@ After Wave 3 is complete:
 
 After Wave 4:
 **Group F (Delivery):** T-017 → T-018 → T-022
+**Group F2 (genUI data plane):** T-023 (vita-compare Supabase + automation; can run in parallel with T-022 once repo ownership is clear)
 **Group G (Advanced views):** T-019, T-020 (parallel)
 **Group H (Theming):** T-021
 
@@ -141,3 +143,4 @@ The individual ticket files are:
 - T-020-config-view-skill.md
 - T-021-source-design-tokens.md
 - T-022-multi-surface-renderer.md
+- T-023-genui-webhook-ingest.md
