@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Source, SourceChannel, SourceSeedFormat } from "../types";
+import type { Source, SourceChannel, SourceSeedFormat, SourceTreeNode } from "../types";
 
 const LS_SOURCE_ID = "gui:sourceId";
 const LS_EXPANDED = "gui:expandedChannels";
@@ -15,6 +15,7 @@ function writeLs(key: string, value: string) {
 
 export function useSources() {
   const [sources, setSources] = useState<Source[]>([]);
+  const [tree, setTree] = useState<SourceTreeNode[]>([]);
   // Initialize as "" on both server and client to avoid SSR hydration mismatch.
   // localStorage is restored in fetchSources after mount.
   const [sourceId, setSourceIdState] = useState<string>("");
@@ -43,9 +44,11 @@ export function useSources() {
 
   async function fetchSources() {
     const res = await fetch("/api/sources");
-    const json = await res.json();
+    const json = (await res.json()) as { sources?: Source[]; tree?: SourceTreeNode[] };
     const list: Source[] = json.sources ?? [];
+    const treeList: SourceTreeNode[] = json.tree ?? [];
     setSources(list);
+    setTree(treeList);
 
     // Restore expanded channels from localStorage now that we're client-side
     const storedExpanded = readLs(LS_EXPANDED);
@@ -61,7 +64,7 @@ export function useSources() {
       const target = match ?? list[0];
       setSourceId(target.id);
       if (!match) {
-        // First visit or stale persisted id — open the channel of the first source
+        // First visit or stale persisted id — open the kind of the first source
         setExpandedChannels(new Set([target.channel ?? "manual_upload"]));
       }
     }
@@ -87,7 +90,7 @@ export function useSources() {
   }
 
   return {
-    sources, sourceId, setSourceId,
+    sources, tree, sourceId, setSourceId,
     busy, setBusy,
     expandedChannels, setExpandedChannels,
     createSourceOpen, setCreateSourceOpen,

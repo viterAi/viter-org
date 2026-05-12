@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { REPO_KEY } from "@/lib/genui/repo-key";
 
 type Provider = "github" | "google" | "microsoft";
 
@@ -111,10 +112,14 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
   const [repos, setRepos] = useState<Repo[]>([]);
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
   const [repoSearch, setRepoSearch] = useState("");
+  const [manualRepoSlug, setManualRepoSlug] = useState("");
   const [selectedTarget, setSelectedTarget] = useState<string>("");
   const [selectedTargetMeta, setSelectedTargetMeta] = useState<{ description?: string; email?: string } | null>(null);
   const [agentGoal, setAgentGoal] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [manualWebhookSecret, setManualWebhookSecret] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState<string>("");
+  const [installFailed, setInstallFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const popupRef = useRef<Window | null>(null);
@@ -156,6 +161,7 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
     clearError();
     try {
       if (service.id === "github") {
+        setManualRepoSlug("");
         const res = await fetch(`/api/auth/arcade/repos?auth_id=${encodeURIComponent(id)}`, {
           credentials: "include",
         });
@@ -243,7 +249,19 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
       ? `Summarize activity from ${repo.full_name}. ${repo.description}`
       : `Summarize commits, PRs, and issues from ${repo.full_name}.`;
     setAgentGoal(defaultGoal);
+    setManualRepoSlug("");
     setStep("confirm");
+  }
+
+  function applyManualRepoSlug() {
+    let s = manualRepoSlug.trim().toLowerCase();
+    s = s.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/^\/+/, "");
+    if (!REPO_KEY.test(s)) {
+      setError("Use owner/repo (e.g. myorg/my-repo).");
+      return;
+    }
+    clearError();
+    selectRepo({ full_name: s, description: "", private: false });
   }
 
   function selectMailbox(mb: Mailbox) {
@@ -259,6 +277,8 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
     if (!selectedService || !selectedTarget || !authId) return;
     setBusy(true);
     clearError();
+    const isGithub = selectedService.id === "github";
+    const manualSecret = manualWebhookSecret.trim();
     try {
       const res = await fetch("/api/genui/channels", {
         method: "POST",
@@ -269,10 +289,23 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
           external_key: selectedTarget,
           agent_prompt: agentGoal,
           auth_id: authId,
+          ...(isGithub && manualSecret ? { webhook_secret: manualSecret } : {}),
         }),
       });
-      const j = await res.json().catch(() => ({})) as { error?: string };
-      if (!res.ok) throw new Error(j.error ?? res.statusText);
+      const j = await res.json().catch(() => ({})) as { error?: string; code?: string };
+      if (!res.ok) {
+        if (isGithub && j.code === "webhook_install_failed") {
+          setInstallFailed(true);
+          setShowAdvanced(true);
+          // Fetch the webhook URL the user needs to paste into GitHub.
+          try {
+            const cfg = await fetch("/api/genui/config", { credentials: "include" });
+            const cj = await cfg.json().catch(() => ({})) as { webhookUrl?: string };
+            if (cj.webhookUrl) setWebhookUrl(cj.webhookUrl);
+          } catch { /* non-fatal */ }
+        }
+        throw new Error(j.error ?? res.statusText);
+      }
       setStep("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -386,6 +419,9 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
                 <p style={{ fontSize: 13, color: "var(--ink-tertiary)" }}>Loading repositories…</p>
               ) : (
                 <>
+                  <p style={{ fontSize: 12, color: "var(--ink-tertiary)", margin: "0 0 10px", lineHeight: 1.45 }}>
+                    Includes your repos, collaborations, and <strong style={{ fontWeight: 600 }}>organization</strong> repos you can access (up to 500, newest first).
+                  </p>
                   <input
                     autoFocus
                     placeholder="Search repositories…"
@@ -405,7 +441,7 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
                   />
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
                     {filteredRepos.length === 0 && (
-                      <p style={{ fontSize: 13, color: "var(--ink-tertiary)" }}>No repositories found.</p>
+                      <p style={{ fontSize: 13, color: "var(--ink-tertiary)" }}>No repositories match your search.</p>
                     )}
                     {filteredRepos.map((r) => (
                       <button
@@ -431,6 +467,36 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
                         )}
                       </button>
                     ))}
+                  </div>
+                  <div style={{ marginTop: 16, paddingTop: 14, borderTop: "0.5px solid var(--line-thin)" }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-tertiary)", margin: "0 0 8px" }}>
+                      Not in the list?
+                    </p>
+                    <p style={{ fontSize: 12, color: "var(--ink-tertiary)", margin: "0 0 8px", lineHeight: 1.45 }}>
+                      Paste <span style={{ fontFamily: "ui-monospace, monospace" }}>org/repo</span> or a GitHub URL. You still need access to install the webhook.
+                    </p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        placeholder="myorg/my-repo"
+                        value={manualRepoSlug}
+                        onChange={(e) => setManualRepoSlug(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") applyManualRepoSlug(); }}
+                        style={{
+                          flex: 1,
+                          boxSizing: "border-box",
+                          padding: "9px 12px",
+                          fontSize: 13,
+                          borderRadius: "var(--r-card)",
+                          border: "0.5px solid var(--line-strong)",
+                          background: "var(--bg-surface)",
+                          color: "var(--ink-primary)",
+                          fontFamily: "ui-monospace, monospace",
+                        }}
+                      />
+                      <button type="button" onClick={applyManualRepoSlug} style={btnGhost}>
+                        Use repo
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -497,27 +563,74 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
                   {showAdvanced ? "▾ Advanced" : "▸ Advanced"}
                 </button>
                 {showAdvanced && (
-                  <div>
-                    <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-tertiary)", margin: "0 0 6px" }}>
-                      Agent goal
-                    </p>
-                    <textarea
-                      rows={4}
-                      value={agentGoal}
-                      onChange={(e) => setAgentGoal(e.target.value)}
-                      style={{
-                        width: "100%",
-                        boxSizing: "border-box",
-                        padding: "9px 12px",
-                        fontSize: 13,
-                        borderRadius: "var(--r-card)",
-                        border: "0.5px solid var(--line-strong)",
-                        background: "var(--bg-surface)",
-                        color: "var(--ink-primary)",
-                        resize: "vertical",
-                        minHeight: 80,
-                      }}
-                    />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    <div>
+                      <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-tertiary)", margin: "0 0 6px" }}>
+                        Agent goal
+                      </p>
+                      <textarea
+                        rows={4}
+                        value={agentGoal}
+                        onChange={(e) => setAgentGoal(e.target.value)}
+                        style={{
+                          width: "100%",
+                          boxSizing: "border-box",
+                          padding: "9px 12px",
+                          fontSize: 13,
+                          borderRadius: "var(--r-card)",
+                          border: "0.5px solid var(--line-strong)",
+                          background: "var(--bg-surface)",
+                          color: "var(--ink-primary)",
+                          resize: "vertical",
+                          minHeight: 80,
+                        }}
+                      />
+                    </div>
+
+                    {selectedService.id === "github" && (
+                      <div style={{ borderTop: "0.5px solid var(--line-thin)", paddingTop: 12 }}>
+                        <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-tertiary)", margin: "0 0 6px" }}>
+                          Webhook signing secret (manual install)
+                        </p>
+                        <p style={{ fontSize: 12, color: "var(--ink-tertiary)", margin: "0 0 8px", lineHeight: 1.5 }}>
+                          {installFailed
+                            ? "Auto-install failed (org SSO, missing admin permission, or a non-public app URL). You can still connect by adding the webhook in GitHub manually:"
+                            : "Optional fallback if auto-install fails (org SSO / no admin / private app URL). Add a webhook in GitHub manually:"}
+                        </p>
+                        <ol style={{ fontSize: 12, color: "var(--ink-secondary)", margin: "0 0 8px 18px", padding: 0, lineHeight: 1.55 }}>
+                          <li>
+                            Open <code style={{ fontFamily: "ui-monospace, monospace" }}>github.com/{selectedTarget}/settings/hooks/new</code>
+                          </li>
+                          <li>
+                            Paste this Payload URL: {webhookUrl ? (
+                              <code style={{ fontFamily: "ui-monospace, monospace", background: "var(--bg-secondary)", padding: "1px 4px", borderRadius: 3 }}>
+                                {webhookUrl}?t=&lt;tenant-id&gt;
+                              </code>
+                            ) : (
+                              <em>(saving will reveal the exact URL)</em>
+                            )}
+                          </li>
+                          <li>Content type: <code>application/json</code>. Generate a random secret, paste it here:</li>
+                        </ol>
+                        <input
+                          type="text"
+                          placeholder="webhook signing secret (≥ 8 chars)"
+                          value={manualWebhookSecret}
+                          onChange={(e) => setManualWebhookSecret(e.target.value)}
+                          style={{
+                            width: "100%",
+                            boxSizing: "border-box",
+                            padding: "9px 12px",
+                            fontSize: 13,
+                            borderRadius: "var(--r-card)",
+                            border: "0.5px solid var(--line-strong)",
+                            background: "var(--bg-surface)",
+                            color: "var(--ink-primary)",
+                            fontFamily: "ui-monospace, monospace",
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

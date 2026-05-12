@@ -1,6 +1,7 @@
 import { Arcade } from "@arcadeai/arcadejs";
-import { createSupabaseClientAsGenuiMachineUser } from "@/lib/genui/machine-supabase";
+import { resolveGenuiL2Writer, type GenuiL2Writer } from "@/lib/genui/l2-writer";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { ensureKindGrouping } from "@/lib/genui/kind-grouping";
 
 export type MailPollChannelResult = {
   channel_id: string;
@@ -57,10 +58,10 @@ export async function runMailPoll(): Promise<MailPollRunResult> {
 
   const arcade = new Arcade({ apiKey: process.env.ARCADE_API_KEY });
   const db = getSupabaseAdminClient();
-  const l2Db = await createSupabaseClientAsGenuiMachineUser();
-  if (!l2Db) {
+  const l2Writer = await resolveGenuiL2Writer();
+  if (!l2Writer) {
     console.warn(
-      "[mail-poll] No genUI machine user (set GENUI_L2_MACHINE_EMAIL/PASSWORD or GENUI_WORKER_EMAIL/PASSWORD + L0 anon URL); skipping genui_l2 inserts",
+      "[mail-poll] No genUI L2 writer: set GENUI_L2_ATTRIBUTED_USER_ID (auth.users UUID, member of each polled tenant) for service-role inserts, or GENUI_L2_MACHINE_EMAIL/PASSWORD + L0 anon URL for JWT inserts",
     );
   }
 
@@ -79,7 +80,7 @@ export async function runMailPoll(): Promise<MailPollRunResult> {
 
   for (const ch of (channels ?? []) as Channel[]) {
     try {
-      const r = await processChannel(ch, arcade, db, l2Db);
+      const r = await processChannel(ch, arcade, db, l2Writer);
       results.push(r);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -95,7 +96,7 @@ async function processChannel(
   ch: Channel,
   arcade: Arcade,
   db: ReturnType<typeof getSupabaseAdminClient>,
-  l2Db: Awaited<ReturnType<typeof createSupabaseClientAsGenuiMachineUser>>,
+  l2Writer: GenuiL2Writer | null,
 ): Promise<MailPollChannelResult> {
   const provider = ch.source === "gmail" ? "google" : "microsoft";
   const scopes =
@@ -119,6 +120,7 @@ async function processChannel(
 
   let inserted = 0;
   let skipped = 0;
+  const insertedPayloads: Record<string, unknown>[] = [];
 
   for (const msg of messages) {
     const payload = await summariseMessage(msg, ch.agent_prompt, ch.source);
@@ -128,21 +130,29 @@ async function processChannel(
     }
 
     const externalId = msg.id;
-    if (!l2Db) {
+    if (!l2Writer) {
       skipped++;
       continue;
     }
 
-    const { error: insErr } = await l2Db.from("genui_l2").insert({
+    const baseRow = {
       tenant_id: ch.tenant_id,
       genui_channel_id: ch.id,
       external_event_id: externalId,
       ingest_kind: ch.source === "gmail" ? "gmail_poll" : "outlook_poll",
       generator: "openrouter_ai",
       payload,
-      visibility: "tenant",
+      visibility: "tenant" as const,
       updated_at: new Date().toISOString(),
-    });
+    };
+
+    const { error: insErr } =
+      l2Writer.mode === "service_role"
+        ? await l2Writer.client.from("genui_l2").insert({
+            ...baseRow,
+            created_by: l2Writer.attributedUserId,
+          })
+        : await l2Writer.client.from("genui_l2").insert(baseRow);
 
     if (insErr?.code === "23505") {
       skipped++;
@@ -151,6 +161,7 @@ async function processChannel(
       skipped++;
     } else {
       inserted++;
+      insertedPayloads.push(payload);
     }
   }
 
@@ -158,6 +169,16 @@ async function processChannel(
     .from("genui_channels")
     .update({ last_polled_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", ch.id);
+
+  // Best-effort: seed grouping config for this kind so the UI sidebar can
+  // build sender/chat/etc. sub-lists. No-ops when a row already exists.
+  if (inserted > 0) {
+    try {
+      await ensureKindGrouping(db, ch.source, insertedPayloads);
+    } catch (err) {
+      console.warn(`[mail-poll] ensureKindGrouping(${ch.source}) failed:`, err instanceof Error ? err.message : err);
+    }
+  }
 
   console.log(`[mail-poll] ${ch.id} (${ch.source}): inserted=${inserted} skipped=${skipped}`);
   return { channel_id: ch.id, inserted, skipped };
@@ -237,6 +258,19 @@ async function fetchOutlookMessages(
   }));
 }
 
+/**
+ * Extract the email-only form of a `From: Name <addr>` header so the sidebar
+ * can group rows by `payload.from_email` with simple SQL equality across
+ * "Alice <alice@x.com>", "Alice  <alice@x.com>" etc. Falls back to the raw
+ * field (lower-cased) when there are no angle brackets.
+ */
+export function extractFromEmail(rawFrom: string): string {
+  if (!rawFrom) return "";
+  const m = rawFrom.match(/<\s*([^>]+)\s*>/);
+  const value = m?.[1] ?? rawFrom;
+  return value.trim().toLowerCase();
+}
+
 async function summariseMessage(
   msg: { id: string; subject: string; from: string; snippet: string; body: string; date: string },
   agentPrompt: string,
@@ -287,7 +321,15 @@ Return a JSON object (no markdown) with these fields:
     const content = json.choices?.[0]?.message?.content ?? "";
     const cleaned = content.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
     const parsed = JSON.parse(cleaned) as Record<string, unknown>;
-    return { ...parsed, message_id: msg.id, source, ingest_kind: source === "gmail" ? "gmail_poll" : "outlook_poll" };
+    const fromRaw = typeof parsed.from === "string" ? parsed.from : msg.from;
+    return {
+      ...parsed,
+      message_id: msg.id,
+      source,
+      ingest_kind: source === "gmail" ? "gmail_poll" : "outlook_poll",
+      from: fromRaw,
+      from_email: extractFromEmail(fromRaw),
+    };
   } catch {
     return buildFallbackPayload(msg, source);
   }
@@ -301,6 +343,7 @@ function buildFallbackPayload(
     message_id: msg.id,
     subject: msg.subject,
     from: msg.from,
+    from_email: extractFromEmail(msg.from),
     date: msg.date,
     summary: msg.snippet,
     action_required: false,

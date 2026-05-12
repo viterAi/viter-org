@@ -1,6 +1,4 @@
 import { NextRequest } from "next/server";
-import type { SourceDataRow } from "../../../../../lib/types/view-builder";
-import { getMockMessages } from "../../../../../lib/l0/mock-data";
 import { getSupabaseServerClient } from "../../../../../lib/supabase/server";
 import { getCatalogPromptBlock } from "../../../../../lib/layout/component-catalog";
 import {
@@ -9,6 +7,11 @@ import {
   type AiPageNode,
   type AiPageStatus,
 } from "../../../../../lib/ai/page-composer";
+import {
+  fetchL2RowsForSource,
+  l2RowsToSourceDataRows,
+  resolveSourceKey,
+} from "../../../../../lib/genui/l2-source";
 
 const MAX_PAGE_FILL_ATTEMPTS = 20;
 
@@ -26,9 +29,9 @@ export async function GET(
 
   const { sourceId } = await params;
   void request;
+  const sourceKey = decodeURIComponent(sourceId);
 
-  // sourceId is the chat_slug (e.g. "shaul-direct", "mvp-dev")
-  const chatSlug = decodeURIComponent(sourceId);
+  const resolved = await resolveSourceKey(supabase, sourceKey);
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -38,21 +41,38 @@ export async function GET(
       }
 
       try {
-        const rows: SourceDataRow[] = getMockMessages(chatSlug);
-
-        if (rows.length === 0) {
-          emit({ type: "error", error: `No messages found for chat: ${chatSlug}` });
+        if (!resolved) {
+          emit({ type: "error", error: `Source not found or not visible: ${sourceKey}` });
           controller.close();
           return;
         }
 
-        const chatName = chatSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        const l2Rows = await fetchL2RowsForSource(supabase, resolved);
+        const rows = l2RowsToSourceDataRows(l2Rows, resolved.kind);
+
         const source = {
-          key: chatSlug,
-          name: chatName,
-          channel: "whatsapp",
-          seed_format: "whatsapp_chat",
+          key: sourceKey,
+          name: resolved.name,
+          channel: resolved.kind,
+          seed_format: "genui_l2",
         };
+
+        if (rows.length === 0) {
+          emit({
+            type: "done",
+            rows: [],
+            ai_pages: [],
+            ai_page_statuses: [],
+            ai_warnings: [],
+            ai_status: {
+              state: "ready",
+              last_error: null,
+              empty_reason: "no_l2_rows",
+            },
+          });
+          controller.close();
+          return;
+        }
 
         // ── Stage 1: plan pages ──────────────────────────────────────────────
         emit({ type: "planning" });

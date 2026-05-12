@@ -136,6 +136,7 @@ async function handleGitHub({
 
   let webhookSecret = String(body.webhook_secret ?? "");
   let autoInstalled = false;
+  let installError: string | null = null;
 
   // Try auto-install via Arcade Auth token
   if (body.auth_id && process.env.ARCADE_API_KEY) {
@@ -144,14 +145,21 @@ async function handleGitHub({
       webhookSecret = installResult.secret;
       autoInstalled = true;
     } else {
-      // Log but don't fail — fall through to manual secret requirement
+      installError = installResult.error;
       console.warn("[channels/POST] GitHub webhook auto-install failed:", installResult.error);
     }
   }
 
   if (!autoInstalled && webhookSecret.length < 8) {
+    // No auto-install + no manual secret → surface the real reason so the UI
+    // can guide the user (manual install + secret, or fix SSO/permissions).
+    const detail = installError ?? "No auth_id was supplied and no manual webhook secret was provided.";
     return NextResponse.json(
-      { error: "Webhook signing secret is required (from GitHub webhook settings), or provide auth_id for auto-install." },
+      {
+        error: `Could not install webhook automatically. ${detail}`,
+        code: "webhook_install_failed",
+        install_error: installError,
+      },
       { status: 400 },
     );
   }
@@ -216,6 +224,17 @@ async function installGitHubWebhook({
       ? `${webhookBaseUrl}&t=${tenantId}`
       : `${webhookBaseUrl}?t=${tenantId}`;
 
+    // GitHub won't accept hooks pointing at a private/loopback URL. Catch this
+    // before the API call so the user sees a clear message instead of a
+    // generic 422.
+    if (/^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(webhookUrl)) {
+      return {
+        ok: false,
+        error:
+          "App URL is localhost. GitHub cannot deliver webhooks here — expose this server via a public URL (e.g. ngrok, Cloudflare Tunnel) and set NEXT_PUBLIC_APP_URL (or GENUI_ARCADE_WEBHOOK_URL) accordingly.",
+      };
+    }
+
     const ghRes = await fetch(`https://api.github.com/repos/${repo}/hooks`, {
       method: "POST",
       headers: {
@@ -239,7 +258,38 @@ async function installGitHubWebhook({
 
     if (!ghRes.ok) {
       const text = await ghRes.text();
-      return { ok: false, error: `GitHub API ${ghRes.status}: ${text}` };
+      const ssoHeader = ghRes.headers.get("x-github-sso") ?? ghRes.headers.get("x-github-saml-sso");
+      let parsed: { message?: string; errors?: Array<{ message?: string }> } = {};
+      try { parsed = JSON.parse(text) as typeof parsed; } catch { /* keep raw text */ }
+      const ghMessage = parsed.message
+        || parsed.errors?.map((e) => e.message).filter(Boolean).join("; ")
+        || text;
+
+      if (ssoHeader) {
+        return {
+          ok: false,
+          error: `GitHub blocked the request because the organisation requires SAML SSO authorization. Open ${ssoHeader.split(";")[0]?.replace(/^.*url=/, "") || "your GitHub org's SSO settings"} and authorize this access, then retry.`,
+        };
+      }
+      if (ghRes.status === 404) {
+        return {
+          ok: false,
+          error: `GitHub returned 404 for ${repo}. Usually means your account doesn't have admin permission on the repo (required to add a webhook) or the org hasn't approved this OAuth app. Ask an org admin to grant access, then retry.`,
+        };
+      }
+      if (ghRes.status === 403) {
+        return {
+          ok: false,
+          error: `GitHub returned 403 for ${repo}. The OAuth token is missing 'admin:repo_hook' scope, or the org restricts hook creation. ${ghMessage}`,
+        };
+      }
+      if (ghRes.status === 422) {
+        return {
+          ok: false,
+          error: `GitHub rejected the webhook config: ${ghMessage}. Common causes: webhook URL is not publicly reachable, or a webhook with this URL already exists on the repo.`,
+        };
+      }
+      return { ok: false, error: `GitHub API ${ghRes.status}: ${ghMessage}` };
     }
 
     return { ok: true, secret };

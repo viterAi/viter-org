@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getSupabaseServerClient } from "../../../../lib/supabase/server";
+import { getSupabaseServerClient } from "../../../../../lib/supabase/server";
 
 const actionSchema = z.object({
   action: z.enum(["mark_followed_up"]),
   payload: z.object({
-    sourceId: z.string().uuid(),
+    /** Stable genUI source key (e.g. `gmail:user@example.com`) or legacy UUID. */
+    sourceId: z.string().min(1),
     invoiceId: z.string().min(1),
   }),
 });

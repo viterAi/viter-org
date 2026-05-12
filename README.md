@@ -69,7 +69,8 @@ Tables created: `sources`, `views`, `view_versions`, `view_drafts`, `view_events
 | Variable | Purpose |
 |---|---|
 | `GENUI_ARCADE_FORWARD_SECRET` | Validates Arcade → your app on `POST /api/integrations/github/genui` |
-| `GENUI_L2_MACHINE_EMAIL` / `GENUI_L2_MACHINE_PASSWORD` | Supabase Auth **machine user** for `genui_l2` inserts (falls back to `GENUI_WORKER_*`) |
+| `GENUI_L2_ATTRIBUTED_USER_ID` | Optional `auth.users` UUID: mail poll uses **service role** and sets `created_by` to this user (must be in **`tenant_members`** for every tenant you poll). **Takes precedence** over machine JWT. |
+| `GENUI_L2_MACHINE_EMAIL` / `GENUI_L2_MACHINE_PASSWORD` | Supabase Auth **machine user** for `genui_l2` inserts when attributed ID unset (falls back to `GENUI_WORKER_*`) |
 | `GENUI_WORKER_EMAIL` / `GENUI_WORKER_PASSWORD` | Same machine account if you do not set `GENUI_L2_MACHINE_*` |
 | `MAIL_POLL_INTERVAL_MS` | e.g. `300000` — in-process mail poll every 5 min via `instrumentation.ts` (**local dev** or long-lived `next start`; **not** on Vercel serverless unless you opt in — see `.env.example`) |
 | `CRON_SECRET` | If set, `GET /api/cron/mail-poll` requires `Authorization: Bearer …` |
@@ -124,7 +125,8 @@ lib/
     component-catalog.ts  # Allowed components, validation, AI prompt block
   l0/mock-data.ts       # MOCK_CHATS + MOCK_MESSAGES (drives sidebar & canvas)
   genui/
-    machine-supabase.ts # Machine-user JWT for RLS-gated `genui_l2` inserts
+    l2-writer.ts        # resolveGenuiL2Writer — service_role + GENUI_L2_ATTRIBUTED_USER_ID or machine JWT
+    machine-supabase.ts # Deprecated thin wrapper around JWT branch of l2-writer
   mail-poll/
     run-mail-poll.ts    # Gmail/Outlook poll (used by route + instrumentation)
   supabase/

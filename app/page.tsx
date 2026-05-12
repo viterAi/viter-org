@@ -72,6 +72,7 @@ export default function HomePage() {
       <div style={{ flex: 1, display: "flex", gap: 0, minHeight: 0 }}>
         <LeftSidebar
           sources={src.sources}
+          tree={src.tree}
           sourceId={src.sourceId}
           setSourceId={(id) => {
             setCornJobsPage(false);
@@ -121,7 +122,8 @@ export default function HomePage() {
               />
               <CanvasContent
                 loading={loading} mounted={mounted} sourceId={src.sourceId}
-                generating={canvas.generating} canvasError={canvas.canvasError}
+                generating={canvas.generating} loadingCanvas={canvas.loadingCanvas}
+                canvasError={canvas.canvasError}
                 aiStatus={canvas.aiStatus} aiPages={canvas.aiPages} aiPageStatuses={canvas.aiPageStatuses}
                 activeAiPageId={canvas.activeAiPageId} progressLog={canvas.progressLog}
                 activeView={activeView} rows={canvas.rows}
@@ -129,6 +131,8 @@ export default function HomePage() {
                 pendingDraft={canvas.pendingDraft}
                 isRefreshingContent={canvas.isRefreshingContent}
                 refreshingComponentIds={canvas.refreshingComponentIds}
+                noSourcesAvailable={!loading && src.sources.length === 0}
+                onOpenCornJobs={() => setCornJobsPage(true)}
                 onRetryAi={() => { if (src.sourceId) void canvas.fetchCanvas(src.sourceId); }}
                 onMarkFollowedUp={() => { canvas.addOfflineMessage(); }}
                 onAgentAction={(msg) => {
