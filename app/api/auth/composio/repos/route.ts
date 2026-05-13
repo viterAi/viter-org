@@ -2,16 +2,9 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { hasComposio } from "@/lib/composio/client";
 import { assertComposioAccountOwnedByUser } from "@/lib/composio/accounts";
-import { executeComposioTool } from "@/lib/composio/execute";
+import { listGitHubReposForConnect } from "@/lib/composio/github-repos";
 
 export const dynamic = "force-dynamic";
-
-type GitHubRepo = {
-  full_name?: string;
-  description?: string | null;
-  private?: boolean;
-  pushed_at?: string;
-};
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -39,25 +32,8 @@ export async function GET(req: Request) {
   }
 
   try {
-    const data = await executeComposioTool<{ repositories?: GitHubRepo[] }>({
-      slug: "GITHUB_LIST_REPOSITORIES_FOR_THE_AUTHENTICATED_USER",
-      userId: user.id,
-      connectedAccountId: authId,
-      arguments: { per_page: 100, sort: "pushed" },
-    });
-    const repos = (data.repositories ?? []).sort((a, b) => {
-      const ta = a.pushed_at ? Date.parse(a.pushed_at) : 0;
-      const tb = b.pushed_at ? Date.parse(b.pushed_at) : 0;
-      return tb - ta;
-    });
-    return NextResponse.json({
-      repos: repos.map((r) => ({
-        full_name: r.full_name ?? "",
-        description: r.description ?? "",
-        private: Boolean(r.private),
-        pushed_at: r.pushed_at,
-      })),
-    });
+    const repos = await listGitHubReposForConnect(user.id, authId);
+    return NextResponse.json({ repos });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes("INITIATED") || message.includes("PENDING")) {

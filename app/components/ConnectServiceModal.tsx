@@ -9,6 +9,8 @@ interface Repo {
   full_name: string;
   description: string;
   private: boolean;
+  is_org_repo?: boolean;
+  owner?: string;
 }
 
 interface Mailbox {
@@ -220,13 +222,6 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
       if (!res.ok) {
         popup.close();
         throw new Error(j.error ?? res.statusText);
-      }
-
-      if (j.status === "already_authorized" && j.auth_id) {
-        popup.close();
-        setAuthId(j.auth_id);
-        await fetchTargets(service, j.auth_id);
-        return;
       }
 
       if (j.auth_url && j.auth_id) {
@@ -461,7 +456,14 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
                           width: "100%",
                         }}
                       >
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-primary)", fontFamily: "ui-monospace, monospace" }}>{r.full_name}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-primary)", fontFamily: "ui-monospace, monospace" }}>{r.full_name}</span>
+                          {r.is_org_repo && (
+                            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--ink-tertiary)", padding: "2px 6px", borderRadius: 999, border: "0.5px solid var(--line-thin)", background: "var(--bg-surface)" }}>
+                              Org
+                            </span>
+                          )}
+                        </span>
                         {r.description && (
                           <span style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>{r.description}</span>
                         )}
