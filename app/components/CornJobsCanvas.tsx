@@ -4,7 +4,7 @@ import { GenUIIngestJobsPanel } from "./GenUIIngestJobsPanel";
 import { GenuiKindGroupingPanel } from "./GenuiKindGroupingPanel";
 
 /** Main column when “Corn jobs” is active — scheduled / webhook ingest surfaces. */
-export function CornJobsCanvas() {
+export function CornJobsCanvas({ onSourcesChanged }: { onSourcesChanged?: () => void }) {
   return (
     <div style={{
       flex: 1,
@@ -39,7 +39,7 @@ export function CornJobsCanvas() {
         overflowX: "hidden",
         padding: 20,
       }}>
-        <GenUIIngestJobsPanel />
+        <GenUIIngestJobsPanel onSourcesChanged={onSourcesChanged} />
         <GenuiKindGroupingPanel />
       </div>
     </div>

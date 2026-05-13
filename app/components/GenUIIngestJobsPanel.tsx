@@ -92,7 +92,7 @@ function MenuDots({
   );
 }
 
-export function GenUIIngestJobsPanel() {
+export function GenUIIngestJobsPanel({ onSourcesChanged }: { onSourcesChanged?: () => void }) {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -131,6 +131,7 @@ export function GenUIIngestJobsPanel() {
     try {
       await fetch(`/api/genui/channels/${channelId}`, { method: "DELETE", credentials: "include" });
       await load();
+      onSourcesChanged?.();
     } finally {
       setBusy(false);
     }
@@ -309,7 +310,10 @@ export function GenUIIngestJobsPanel() {
       {showModal && (
         <ConnectServiceModal
           onClose={() => setShowModal(false)}
-          onConnected={() => void load()}
+          onConnected={() => {
+            void load();
+            onSourcesChanged?.();
+          }}
         />
       )}
     </>

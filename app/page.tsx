@@ -110,7 +110,7 @@ export default function HomePage() {
           overflow: "hidden",
         }}>
           {cornJobsPage ? (
-            <CornJobsCanvas />
+            <CornJobsCanvas onSourcesChanged={() => void src.fetchSources()} />
           ) : (
             <>
               <TabBar

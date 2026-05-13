@@ -38,16 +38,6 @@ export async function POST(req: Request) {
     const authConfigId = await resolveComposioAuthConfigId(provider);
     const callbackUrl = `${appBaseUrl(req)}/auth/composio/done`;
 
-    const existing = await composio.connectedAccounts.list({
-      userIds: [user.id],
-      authConfigIds: [authConfigId],
-      statuses: ["ACTIVE"],
-    });
-    const first = existing.items?.[0];
-    if (first?.id) {
-      return NextResponse.json({ status: "already_authorized", auth_id: first.id });
-    }
-
     const connectionRequest = await composio.connectedAccounts.link(user.id, authConfigId, {
       callbackUrl,
       allowMultiple: true,

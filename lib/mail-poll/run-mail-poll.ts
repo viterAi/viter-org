@@ -50,7 +50,7 @@ export async function runMailPoll(): Promise<MailPollRunResult> {
     .from("genui_channels")
     .select("id, tenant_id, source, external_key, agent_prompt, arcade_auth_user_id, connected_by_user_id, last_polled_at")
     .in("source", ["gmail", "outlook"])
-    .not("arcade_auth_user_id", "is", null);
+    .like("arcade_auth_user_id", "ca_%");
 
   if (chErr) {
     console.error("[mail-poll] Failed to load channels:", chErr.message);
