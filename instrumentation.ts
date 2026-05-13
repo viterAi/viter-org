@@ -10,6 +10,7 @@
 const globalMailPoll = globalThis as typeof globalThis & { __mailPollIntervalStarted?: boolean };
 
 export async function register() {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (globalMailPoll.__mailPollIntervalStarted) return;
 
   const raw = process.env.MAIL_POLL_INTERVAL_MS;

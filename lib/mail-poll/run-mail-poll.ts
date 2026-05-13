@@ -1,7 +1,5 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureKindGrouping } from "@/lib/genui/kind-grouping";
-import { getComposioAccessToken } from "@/lib/composio/tokens";
-import { hasComposio } from "@/lib/composio/client";
 
 export type MailPollChannelResult = {
   channel_id: string;
@@ -53,6 +51,7 @@ type OutlookMessage = {
  * Used by the HTTP route and by `instrumentation.ts` when `MAIL_POLL_INTERVAL_MS` is set.
  */
 export async function runMailPoll(): Promise<MailPollRunResult> {
+  const { hasComposio } = await import("@/lib/composio/client");
   if (!hasComposio()) {
     return { ok: false, results: [], error: "missing COMPOSIO_API_KEY" };
   }
@@ -96,7 +95,10 @@ async function processChannel(
     return { channel_id: ch.id, inserted: 0, skipped: 0, error: "missing_composio_account" };
   }
 
-  const token = await getComposioAccessToken(connectedAccountId);
+  const token = await (async () => {
+    const { getComposioAccessToken } = await import("@/lib/composio/tokens");
+    return getComposioAccessToken(connectedAccountId);
+  })();
   if (!token) {
     console.warn(`[mail-poll] ${ch.id}: token not ready — skipping`);
     return { channel_id: ch.id, inserted: 0, skipped: 0, error: "token_not_ready" };
