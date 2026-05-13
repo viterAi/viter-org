@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resolveTenantIdForUser } from "@/lib/genui/resolve-tenant";
 import { REPO_KEY, normalizeRepoKey } from "@/lib/genui/repo-key";
-import { getComposioAccessToken } from "@/lib/composio/tokens";
+import { executeComposioTool } from "@/lib/composio/execute";
 import { hasComposio } from "@/lib/composio/client";
 import { randomBytes } from "crypto";
 
@@ -247,11 +247,12 @@ async function installGitHubWebhook({
   secret: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    void userId;
-    const token = await getComposioAccessToken(authId);
-    if (!token) {
-      return { ok: false, error: "Composio GitHub authorization not completed" };
+    const slash = repo.indexOf("/");
+    if (slash < 1) {
+      return { ok: false, error: `Invalid repo "${repo}" — expected owner/name` };
     }
+    const owner = repo.slice(0, slash);
+    const repoName = repo.slice(slash + 1);
 
     const webhookUrl = buildGenuiWebhookUrl(tenantId, channelId);
 
@@ -266,65 +267,49 @@ async function installGitHubWebhook({
       };
     }
 
-    const ghRes = await fetch(`https://api.github.com/repos/${repo}/hooks`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-      body: JSON.stringify({
-        name: "web",
+    await executeComposioTool({
+      slug: "GITHUB_CREATE_A_REPOSITORY_WEBHOOK",
+      userId,
+      connectedAccountId: authId,
+      arguments: {
+        owner,
+        repo: repoName,
         active: true,
         events: ["push", "pull_request", "create", "delete", "release", "issues", "issue_comment"],
-        config: {
-          url: webhookUrl,
-          content_type: "json",
-          secret,
-          insecure_ssl: "0",
-        },
-      }),
+        config__url: webhookUrl,
+        config__secret: secret,
+        config__content__type: "json",
+        config__insecure__ssl: "0",
+      },
     });
-
-    if (!ghRes.ok) {
-      const text = await ghRes.text();
-      const ssoHeader = ghRes.headers.get("x-github-sso") ?? ghRes.headers.get("x-github-saml-sso");
-      let parsed: { message?: string; errors?: Array<{ message?: string }> } = {};
-      try { parsed = JSON.parse(text) as typeof parsed; } catch { /* keep raw text */ }
-      const ghMessage = parsed.message
-        || parsed.errors?.map((e) => e.message).filter(Boolean).join("; ")
-        || text;
-
-      if (ssoHeader) {
-        return {
-          ok: false,
-          error: `GitHub blocked the request because the organisation requires SAML SSO authorization. Open ${ssoHeader.split(";")[0]?.replace(/^.*url=/, "") || "your GitHub org's SSO settings"} and authorize this access, then retry.`,
-        };
-      }
-      if (ghRes.status === 404) {
-        return {
-          ok: false,
-          error: `GitHub returned 404 for ${repo}. Usually means your account doesn't have admin permission on the repo (required to add a webhook) or the org hasn't approved this OAuth app. Ask an org admin to grant access, then retry.`,
-        };
-      }
-      if (ghRes.status === 403) {
-        return {
-          ok: false,
-          error: `GitHub returned 403 for ${repo}. The OAuth token is missing 'admin:repo_hook' scope, or the org restricts hook creation. ${ghMessage}`,
-        };
-      }
-      if (ghRes.status === 422) {
-        return {
-          ok: false,
-          error: `GitHub rejected the webhook config: ${ghMessage}. Common causes: webhook URL is not publicly reachable, or a webhook with this URL already exists on the repo.`,
-        };
-      }
-      return { ok: false, error: `GitHub API ${ghRes.status}: ${ghMessage}` };
-    }
 
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    const message = err instanceof Error ? err.message : String(err);
+    if (/saml|sso/i.test(message)) {
+      return {
+        ok: false,
+        error: `GitHub blocked the request because the organisation requires SAML SSO authorization. Authorize the Composio GitHub app for your org in GitHub SSO settings, then retry.`,
+      };
+    }
+    if (/404|not found/i.test(message)) {
+      return {
+        ok: false,
+        error: `GitHub returned 404 for ${repo}. Usually means your account doesn't have admin permission on the repo (required to add a webhook) or the org hasn't approved this OAuth app. Ask an org admin to grant access, then retry.`,
+      };
+    }
+    if (/403|forbidden/i.test(message)) {
+      return {
+        ok: false,
+        error: `GitHub returned 403 for ${repo}. The OAuth token is missing 'admin:repo_hook' scope, or the org restricts hook creation. ${message}`,
+      };
+    }
+    if (/422|already exists|unprocessable/i.test(message)) {
+      return {
+        ok: false,
+        error: `GitHub rejected the webhook config: ${message}. Common causes: webhook URL is not publicly reachable, or a webhook with this URL already exists on the repo.`,
+      };
+    }
+    return { ok: false, error: message };
   }
 }

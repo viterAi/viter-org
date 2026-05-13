@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { hasComposio } from "@/lib/composio/client";
-import { getComposioAccessTokenDetailed } from "@/lib/composio/tokens";
+import { assertComposioAccountOwnedByUser } from "@/lib/composio/accounts";
+import { executeComposioTool } from "@/lib/composio/execute";
 
 export const dynamic = "force-dynamic";
 
-const MASKING_HINT =
-  "Composio is masking access tokens. In Composio → Settings → Project Configuration, disable “Mask Connected Account Secrets”, then reconnect Gmail.";
+type GmailProfile = {
+  emailAddress?: string;
+};
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -30,59 +32,58 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "COMPOSIO_API_KEY not configured" }, { status: 500 });
   }
 
-  const tokenResult = await getComposioAccessTokenDetailed(authId);
-  if (!tokenResult.ok) {
-    if (tokenResult.reason === "masked") {
-      return NextResponse.json({ error: MASKING_HINT }, { status: 503 });
-    }
-    if (tokenResult.reason === "inactive") {
-      return NextResponse.json({ error: "Authorization not yet completed" }, { status: 202 });
-    }
-    return NextResponse.json({ error: "No access token on connected account — try reconnecting." }, { status: 503 });
-  }
-  const token = tokenResult.token;
-
-  if (provider === "google") {
-    // Gmail connect scopes are gmail.* — not userinfo.* — so use Gmail API profile.
-    const profileRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!profileRes.ok) {
-      const detail = await profileRes.text();
-      return NextResponse.json(
-        { error: `Gmail profile failed (${profileRes.status}). ${detail.slice(0, 200)}` },
-        { status: 502 },
-      );
-    }
-    const profile = (await profileRes.json()) as { emailAddress?: string };
-    const email = profile.emailAddress ?? "";
-    if (!email) {
-      return NextResponse.json({ error: "Gmail profile did not return an email address" }, { status: 502 });
-    }
-    return NextResponse.json({
-      mailboxes: [{ id: email, label: email, email }],
-    });
-  }
-
-  const msRes = await fetch("https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!msRes.ok) {
-    const detail = await msRes.text();
+  try {
+    await assertComposioAccountOwnedByUser(user.id, authId);
+  } catch (err) {
     return NextResponse.json(
-      { error: `Outlook profile failed (${msRes.status}). ${detail.slice(0, 200)}` },
-      { status: 502 },
+      { error: err instanceof Error ? err.message : String(err) },
+      { status: 403 },
     );
   }
-  const ms = (await msRes.json()) as { displayName?: string; mail?: string; userPrincipalName?: string };
-  const email = ms.mail ?? ms.userPrincipalName ?? "primary";
-  return NextResponse.json({
-    mailboxes: [
-      {
-        id: email,
-        label: ms.displayName ? `${ms.displayName} (${email})` : email,
-        email,
-      },
-    ],
-  });
+
+  try {
+    if (provider === "google") {
+      const profile = await executeComposioTool<GmailProfile>({
+        slug: "GMAIL_GET_PROFILE",
+        userId: user.id,
+        connectedAccountId: authId,
+        arguments: { user_id: "me" },
+      });
+      const email = profile.emailAddress ?? "";
+      if (!email) {
+        return NextResponse.json({ error: "Gmail profile did not return an email address" }, { status: 502 });
+      }
+      return NextResponse.json({ mailboxes: [{ id: email, label: email, email }] });
+    }
+
+    const ms = await executeComposioTool<{
+      displayName?: string;
+      mail?: string;
+      userPrincipalName?: string;
+    }>({
+      slug: "OUTLOOK_GET_PROFILE",
+      userId: user.id,
+      connectedAccountId: authId,
+      arguments: {},
+    });
+    const email = ms.mail ?? ms.userPrincipalName ?? "";
+    if (!email) {
+      return NextResponse.json({ error: "Outlook profile did not return an email address" }, { status: 502 });
+    }
+    return NextResponse.json({
+      mailboxes: [
+        {
+          id: email,
+          label: ms.displayName ? `${ms.displayName} (${email})` : email,
+          email,
+        },
+      ],
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("not yet completed") || message.includes("INITIATED")) {
+      return NextResponse.json({ error: "Authorization not yet completed" }, { status: 202 });
+    }
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
 }

@@ -25,18 +25,6 @@ type Channel = {
   last_polled_at: string | null;
 };
 
-type GmailMessage = {
-  id: string;
-  threadId: string;
-  payload?: {
-    headers?: { name: string; value: string }[];
-    body?: { data?: string };
-    parts?: { mimeType: string; body?: { data?: string } }[];
-  };
-  snippet?: string;
-  internalDate?: string;
-};
-
 type OutlookMessage = {
   id: string;
   subject?: string;
@@ -95,21 +83,18 @@ async function processChannel(
     return { channel_id: ch.id, inserted: 0, skipped: 0, error: "missing_composio_account" };
   }
 
-  const token = await (async () => {
-    const { getComposioAccessToken } = await import("@/lib/composio/tokens");
-    return getComposioAccessToken(connectedAccountId);
-  })();
-  if (!token) {
-    console.warn(`[mail-poll] ${ch.id}: token not ready — skipping`);
-    return { channel_id: ch.id, inserted: 0, skipped: 0, error: "token_not_ready" };
+  const userId = ch.connected_by_user_id;
+  if (!userId) {
+    console.warn(`[mail-poll] ${ch.id}: missing connected_by_user_id — reconnect mailbox`);
+    return { channel_id: ch.id, inserted: 0, skipped: 0, error: "missing_user_id" };
   }
 
   const since = ch.last_polled_at ? new Date(ch.last_polled_at) : new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const messages =
     ch.source === "gmail"
-      ? await fetchGmailMessages(token, since)
-      : await fetchOutlookMessages(token, since);
+      ? await fetchGmailMessages(userId, connectedAccountId, since)
+      : await fetchOutlookMessages(userId, connectedAccountId, since);
 
   let inserted = 0;
   let skipped = 0;
@@ -166,69 +151,74 @@ async function processChannel(
   return { channel_id: ch.id, inserted, skipped };
 }
 
+type NormalizedMessage = {
+  id: string;
+  subject: string;
+  from: string;
+  snippet: string;
+  body: string;
+  date: string;
+};
+
 async function fetchGmailMessages(
-  token: string,
+  userId: string,
+  connectedAccountId: string,
   since: Date,
-): Promise<{ id: string; subject: string; from: string; snippet: string; body: string; date: string }[]> {
+): Promise<NormalizedMessage[]> {
+  const { executeComposioTool } = await import("@/lib/composio/execute");
   const afterEpoch = Math.floor(since.getTime() / 1000);
-  const query = `after:${afterEpoch} in:inbox`;
+  const data = await executeComposioTool<{
+    messages?: Array<{
+      messageId?: string;
+      subject?: string;
+      sender?: string;
+      messageText?: string;
+      preview?: string;
+      messageTimestamp?: string;
+    }>;
+  }>({
+    slug: "GMAIL_FETCH_EMAILS",
+    userId,
+    connectedAccountId,
+    arguments: {
+      user_id: "me",
+      query: `after:${afterEpoch} in:inbox`,
+      max_results: 20,
+      verbose: true,
+    },
+  });
 
-  const listRes = await fetch(
-    `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=20`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  );
-  if (!listRes.ok) {
-    const t = await listRes.text();
-    throw new Error(`Gmail list error ${listRes.status}: ${t}`);
-  }
-  const list = (await listRes.json()) as { messages?: { id: string }[] };
-  const ids = (list.messages ?? []).map((m) => m.id);
-
-  const results: { id: string; subject: string; from: string; snippet: string; body: string; date: string }[] = [];
-
-  await Promise.all(
-    ids.map(async (id) => {
-      const msgRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      if (!msgRes.ok) return;
-      const msg = (await msgRes.json()) as GmailMessage;
-
-      const headers = msg.payload?.headers ?? [];
-      const subject = headers.find((h) => h.name.toLowerCase() === "subject")?.value ?? "(no subject)";
-      const from = headers.find((h) => h.name.toLowerCase() === "from")?.value ?? "unknown";
-      const date = msg.internalDate ? new Date(Number(msg.internalDate)).toISOString() : new Date().toISOString();
-
-      const body = extractGmailBody(msg) ?? msg.snippet ?? "";
-      results.push({ id, subject, from, snippet: msg.snippet ?? "", body, date });
-    }),
-  );
-
-  return results;
-}
-
-function extractGmailBody(msg: GmailMessage): string | null {
-  const parts = msg.payload?.parts ?? [];
-  const textPart = parts.find((p) => p.mimeType === "text/plain") ?? parts.find((p) => p.mimeType === "text/html");
-  const encoded = textPart?.body?.data ?? msg.payload?.body?.data;
-  if (!encoded) return null;
-  return Buffer.from(encoded, "base64url").toString("utf-8").slice(0, 4000);
+  return (data.messages ?? [])
+    .filter((m) => m.messageId)
+    .map((m) => ({
+      id: m.messageId!,
+      subject: m.subject ?? "(no subject)",
+      from: m.sender ?? "unknown",
+      snippet: m.preview ?? m.messageText?.slice(0, 200) ?? "",
+      body: (m.messageText ?? m.preview ?? "").slice(0, 4000),
+      date: m.messageTimestamp ?? new Date().toISOString(),
+    }));
 }
 
 async function fetchOutlookMessages(
-  token: string,
+  userId: string,
+  connectedAccountId: string,
   since: Date,
-): Promise<{ id: string; subject: string; from: string; snippet: string; body: string; date: string }[]> {
-  const filter = `receivedDateTime ge ${since.toISOString()}`;
-  const url = `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$filter=${encodeURIComponent(filter)}&$select=id,subject,from,bodyPreview,receivedDateTime,body&$top=20&$orderby=receivedDateTime desc`;
-
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Outlook list error ${res.status}: ${t}`);
-  }
-  const data = (await res.json()) as { value?: OutlookMessage[] };
+): Promise<NormalizedMessage[]> {
+  const { executeComposioTool } = await import("@/lib/composio/execute");
+  const data = await executeComposioTool<{ value?: OutlookMessage[] }>({
+    slug: "OUTLOOK_LIST_MESSAGES",
+    userId,
+    connectedAccountId,
+    arguments: {
+      folder: "inbox",
+      top: 20,
+      received_date_time_ge: since.toISOString(),
+      orderby: ["receivedDateTime desc"],
+      select: ["id", "subject", "from", "bodyPreview", "receivedDateTime", "body"],
+      response_detail: "full",
+    },
+  });
 
   return (data.value ?? []).map((m) => ({
     id: m.id,

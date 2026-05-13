@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getComposioClient, hasComposio } from "@/lib/composio/client";
+import { assertComposioAccountOwnedByUser } from "@/lib/composio/accounts";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export async function GET(req: Request) {
   }
 
   try {
+    await assertComposioAccountOwnedByUser(user.id, authId);
     const composio = getComposioClient();
     const account = await composio.connectedAccounts.get(authId);
     if (account.status === "ACTIVE") {

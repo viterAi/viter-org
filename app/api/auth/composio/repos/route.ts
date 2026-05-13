@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { hasComposio } from "@/lib/composio/client";
-import { getComposioAccessToken } from "@/lib/composio/tokens";
+import { assertComposioAccountOwnedByUser } from "@/lib/composio/accounts";
+import { executeComposioTool } from "@/lib/composio/execute";
 
 export const dynamic = "force-dynamic";
 
-interface GitHubRepo {
-  full_name: string;
-  description: string | null;
-  private: boolean;
-  pushed_at: string;
-}
+type GitHubRepo = {
+  full_name?: string;
+  description?: string | null;
+  private?: boolean;
+  pushed_at?: string;
+};
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -28,55 +29,40 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "COMPOSIO_API_KEY not configured" }, { status: 500 });
   }
 
-  const token = await getComposioAccessToken(authId);
-  if (!token) {
-    return NextResponse.json({ error: "GitHub authorization not yet completed" }, { status: 202 });
+  try {
+    await assertComposioAccountOwnedByUser(user.id, authId);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      { status: 403 },
+    );
   }
 
-  const affiliation = "owner,collaborator,organization_member";
-  const merged = new Map<string, GitHubRepo>();
-  const maxPages = 5;
-
-  for (let page = 1; page <= maxPages; page++) {
-    const qs = new URLSearchParams({
-      sort: "pushed",
-      per_page: "100",
-      page: String(page),
-      affiliation,
+  try {
+    const data = await executeComposioTool<{ repositories?: GitHubRepo[] }>({
+      slug: "GITHUB_LIST_REPOSITORIES_FOR_THE_AUTHENTICATED_USER",
+      userId: user.id,
+      connectedAccountId: authId,
+      arguments: { per_page: 100, sort: "pushed" },
     });
-    const ghRes = await fetch(`https://api.github.com/user/repos?${qs}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
+    const repos = (data.repositories ?? []).sort((a, b) => {
+      const ta = a.pushed_at ? Date.parse(a.pushed_at) : 0;
+      const tb = b.pushed_at ? Date.parse(b.pushed_at) : 0;
+      return tb - ta;
     });
-
-    if (!ghRes.ok) {
-      const text = await ghRes.text();
-      return NextResponse.json({ error: `GitHub API error: ${text}` }, { status: 502 });
+    return NextResponse.json({
+      repos: repos.map((r) => ({
+        full_name: r.full_name ?? "",
+        description: r.description ?? "",
+        private: Boolean(r.private),
+        pushed_at: r.pushed_at,
+      })),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("INITIATED") || message.includes("PENDING")) {
+      return NextResponse.json({ error: "GitHub authorization not yet completed" }, { status: 202 });
     }
-
-    const batch = (await ghRes.json()) as GitHubRepo[];
-    if (!Array.isArray(batch) || batch.length === 0) break;
-    for (const r of batch) {
-      if (r?.full_name && !merged.has(r.full_name)) merged.set(r.full_name, r);
-    }
-    if (batch.length < 100) break;
+    return NextResponse.json({ error: message }, { status: 502 });
   }
-
-  const repos = Array.from(merged.values()).sort((a, b) => {
-    const ta = a.pushed_at ? Date.parse(a.pushed_at) : 0;
-    const tb = b.pushed_at ? Date.parse(b.pushed_at) : 0;
-    return tb - ta;
-  });
-
-  return NextResponse.json({
-    repos: repos.map((r) => ({
-      full_name: r.full_name,
-      description: r.description ?? "",
-      private: r.private,
-      pushed_at: r.pushed_at,
-    })),
-  });
 }

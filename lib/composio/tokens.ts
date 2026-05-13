@@ -16,7 +16,7 @@ function readRawToken(val: OAuthVal | undefined): string | null {
   return token;
 }
 
-/** Load a bearer token for a Composio connected account (`ca_…`). */
+/** @deprecated Composio always returns REDACTED on connected-account GET; use executeComposioTool instead. */
 export async function getComposioAccessToken(
   connectedAccountId: string,
 ): Promise<string | null> {
