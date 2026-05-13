@@ -36,8 +36,9 @@ export async function middleware(request: NextRequest) {
   const isCronRoute = pathname.startsWith("/api/cron/");
   const isArcadeVerifyRoute = pathname === "/api/auth/arcade/verify";
   const isArcadeDonePage = pathname === "/auth/arcade/done";
+  const isComposioDonePage = pathname === "/auth/composio/done";
 
-  if (!user && !isLoginPage && !isArcadeDonePage) {
+  if (!user && !isLoginPage && !isArcadeDonePage && !isComposioDonePage) {
     if (isApiRoute) {
       if (isGenuiGithubIngestWebhook || isCronRoute || isArcadeVerifyRoute) {
         return supabaseResponse;

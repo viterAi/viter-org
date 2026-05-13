@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { Arcade } from "@arcadeai/arcadejs";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resolveTenantIdForUser } from "@/lib/genui/resolve-tenant";
 import { REPO_KEY, normalizeRepoKey } from "@/lib/genui/repo-key";
+import { getComposioAccessToken } from "@/lib/composio/tokens";
+import { hasComposio } from "@/lib/composio/client";
 import { randomBytes } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -80,8 +81,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "external_key must be the mailbox email address." }, { status: 400 });
   }
 
-  // Store the Arcade user_id (Supabase user email) so the cron worker can look up the token
-  const arcadeAuthUserId = user.email ?? user.id;
+  // Store Composio connected account id (`ca_…`) for mail poll token lookup.
+  const composioAccountId = String(body.auth_id ?? "").trim();
+  if (!composioAccountId) {
+    return NextResponse.json({ error: "Complete Composio mailbox authorization first." }, { status: 400 });
+  }
 
   const { data: inserted, error: insErr } = await admin
     .from("genui_channels")
@@ -92,7 +96,7 @@ export async function POST(req: Request) {
       external_key: email,
       display_name: email,
       agent_prompt: prompt,
-      arcade_auth_user_id: arcadeAuthUserId,
+      arcade_auth_user_id: composioAccountId,
     })
     .select("id")
     .single();
@@ -135,7 +139,7 @@ async function handleGitHub({
   let autoInstalled = false;
   let installError: string | null = null;
 
-  const wantsAuto = Boolean(body.auth_id && process.env.ARCADE_API_KEY);
+  const wantsAuto = Boolean(body.auth_id && hasComposio());
   if (wantsAuto && webhookSecret.length < 8) {
     webhookSecret = randomBytes(20).toString("hex");
   }
@@ -144,7 +148,7 @@ async function handleGitHub({
     return NextResponse.json(
       {
         error:
-          "Provide a webhook signing secret (8+ characters) from GitHub repo → Settings → Webhooks, or complete Arcade GitHub auth for auto-install.",
+          "Provide a webhook signing secret (8+ characters) from GitHub repo → Settings → Webhooks, or complete Composio GitHub auth for auto-install.",
         code: "webhook_install_failed",
       },
       { status: 400 },
@@ -243,16 +247,12 @@ async function installGitHubWebhook({
   secret: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const client = new Arcade({ apiKey: process.env.ARCADE_API_KEY! });
-    const authStatus = await client.auth.status({ id: authId });
-
-    if (authStatus.status !== "completed" || !authStatus.context?.token) {
-      return { ok: false, error: "Arcade auth not completed" };
+    void userId;
+    const token = await getComposioAccessToken(authId);
+    if (!token) {
+      return { ok: false, error: "Composio GitHub authorization not completed" };
     }
 
-    void userId;
-
-    const token = authStatus.context.token;
     const webhookUrl = buildGenuiWebhookUrl(tenantId, channelId);
 
     // GitHub won't accept hooks pointing at a private/loopback URL. Catch this

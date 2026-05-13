@@ -1,6 +1,7 @@
-import { Arcade } from "@arcadeai/arcadejs";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureKindGrouping } from "@/lib/genui/kind-grouping";
+import { getComposioAccessToken } from "@/lib/composio/tokens";
+import { hasComposio } from "@/lib/composio/client";
 
 export type MailPollChannelResult = {
   channel_id: string;
@@ -52,11 +53,10 @@ type OutlookMessage = {
  * Used by the HTTP route and by `instrumentation.ts` when `MAIL_POLL_INTERVAL_MS` is set.
  */
 export async function runMailPoll(): Promise<MailPollRunResult> {
-  if (!process.env.ARCADE_API_KEY) {
-    return { ok: false, results: [], error: "missing ARCADE_API_KEY" };
+  if (!hasComposio()) {
+    return { ok: false, results: [], error: "missing COMPOSIO_API_KEY" };
   }
 
-  const arcade = new Arcade({ apiKey: process.env.ARCADE_API_KEY });
   const db = getSupabaseAdminClient();
 
   const { data: channels, error: chErr } = await db
@@ -74,7 +74,7 @@ export async function runMailPoll(): Promise<MailPollRunResult> {
 
   for (const ch of (channels ?? []) as Channel[]) {
     try {
-      const r = await processChannel(ch, arcade, db);
+      const r = await processChannel(ch, db);
       results.push(r);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -88,21 +88,19 @@ export async function runMailPoll(): Promise<MailPollRunResult> {
 
 async function processChannel(
   ch: Channel,
-  arcade: Arcade,
   db: ReturnType<typeof getSupabaseAdminClient>,
 ): Promise<MailPollChannelResult> {
-  const provider = ch.source === "gmail" ? "google" : "microsoft";
-  const scopes =
-    ch.source === "gmail"
-      ? ["https://www.googleapis.com/auth/gmail.readonly"]
-      : ["https://graph.microsoft.com/Mail.Read", "offline_access"];
+  const connectedAccountId = ch.arcade_auth_user_id;
+  if (!connectedAccountId?.startsWith("ca_")) {
+    console.warn(`[mail-poll] ${ch.id}: missing Composio connected account id — reconnect mailbox`);
+    return { channel_id: ch.id, inserted: 0, skipped: 0, error: "missing_composio_account" };
+  }
 
-  const authRes = await arcade.auth.start(ch.arcade_auth_user_id, provider, { scopes });
-  if (authRes.status !== "completed" || !authRes.context?.token) {
-    console.warn(`[mail-poll] ${ch.id}: token not ready (status=${authRes.status}) — skipping`);
+  const token = await getComposioAccessToken(connectedAccountId);
+  if (!token) {
+    console.warn(`[mail-poll] ${ch.id}: token not ready — skipping`);
     return { channel_id: ch.id, inserted: 0, skipped: 0, error: "token_not_ready" };
   }
-  const token = authRes.context.token as string;
 
   const since = ch.last_polled_at ? new Date(ch.last_polled_at) : new Date(Date.now() - 24 * 60 * 60 * 1000);
 

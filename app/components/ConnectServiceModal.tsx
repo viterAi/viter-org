@@ -139,7 +139,7 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
     pollRef.current = setInterval(() => {
       void (async () => {
         try {
-          const res = await fetch(`/api/auth/arcade/status?auth_id=${encodeURIComponent(id)}`, {
+          const res = await fetch(`/api/auth/composio/status?auth_id=${encodeURIComponent(id)}`, {
             credentials: "include",
           });
           const j = await res.json().catch(() => ({})) as { status?: string };
@@ -162,7 +162,7 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
     try {
       if (service.id === "github") {
         setManualRepoSlug("");
-        const res = await fetch(`/api/auth/arcade/repos?auth_id=${encodeURIComponent(id)}`, {
+        const res = await fetch(`/api/auth/composio/repos?auth_id=${encodeURIComponent(id)}`, {
           credentials: "include",
         });
         const j = await res.json().catch(() => ({})) as { repos?: Repo[]; error?: string };
@@ -170,7 +170,7 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
         setRepos(j.repos ?? []);
       } else {
         const res = await fetch(
-          `/api/auth/arcade/mailboxes?auth_id=${encodeURIComponent(id)}&provider=${service.id}`,
+          `/api/auth/composio/mailboxes?auth_id=${encodeURIComponent(id)}&provider=${service.id}`,
           { credentials: "include" },
         );
         const j = await res.json().catch(() => ({})) as { mailboxes?: Mailbox[]; error?: string };
@@ -205,7 +205,7 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
     }
 
     try {
-      const res = await fetch("/api/auth/arcade/start", {
+      const res = await fetch("/api/auth/composio/start", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
