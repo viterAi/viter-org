@@ -139,12 +139,13 @@ async function handleGitHub({
   let autoInstalled = false;
   let installError: string | null = null;
 
-  const wantsAuto = Boolean(body.auth_id && hasComposio());
-  if (wantsAuto && webhookSecret.length < 8) {
+  const manualWebhook = webhookSecret.length >= 8;
+  const wantsAutoInstall = Boolean(body.auth_id && hasComposio() && !manualWebhook);
+  if (wantsAutoInstall) {
     webhookSecret = randomBytes(20).toString("hex");
   }
 
-  if (!wantsAuto && webhookSecret.length < 8) {
+  if (!wantsAutoInstall && !manualWebhook) {
     return NextResponse.json(
       {
         error:
@@ -189,7 +190,7 @@ async function handleGitHub({
     return NextResponse.json({ error: secErr.message }, { status: 500 });
   }
 
-  if (wantsAuto) {
+  if (wantsAutoInstall) {
     const installResult = await installGitHubWebhook({
       authId: body.auth_id!,
       repo,
@@ -203,16 +204,14 @@ async function handleGitHub({
     } else {
       installError = installResult.error;
       console.warn("[channels/POST] GitHub webhook auto-install failed:", installResult.error);
-      await admin.from("genui_channel_secrets").delete().eq("genui_channel_id", channelId);
-      await admin.from("genui_channels").delete().eq("id", channelId);
-      return NextResponse.json(
-        {
-          error: `Could not install webhook automatically. ${installResult.error}`,
-          code: "webhook_install_failed",
-          install_error: installResult.error,
-        },
-        { status: 400 },
-      );
+      return NextResponse.json({
+        ok: true,
+        id: channelId,
+        auto_installed: false,
+        webhook_pending: true,
+        install_error: installResult.error,
+        webhook_url_hint: buildGenuiWebhookUrl(tenantId, channelId),
+      });
     }
   }
 
@@ -295,7 +294,7 @@ async function installGitHubWebhook({
     if (/404|not found/i.test(message)) {
       return {
         ok: false,
-        error: `GitHub returned 404 for ${repo}. Usually means your account doesn't have admin permission on the repo (required to add a webhook) or the org hasn't approved this OAuth app. Ask an org admin to grant access, then retry.`,
+        error: `GitHub returned 404 for ${repo}. This almost always means the connected GitHub user is not an admin on that repo. Org repos also require authorizing the Composio OAuth app under the org's SAML SSO settings (GitHub → org → Settings → Third-party access). Use manual webhook install below, or reconnect with an account that has admin access.`,
       };
     }
     if (/403|forbidden/i.test(message)) {

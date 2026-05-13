@@ -7,6 +7,8 @@ export type GitHubRepoSummary = {
   pushed_at?: string;
   owner: string;
   is_org_repo: boolean;
+  /** True when GitHub reports admin permission (required for auto webhook install). */
+  can_install_webhook: boolean;
 };
 
 type RawGitHubRepo = {
@@ -15,6 +17,7 @@ type RawGitHubRepo = {
   private?: boolean;
   pushed_at?: string;
   owner?: { login?: string };
+  permissions?: { admin?: boolean };
 };
 
 type RawGitHubOrg = {
@@ -48,6 +51,7 @@ function toSummary(repo: RawGitHubRepo, orgLogins: Set<string>): GitHubRepoSumma
     pushed_at: repo.pushed_at,
     owner,
     is_org_repo: orgLogins.has(owner),
+    can_install_webhook: repo.permissions?.admin === true,
   };
 }
 

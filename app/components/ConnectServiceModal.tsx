@@ -11,6 +11,7 @@ interface Repo {
   private: boolean;
   is_org_repo?: boolean;
   owner?: string;
+  can_install_webhook?: boolean;
 }
 
 interface Mailbox {
@@ -122,6 +123,8 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
   const [manualWebhookSecret, setManualWebhookSecret] = useState("");
   const [webhookUrl, setWebhookUrl] = useState<string>("");
   const [installFailed, setInstallFailed] = useState(false);
+  const [webhookPending, setWebhookPending] = useState(false);
+  const [selectedCanInstallWebhook, setSelectedCanInstallWebhook] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const popupRef = useRef<Window | null>(null);
@@ -178,11 +181,6 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
         const j = await res.json().catch(() => ({})) as { mailboxes?: Mailbox[]; error?: string };
         if (!res.ok) throw new Error(j.error ?? res.statusText);
         setMailboxes(j.mailboxes ?? []);
-        if (j.mailboxes?.length === 1) {
-          const mb = j.mailboxes[0];
-          setSelectedTarget(mb.id);
-          setSelectedTargetMeta({ email: mb.email });
-        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -240,6 +238,9 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
   function selectRepo(repo: Repo) {
     setSelectedTarget(repo.full_name);
     setSelectedTargetMeta({ description: repo.description });
+    setSelectedCanInstallWebhook(repo.can_install_webhook ?? null);
+    setInstallFailed(false);
+    setWebhookPending(false);
     const defaultGoal = repo.description
       ? `Summarize activity from ${repo.full_name}. ${repo.description}`
       : `Summarize commits, PRs, and issues from ${repo.full_name}.`;
@@ -287,20 +288,25 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
           ...(isGithub && manualSecret ? { webhook_secret: manualSecret } : {}),
         }),
       });
-      const j = await res.json().catch(() => ({})) as { error?: string; code?: string };
+      const j = await res.json().catch(() => ({})) as {
+        error?: string;
+        code?: string;
+        webhook_pending?: boolean;
+        webhook_url_hint?: string;
+        install_error?: string;
+        auto_installed?: boolean;
+      };
       if (!res.ok) {
-        if (isGithub && j.code === "webhook_install_failed") {
-          setInstallFailed(true);
-          setShowAdvanced(true);
-          // Fetch the webhook URL the user needs to paste into GitHub.
-          try {
-            const cfg = await fetch("/api/genui/config", { credentials: "include" });
-            const cj = await cfg.json().catch(() => ({})) as { webhookUrl?: string };
-            if (cj.webhookUrl) setWebhookUrl(cj.webhookUrl);
-          } catch { /* non-fatal */ }
-        }
         throw new Error(j.error ?? res.statusText);
       }
+      if (isGithub && j.webhook_pending) {
+        setInstallFailed(true);
+        setWebhookPending(true);
+        if (j.webhook_url_hint) setWebhookUrl(j.webhook_url_hint);
+        setStep("done");
+        return;
+      }
+      setWebhookPending(false);
       setStep("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -463,6 +469,11 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
                               Org
                             </span>
                           )}
+                          {r.can_install_webhook === false && (
+                            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "#b45309", padding: "2px 6px", borderRadius: 999, border: "0.5px solid #fcd34d", background: "#fffbeb" }}>
+                              Manual webhook
+                            </span>
+                          )}
                         </span>
                         {r.description && (
                           <span style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>{r.description}</span>
@@ -510,31 +521,42 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
             <div>
               {busy ? (
                 <p style={{ fontSize: 13, color: "var(--ink-tertiary)" }}>Loading mailbox…</p>
+              ) : mailboxes.length === 0 ? (
+                <p style={{ fontSize: 13, color: "var(--ink-tertiary)" }}>No mailbox found for this account.</p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {mailboxes.map((mb) => (
-                    <button
+                    <div
                       key={mb.id}
-                      onClick={() => selectMailbox(mb)}
                       style={{
                         display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                        gap: 2,
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
                         padding: "12px 14px",
                         borderRadius: "var(--r-card)",
                         border: "0.5px solid var(--line-thin)",
                         background: "var(--bg-secondary)",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        width: "100%",
                       }}
                     >
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-primary)" }}>{mb.label}</span>
-                      {mb.email !== mb.label && (
-                        <span style={{ fontSize: 12, color: "var(--ink-tertiary)" }}>{mb.email}</span>
-                      )}
-                    </button>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--ink-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {mb.label}
+                        </p>
+                        {mb.email !== mb.label && (
+                          <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--ink-tertiary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {mb.email}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => selectMailbox(mb)}
+                        style={{ ...btnPrimary, flexShrink: 0, padding: "8px 14px", fontSize: 12 }}
+                      >
+                        Use this
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -556,6 +578,12 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
                   {selectedTarget}
                 </p>
               </div>
+
+              {selectedService.id === "github" && selectedCanInstallWebhook === false && (
+                <p style={{ fontSize: 12, color: "#b45309", margin: "0 0 12px", lineHeight: 1.5, padding: "10px 12px", borderRadius: "var(--r-card)", background: "#fffbeb", border: "0.5px solid #fcd34d" }}>
+                  Your GitHub user can see this repo but does not have <strong>admin</strong> access, so auto-install will fail. Expand Advanced, add the webhook manually in GitHub, or reconnect with an org-admin account (and authorize Composio under org SSO).
+                </p>
+              )}
 
               <div style={{ marginBottom: 16 }}>
                 <button
@@ -605,11 +633,11 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
                           </li>
                           <li>
                             Paste this Payload URL: {webhookUrl ? (
-                              <code style={{ fontFamily: "ui-monospace, monospace", background: "var(--bg-secondary)", padding: "1px 4px", borderRadius: 3 }}>
-                                {webhookUrl}?t=&lt;tenant-id&gt;
+                              <code style={{ fontFamily: "ui-monospace, monospace", background: "var(--bg-secondary)", padding: "1px 4px", borderRadius: 3, wordBreak: "break-all" }}>
+                                {webhookUrl}
                               </code>
                             ) : (
-                              <em>(saving will reveal the exact URL)</em>
+                              <em>(connect once to reveal the exact URL, or expand after a failed auto-install)</em>
                             )}
                           </li>
                           <li>Content type: <code>application/json</code>. Generate a random secret, paste it here:</li>
@@ -657,11 +685,18 @@ export function ConnectServiceModal({ onClose, onConnected }: ConnectServiceModa
               <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink-primary)", margin: "0 0 6px" }}>
                 {selectedTarget} connected
               </p>
-              <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: "0 0 20px" }}>
+              <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: "0 0 20px", lineHeight: 1.55 }}>
                 {selectedService.id === "github"
-                  ? "Webhook installed. Events will be synthesized as they arrive."
-                  : `Inbox will be polled every 5 minutes.`}
+                  ? webhookPending
+                    ? "Channel saved. Add the webhook in GitHub using the Payload URL below (Advanced on the previous screen, or your channel settings), then events will flow in."
+                    : "Webhook installed. Events will be synthesized as they arrive."
+                  : "Inbox will be polled every 5 minutes."}
               </p>
+              {webhookPending && webhookUrl && (
+                <p style={{ fontSize: 12, color: "var(--ink-tertiary)", margin: "0 0 16px", fontFamily: "ui-monospace, monospace", wordBreak: "break-all" }}>
+                  {webhookUrl}
+                </p>
+              )}
               <button onClick={handleDone} style={btnPrimary}>Done</button>
             </div>
           )}
