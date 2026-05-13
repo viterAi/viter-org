@@ -50,3 +50,32 @@ export async function resolveGenuiL2Writer(): Promise<GenuiL2Writer | null> {
   });
   return { mode: "jwt", client };
 }
+
+/** JWT client for `genui_claim_next_job` and job row updates (requires tenant membership). */
+export async function resolveGenuiWorkerJwtClient(): Promise<SupabaseClient | null> {
+  const writer = await resolveGenuiL2Writer();
+  if (writer?.mode === "jwt") return writer.client;
+
+  const url = process.env.L0_SUPABASE_URL ?? process.env.NEXT_PUBLIC_L0_SUPABASE_URL;
+  const anon =
+    process.env.NEXT_PUBLIC_L0_SUPABASE_ANON_KEY ?? process.env.L0_SUPABASE_ANON_KEY;
+  const email =
+    process.env.GENUI_L2_MACHINE_EMAIL ?? process.env.GENUI_WORKER_EMAIL ?? "";
+  const password =
+    process.env.GENUI_L2_MACHINE_PASSWORD ?? process.env.GENUI_WORKER_PASSWORD ?? "";
+  if (!url || !anon || !email || !password) return null;
+
+  const base = createClient(url, anon, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await base.auth.signInWithPassword({ email, password });
+  if (error || !data.session) {
+    console.error("[genui worker] signInWithPassword failed:", error?.message ?? "no session");
+    return null;
+  }
+
+  return createClient(url, anon, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${data.session.access_token}` } },
+  });
+}
