@@ -38,23 +38,65 @@ export async function POST(req: Request) {
 
   const db = getSupabaseAdminClient();
 
-  const { data: existingCh, error: chErr } = await db
-    .from("genui_channels")
-    .select("id")
-    .eq("tenant_id", tenantHeader)
-    .eq("source", "github")
-    .eq("external_key", repoFullName)
-    .maybeSingle();
+  const channelIdParam = searchParams.get("c") ?? "";
+  let channelId: string | undefined;
 
-  if (chErr) {
-    return NextResponse.json({ error: chErr.message }, { status: 500 });
+  if (channelIdParam && isUuid(channelIdParam)) {
+    const { data: row, error: oneErr } = await db
+      .from("genui_channels")
+      .select("id")
+      .eq("id", channelIdParam)
+      .eq("tenant_id", tenantHeader)
+      .eq("source", "github")
+      .eq("external_key", repoFullName)
+      .maybeSingle();
+    if (oneErr) {
+      return NextResponse.json({ error: oneErr.message }, { status: 500 });
+    }
+    channelId = row?.id as string | undefined;
+  } else {
+    const { data: candidates, error: chErr } = await db
+      .from("genui_channels")
+      .select("id")
+      .eq("tenant_id", tenantHeader)
+      .eq("source", "github")
+      .eq("external_key", repoFullName);
+
+    if (chErr) {
+      return NextResponse.json({ error: chErr.message }, { status: 500 });
+    }
+    const ids = (candidates ?? []).map((r) => r.id as string);
+    for (const id of ids) {
+      const { data: secRow } = await db
+        .from("genui_channel_secrets")
+        .select("github_webhook_secret")
+        .eq("genui_channel_id", id)
+        .maybeSingle();
+      const secret = (secRow?.github_webhook_secret as string | undefined) ?? "";
+      if (secret && verifyGitHubSignature256(rawBody, sig, secret)) {
+        channelId = id;
+        break;
+      }
+    }
+    if (!channelId && ids.length === 1) {
+      const { data: secRow } = await db
+        .from("genui_channel_secrets")
+        .select("github_webhook_secret")
+        .eq("genui_channel_id", ids[0])
+        .maybeSingle();
+      const fallback = (secRow?.github_webhook_secret as string | undefined) ?? process.env.GITHUB_WEBHOOK_SECRET ?? "";
+      if (fallback && verifyGitHubSignature256(rawBody, sig, fallback)) {
+        channelId = ids[0];
+      }
+    }
   }
-  const channelId = existingCh?.id as string | undefined;
+
   if (!channelId) {
     return NextResponse.json(
       {
         error: "unknown_repo",
-        hint: "Add this repository under Corn jobs → genUI GitHub ingest before GitHub can deliver events.",
+        hint:
+          "Add this repository under Corn jobs (per-user URL includes ?c=<channelId>) or update the GitHub webhook URL after reconnecting.",
       },
       { status: 404 },
     );
@@ -79,12 +121,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid GitHub signature" }, { status: 401 });
   }
 
+  const idempotencyKey =
+    deliveryId && channelId ? `${channelId}:${deliveryId}` : deliveryId ?? null;
+
   const insertPayload = {
     tenant_id: tenantHeader,
     genui_channel_id: channelId,
     status: "pending" as const,
     ingest_kind: "webhook" as const,
-    idempotency_key: deliveryId,
+    idempotency_key: idempotencyKey,
     raw_body: rawBody,
     updated_at: new Date().toISOString(),
   };

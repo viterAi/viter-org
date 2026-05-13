@@ -52,10 +52,10 @@ Check off each item when complete. Items marked ⚡ are blocking other work.
 - [x] `api/bootstrap` — auth-guarded, returns `userId`, `tenantId`, `role`
 - [x] `api/sources/[sourceId]/views` — auth-guarded on GET and POST
 - [x] `api/views/[viewId]/apply` — auth-guarded
-- [x] `api/sources` — auth-guarded (still returns mock data)
-- [x] `api/sources/[sourceId]/canvas` — auth-guarded (still uses mock messages)
-- [x] `api/sources/[sourceId]/canvas/refresh` — auth-guarded (still uses mock messages)
-- [x] `api/sources/[sourceId]/steer` — auth-guarded (still uses mock messages)
+- [x] `api/sources` — auth-guarded; lists `genui_channels` (RLS)
+- [x] `api/sources/[sourceId]/canvas` — auth-guarded; reads `genui_l2` for channel
+- [x] `api/sources/[sourceId]/canvas/refresh` — auth-guarded; same L2 data for dynamic refresh
+- [x] `api/sources/[sourceId]/steer` — auth-guarded; same L2 data for steer loop
 
 ---
 
@@ -341,3 +341,89 @@ Section 15 complete. Views serve as MCP Apps. Platform hosts MCP App views. At l
 
 **Gate 8 — genUI data plane (vita-compare + Gui):**
 Section 16 substantially complete: `genui_channels`, `genui_l2` (with ownership/visibility RLS), ingest queue, Gui GitHub handler, worker script, Gmail/Outlook mail poll + scheduling options. Remaining: Arcade forward proof, reconciliation automation, payload contract + runbook, production schedule choice on Vercel.
+
+---
+
+## 17. genUI L2 in the UI (per-user consumption)
+
+Plan doc: `docs/plan-genui-l2-in-ui.md`. **Flow:** signed-in user → `/api/sources` lists their `genui_channels` (RLS) → clicking a leaf calls `/api/sources/[sourceId]/canvas` which queries `genui_l2` for that channel under the user's JWT, caps to latest 100 OR last 30 days, hands raw `payload`s to the existing AI page-composer. Saved layout reloads without an AI call; dynamic components poll on focus.
+
+**Identity & routing**
+
+- [x] `Source.id` re-purposed as the stable composite key `<source>:<external_key>` (e.g. `gmail:yy@upvlu.com`)
+- [x] `lib/genui/l2-source.ts` — helpers: list channels for current user (SSR), resolve stable key → `genui_channels.id`, fetch L2 rows with cap
+- [x] `views.source_id` (already `text`) stores the stable key — no schema migration
+
+**API routes (all auth-guarded, all read via SSR client / RLS)**
+
+- [x] `app/api/sources/route.ts` — replace `getMockChats()` with a `genui_channels` query; map to `Source`
+- [x] `app/api/sources/[sourceId]/canvas/route.ts` — resolve key → channel UUID → `genui_l2` rows; raw payload pass-through + `{ id, created_at, channel }` envelope
+- [x] `app/api/sources/[sourceId]/canvas/refresh/route.ts` — same L2 fetch; feed to existing dynamic refresh
+- [x] `app/api/sources/[sourceId]/steer/route.ts` — same L2 fetch; feed to existing steer classifier
+- [x] `app/api/sources/[sourceId]/invoices/route.ts` — L2 rows for saved-layout hydration (replaces legacy `sources` lookup)
+- [x] `GENUI_L2_MAX_ROWS` (default 100) and `GENUI_L2_MAX_DAYS` (default 30) read from `process.env`
+
+**Mocks**
+
+- [x] `lib/l0/mock-data.ts` deleted
+- [x] No remaining imports of `lib/l0/mock-data` anywhere under `app/**`
+
+**UI states & freshness**
+
+- [x] Left sidebar: when no channels, show inline "Connect your first service" CTA pointing at Corn jobs
+- [x] Canvas: empty state for "no L2 rows for this channel yet" with manual refresh
+- [ ] Canvas: empty state for "channel exists but all rows hidden by privacy" (distinct copy, deferred while default scope = tenant)
+- [x] `useCanvas` polls dynamic components on window focus + 30s interval while a source is active
+- [x] Reload: no `runContentRefresh` on saved-layout restore; `loadingCanvas` gate; poll-only 10s throttle for `data_change`
+- [x] `app/api/views/[viewId]/actions/route.ts` — fix `getSupabaseServerClient` import; Zod `sourceId` accepts composite keys
+
+**Deferrals (explicit)**
+
+- [ ] `?mine=1` scope toggle in UI (route accepts param; no control wired)
+- [ ] Supabase Realtime subscription on `genui_l2` (polling is v1)
+- [ ] Migration of legacy `public.views` rows keyed off mock slugs (left orphaned; cleanup SQL noted in plan doc §6)
+
+**Gate 9 — L2 in UI:**
+Section 17 complete. A user with at least one connected channel sees real `genui_l2` data in the canvas; mocks are gone from `app/**`; saved layouts survive reload.
+
+---
+
+## 18. genUI grouping (AI-inferred sidebar leaves)
+
+Plan doc: `docs/plan-genui-l2-in-ui.md` §8. **Flow:** ingest worker writes an L2 row → if no `public.genui_kind_grouping` row exists for that service `kind`, the worker calls `ensureKindGrouping()` which asks OpenRouter for the best payload field to group on (sender / chat / repo / channel) → caches `{ group_field, group_label, timestamp_field, display_regex, confidence }`. Sidebar fetches `/api/sources` which returns a nested tree (`kind → groups`); clicking a group leaf loads the canvas with that group's L2 rows. Admin can re-detect / hand-pick the field in Corn jobs.
+
+**Migration & data**
+
+- [x] Migration `20260515120000_genui_kind_grouping.sql` — table + RLS + seed rows for known kinds (gmail, outlook, whatsapp, slack, github, clickup). Mirrored in `supabase/migrations/` and `vita-compare/infra/supabase/migrations/`.
+- [x] Mail-poll extracts `from_email` (normalised) into the `genui_l2.payload` so SQL equality on `payload->>'from_email'` works for grouping.
+
+**Inference & library**
+
+- [x] `lib/genui/kind-grouping.ts` — `loadKindGrouping`, `loadAllKindGroupings`, `ensureKindGrouping` (LLM → heuristic fallback), `inferKindGroupingHeuristic`, `formatGroupKey`, `parseGroupKey`, `formatGroupDisplay`.
+- [x] `lib/genui/l2-source.ts` — unified `resolveSourceKey()` (channel | group), `listGroupsForKind()`, `fetchL2RowsForGroup()`, `fetchL2RowsForSource()`, `buildSourceTree()`.
+- [x] `lib/mail-poll/run-mail-poll.ts` — call `ensureKindGrouping()` once per channel-run after `inserted > 0`, using just-inserted payload samples.
+
+**Routes**
+
+- [x] `/api/sources` returns `{ sources, tree: SourceTreeNode[] }` (flat list union of group + channel keys for back-compat + nested tree for the sidebar).
+- [x] `/api/sources/[sourceId]/canvas` — accepts both channel keys (`gmail:yy@upvlu.com`) and group keys (`gmail::from_email=alice@x.com`).
+- [x] `/api/sources/[sourceId]/canvas/refresh` — same.
+- [x] `/api/sources/[sourceId]/steer` — same.
+- [x] `/api/sources/[sourceId]/invoices` — same.
+- [x] `/api/genui/kind-grouping` — `GET` (list), `POST` (upsert with `confidence: "admin"`), `POST { re_infer: true }` (clear cache to force re-run next tick).
+
+**UI**
+
+- [x] `app/types.ts` — `SourceGroup`, `SourceTreeNode`, `KindGrouping`.
+- [x] `LeftSidebar` consumes the tree: `kind → groups[]` (sorted by `latest_at`, "Other" bucket for null/empty values); falls back to today's `kind → channels[]` when no grouping row.
+- [x] `useSources` consumes nested response, persists current selection (works for both key forms).
+- [x] `GenuiKindGroupingPanel` inside Corn jobs — list every kind, show `group_field/label/display_regex/confidence`, "Edit" + "Re-detect" actions.
+
+**Deferrals (explicit)**
+
+- [ ] Per-tenant overrides (table is currently global per `kind`).
+- [ ] Migration of legacy `views.source_id` rows (today's per-channel keys); cleanup is a one-liner SQL.
+- [ ] AI-driven payload preprocessing beyond `from_email` normalisation (more complex services may need richer normalisation).
+
+**Gate 10 — grouped sidebar:**
+Section 18 complete. With a Gmail account ingested, the sidebar groups by sender; the canvas filters to that sender's rows; Corn jobs can re-detect/override the grouping field.

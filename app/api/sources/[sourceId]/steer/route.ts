@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { getMockMessages, getMockChats } from "../../../../../lib/l0/mock-data";
 import { getSupabaseServerClient } from "../../../../../lib/supabase/server";
 import { getCatalogPromptBlock } from "../../../../../lib/layout/component-catalog";
 import {
@@ -10,6 +9,12 @@ import {
 } from "../../../../../lib/ai/page-composer";
 import { fetchData } from "../../../../../lib/ai/fetch-data";
 import type { SourceDataRow } from "../../../../../lib/types/view-builder";
+import {
+  buildSourceTree,
+  fetchL2RowsForSource,
+  l2RowsToSourceDataRows,
+  resolveSourceKey,
+} from "../../../../../lib/genui/l2-source";
 
 const MAX_PAGE_FILL_ATTEMPTS = 20;
 
@@ -256,23 +261,26 @@ export async function POST(
       }
 
       try {
-        const chatSlug = decodeURIComponent(sourceId);
-        const rows = getMockMessages(chatSlug);
+        const sourceKey = decodeURIComponent(sourceId);
+        const resolved = await resolveSourceKey(supabase, sourceKey);
 
-        if (rows.length === 0) {
-          emit({ type: "error", error: `No messages found for chat: ${chatSlug}` });
+        if (!resolved) {
+          emit({ type: "error", error: `Source not found or not visible: ${sourceKey}` });
           controller.close();
           return;
         }
 
-        const chatName = chatSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        const l2Rows = await fetchL2RowsForSource(supabase, resolved);
+        const rows: SourceDataRow[] = l2RowsToSourceDataRows(l2Rows, resolved.kind);
+
         const source = {
-          key: chatSlug,
-          name: chatName,
-          channel: "whatsapp",
+          key: sourceKey,
+          name: resolved.name,
+          channel: resolved.kind,
         };
 
-        const sources: IncomingSource[] = getMockChats().map((c) => ({ id: c.id, name: c.name, key: c.key }));
+        const { flatSources } = await buildSourceTree(supabase);
+        const sources: IncomingSource[] = flatSources.map((s) => ({ id: s.id, name: s.name, key: s.key }));
 
         // ── Step 1: classify ────────────────────────────────────────────────
         emit({ type: "planning" });

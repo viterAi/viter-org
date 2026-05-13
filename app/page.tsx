@@ -8,6 +8,7 @@ import { TabBar } from "./components/TabBar";
 import { Dock } from "./components/Dock";
 import { CanvasContent } from "./components/CanvasContent";
 import { CornJobsCanvas } from "./components/CornJobsCanvas";
+import { useUser } from "@/lib/auth/UserContext";
 import { useResizablePanels } from "./hooks/useResizablePanels";
 import { useSources } from "./hooks/useSources";
 import { useCanvas } from "./hooks/useCanvas";
@@ -18,6 +19,7 @@ const dragPip: React.CSSProperties = {
 };
 
 export default function HomePage() {
+  const { user, loading: authLoading } = useUser();
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [cornJobsPage, setCornJobsPage] = useState(false);
@@ -28,8 +30,14 @@ export default function HomePage() {
 
   useEffect(() => {
     setMounted(true);
-    src.fetchSources().finally(() => setLoading(false));
   }, []);
+
+  // Refetch sidebar + channel selection whenever the signed-in user changes (not only on first mount).
+  useEffect(() => {
+    if (authLoading || !user?.id) return;
+    setLoading(true);
+    src.fetchSources().finally(() => setLoading(false));
+  }, [authLoading, user?.id, src.fetchSources]);
 
   useEffect(() => {
     if (src.sourceId) void canvas.loadOrGenerate(src.sourceId);
@@ -72,6 +80,7 @@ export default function HomePage() {
       <div style={{ flex: 1, display: "flex", gap: 0, minHeight: 0 }}>
         <LeftSidebar
           sources={src.sources}
+          tree={src.tree}
           sourceId={src.sourceId}
           setSourceId={(id) => {
             setCornJobsPage(false);
@@ -121,7 +130,8 @@ export default function HomePage() {
               />
               <CanvasContent
                 loading={loading} mounted={mounted} sourceId={src.sourceId}
-                generating={canvas.generating} canvasError={canvas.canvasError}
+                generating={canvas.generating} loadingCanvas={canvas.loadingCanvas}
+                canvasError={canvas.canvasError}
                 aiStatus={canvas.aiStatus} aiPages={canvas.aiPages} aiPageStatuses={canvas.aiPageStatuses}
                 activeAiPageId={canvas.activeAiPageId} progressLog={canvas.progressLog}
                 activeView={activeView} rows={canvas.rows}
@@ -129,6 +139,8 @@ export default function HomePage() {
                 pendingDraft={canvas.pendingDraft}
                 isRefreshingContent={canvas.isRefreshingContent}
                 refreshingComponentIds={canvas.refreshingComponentIds}
+                noSourcesAvailable={!loading && src.sources.length === 0}
+                onOpenCornJobs={() => setCornJobsPage(true)}
                 onRetryAi={() => { if (src.sourceId) void canvas.fetchCanvas(src.sourceId); }}
                 onMarkFollowedUp={() => { canvas.addOfflineMessage(); }}
                 onAgentAction={(msg) => {

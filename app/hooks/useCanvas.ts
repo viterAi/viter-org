@@ -39,9 +39,22 @@ export function useCanvas({ sourceId, sources, setSourceId, setBusy }: UseCanvas
 
   const [refreshingComponentIds, setRefreshingComponentIds] = useState<Set<string>>(new Set());
 
+  /**
+   * True while `loadOrGenerate` is running. Lets the parent suppress the "no
+   * synthesis yet" empty state during the async window between `sourceId`
+   * being set and the saved view (or fresh AI plan) finishing loading — that
+   * window otherwise renders a "Check again" button which, if clicked,
+   * accidentally fires a full AI regen.
+   */
+  const [loadingCanvas, setLoadingCanvas] = useState(false);
+
   // Always-current ref so refreshDynamic() never closes over stale aiPages.
   const aiPagesRef = useRef<AiPage[]>([]);
   aiPagesRef.current = aiPages;
+
+  // Throttle for *polling* refreshes only — explicit TabBar "Refresh" always runs.
+  const lastPollRefreshAtRef = useRef<number>(0);
+  const MIN_POLL_REFRESH_GAP_MS = 10_000;
 
   const [saveError, setSaveError] = useState<string>("");
 
@@ -142,54 +155,98 @@ export function useCanvas({ sourceId, sources, setSourceId, setBusy }: UseCanvas
   );
 
   /**
+   * Auto-refresh dynamic components when the user comes back to the tab
+   * (focus / visibilitychange) and on a slow background interval. Layout stays
+   * cached; only `mode === "dynamic"` components re-evaluate.
+   *
+   * Interval is deliberately slow (30s default) — new L2 rows arrive on the
+   * scale of minutes and we don't want to thrash the AI on a quiet channel.
+   */
+  useEffect(() => {
+    if (!sourceId) return;
+    const POLL_MS = 30_000;
+
+    const tick = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      if (aiPagesRef.current.length === 0) return;
+      const now = Date.now();
+      if (now - lastPollRefreshAtRef.current < MIN_POLL_REFRESH_GAP_MS) return;
+      lastPollRefreshAtRef.current = now;
+      void runContentRefresh(sourceId, aiPagesRef.current, "data_change");
+    };
+
+    const onVisible = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") tick();
+    };
+
+    window.addEventListener("focus", tick);
+    document.addEventListener("visibilitychange", onVisible);
+    const intervalId = window.setInterval(tick, POLL_MS);
+
+    return () => {
+      window.removeEventListener("focus", tick);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(intervalId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceId]);
+
+  /**
    * loadOrGenerate — the main entry point when a source is selected.
    * 1. Check for a saved default view with aiPages in the spec.
-   * 2. If found: load it immediately (no AI for structure), then refresh dynamic text content.
-   * 3. If not found: run full AI generation.
+   * 2. If found: load it immediately (no AI for structure); hydrate rows from `/invoices`.
+   * 3. If not found: run full AI generation via `fetchCanvas`.
    */
   async function loadOrGenerate(selectedSourceId: string) {
     if (!selectedSourceId) return;
     setCanvasError("");
     setSaveError("");
     setProgressLog([]);
+    setLoadingCanvas(true);
 
-    // ── Step 1: check for a saved view ──────────────────────────────────────
-    const viewsRes = await fetch(`/api/sources/${selectedSourceId}/views`);
-    if (viewsRes.ok) {
-      const viewsJson = (await viewsRes.json()) as { views?: Array<{ id: string; spec?: { ai_pages?: AiPage[] }; is_default?: boolean }> };
-      const defaultView = viewsJson.views?.find((v) => v.is_default && v.spec?.ai_pages && v.spec.ai_pages.length > 0);
+    try {
+      // ── Step 1: check for a saved view ────────────────────────────────────
+      const viewsRes = await fetch(`/api/sources/${selectedSourceId}/views`);
+      if (viewsRes.ok) {
+        const viewsJson = (await viewsRes.json()) as { views?: Array<{ id: string; spec?: { ai_pages?: AiPage[] }; is_default?: boolean }> };
+        const defaultView = viewsJson.views?.find((v) => v.is_default && v.spec?.ai_pages && v.spec.ai_pages.length > 0);
 
-      if (defaultView?.spec?.ai_pages) {
-        const savedPages = defaultView.spec.ai_pages;
-        setAiPages(savedPages);
-        const persistedTab = readTab(selectedSourceId);
-        const restoredTab = savedPages.find((p) => p.id === persistedTab)?.id ?? savedPages[0]?.id ?? "";
-        setActiveAiPageId(restoredTab);
-        setAiStatus({ state: "ready", last_error: null });
-        setAiPageStatuses(savedPages.map((p) => ({ page_id: p.id, state: "ready" as const, attempts_used: 0, last_error: null, warnings: [] })));
-        setIsSaved(true);
-        setSavedViewId(defaultView.id);
+        if (defaultView?.spec?.ai_pages) {
+          const savedPages = defaultView.spec.ai_pages;
+          setAiPages(savedPages);
+          const persistedTab = readTab(selectedSourceId);
+          const restoredTab = savedPages.find((p) => p.id === persistedTab)?.id ?? savedPages[0]?.id ?? "";
+          setActiveAiPageId(restoredTab);
+          setAiStatus({ state: "ready", last_error: null });
+          setAiPageStatuses(savedPages.map((p) => ({ page_id: p.id, state: "ready" as const, attempts_used: 0, last_error: null, warnings: [] })));
+          setIsSaved(true);
+          setSavedViewId(defaultView.id);
 
-        // Hydrate rows so row-dependent components (charts, tables, activity feeds)
-        // have data even when restored from a saved layout without a full AI run.
-        try {
-          const rowsRes = await fetch(`/api/sources/${selectedSourceId}/invoices`);
-          if (rowsRes.ok) {
-            const rowsJson = (await rowsRes.json()) as { invoices?: Row[] };
-            if (rowsJson.invoices) setRows(rowsJson.invoices);
-          }
-        } catch { /* rows are best-effort; layout still renders static components */ }
+          // Hydrate rows for row-dependent components (charts, tables, activity feeds)
+          // so they render with real data even without a full AI run.
+          try {
+            const rowsRes = await fetch(`/api/sources/${selectedSourceId}/invoices`);
+            if (rowsRes.ok) {
+              const rowsJson = (await rowsRes.json()) as { invoices?: Row[] };
+              if (rowsJson.invoices) setRows(rowsJson.invoices);
+            }
+          } catch { /* rows are best-effort; layout still renders static components */ }
 
-        // ── Step 2: refresh dynamic components whose trigger is data_change ──
-        void runContentRefresh(selectedSourceId, savedPages, "data_change");
-        return;
+          // No auto-refresh here — every component on a saved page was already
+          // generated by the AI when the layout was saved. The polling effect
+          // (focus + 30s interval, throttled) keeps dynamic blocks fresh, and
+          // the user can hit "Refresh" in the tab bar for an explicit re-run.
+          return;
+        }
       }
-    }
 
-    // ── Step 3: no saved view — run full AI generation ───────────────────────
-    setIsSaved(false);
-    setSavedViewId(null);
-    await fetchCanvas(selectedSourceId);
+      // ── Step 2: no saved view — run full AI generation ─────────────────────
+      setIsSaved(false);
+      setSavedViewId(null);
+      await fetchCanvas(selectedSourceId);
+    } finally {
+      setLoadingCanvas(false);
+    }
   }
 
   async function saveLayout(selectedSourceId: string, pages?: AiPage[], existingSavedViewId?: string | null): Promise<boolean> {
@@ -498,7 +555,7 @@ export function useCanvas({ sourceId, sources, setSourceId, setBusy }: UseCanvas
   return {
     views, setViews, activeViewId, setActiveViewId,
     rows, pendingDraft, setPendingDraft,
-    generating, canvasError,
+    generating, loadingCanvas, canvasError,
     aiStatus, aiPages, aiPageStatuses, activeAiPageId, setActiveAiPageId: selectAiPage,
     aiWarnings, progressLog,
     isSaved, isSavingLayout, isRefreshingContent, refreshingComponentIds, saveError,

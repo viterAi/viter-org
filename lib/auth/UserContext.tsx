@@ -47,6 +47,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
+        if (session?.user) {
+          fetch("/api/bootstrap")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d: { tenantId?: string } | null) => {
+              setTenantId(d?.tenantId ?? null);
+            });
+        } else {
+          setTenantId(null);
+        }
       },
     );
 

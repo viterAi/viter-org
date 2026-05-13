@@ -34,20 +34,46 @@ export async function GET(req: Request) {
   }
 
   const token = authStatus.context.token;
-  const ghRes = await fetch("https://api.github.com/user/repos?sort=pushed&per_page=100&affiliation=owner,collaborator", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-  });
+  // Include org repos the user can access via team/org membership (not just
+  // owner/collaborator on personal repos). Paginate — GitHub caps at 100/page.
+  const affiliation = "owner,collaborator,organization_member";
+  const merged = new Map<string, GitHubRepo>();
+  const maxPages = 5;
 
-  if (!ghRes.ok) {
-    const text = await ghRes.text();
-    return NextResponse.json({ error: `GitHub API error: ${text}` }, { status: 502 });
+  for (let page = 1; page <= maxPages; page++) {
+    const qs = new URLSearchParams({
+      sort: "pushed",
+      per_page: "100",
+      page: String(page),
+      affiliation,
+    });
+    const ghRes = await fetch(`https://api.github.com/user/repos?${qs}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+
+    if (!ghRes.ok) {
+      const text = await ghRes.text();
+      return NextResponse.json({ error: `GitHub API error: ${text}` }, { status: 502 });
+    }
+
+    const batch = (await ghRes.json()) as GitHubRepo[];
+    if (!Array.isArray(batch) || batch.length === 0) break;
+    for (const r of batch) {
+      if (r?.full_name && !merged.has(r.full_name)) merged.set(r.full_name, r);
+    }
+    if (batch.length < 100) break;
   }
 
-  const repos = (await ghRes.json()) as GitHubRepo[];
+  const repos = Array.from(merged.values()).sort((a, b) => {
+    const ta = a.pushed_at ? Date.parse(a.pushed_at) : 0;
+    const tb = b.pushed_at ? Date.parse(b.pushed_at) : 0;
+    return tb - ta;
+  });
+
   return NextResponse.json({
     repos: repos.map((r) => ({
       full_name: r.full_name,

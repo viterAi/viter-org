@@ -1,6 +1,7 @@
 "use client";
 
 import { GenUIIngestJobsPanel } from "./GenUIIngestJobsPanel";
+import { GenuiKindGroupingPanel } from "./GenuiKindGroupingPanel";
 
 /** Main column when “Corn jobs” is active — scheduled / webhook ingest surfaces. */
 export function CornJobsCanvas() {
@@ -39,6 +40,7 @@ export function CornJobsCanvas() {
         padding: 20,
       }}>
         <GenUIIngestJobsPanel />
+        <GenuiKindGroupingPanel />
       </div>
     </div>
   );

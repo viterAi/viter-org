@@ -10,9 +10,13 @@
  * When no trigger is given, all eligible dynamic components are refreshed.
  */
 import { NextRequest } from "next/server";
-import { getMockMessages } from "../../../../../../lib/l0/mock-data";
 import type { ComponentTrigger } from "../../../../../types";
 import { getSupabaseServerClient } from "../../../../../../lib/supabase/server";
+import {
+  fetchL2RowsForSource,
+  l2RowsToSourceDataRows,
+  resolveSourceKey,
+} from "../../../../../../lib/genui/l2-source";
 
 /** Backward-compat fallback: treat these component IDs as dynamic even without mode field. */
 const LEGACY_DYNAMIC_COMPONENTS = new Set(["text_block", "activity_feed"]);
@@ -95,11 +99,13 @@ export async function POST(
   const pages: AiPage[] = body.pages ?? [];
   const triggerFilter: ComponentTrigger | undefined = body.trigger;
 
-  const chatSlug = decodeURIComponent(sourceId);
-  const rows = getMockMessages(chatSlug);
-  const sourceName = chatSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const sourceKey = decodeURIComponent(sourceId);
+  const resolved = await resolveSourceKey(supabase, sourceKey);
+  const l2Rows = resolved ? await fetchL2RowsForSource(supabase, resolved) : [];
+  const rows = resolved ? l2RowsToSourceDataRows(l2Rows, resolved.kind) : [];
+  const sourceName = resolved?.name ?? sourceKey;
   const dataContext = rows.length > 0
-    ? `${rows.length} messages. Sample:\n${JSON.stringify(rows.slice(0, 15), null, 1)}`
+    ? `${rows.length} L2 syntheses (newest first). Sample:\n${JSON.stringify(rows.slice(0, 15), null, 1)}`
     : "No data available.";
 
   const encoder = new TextEncoder();
