@@ -1,19 +1,37 @@
+import { getComposioClient } from "@/lib/composio/client";
+
 export type ComposioProvider = "github" | "google" | "microsoft";
 
-const AUTH_CONFIG_ENV: Record<ComposioProvider, string> = {
-  github: "COMPOSIO_AUTH_CONFIG_GITHUB",
-  google: "COMPOSIO_AUTH_CONFIG_GMAIL",
-  microsoft: "COMPOSIO_AUTH_CONFIG_OUTLOOK",
+const TOOLKIT_SLUG: Record<ComposioProvider, string> = {
+  github: "github",
+  google: "gmail",
+  microsoft: "outlook",
 };
 
-export function getComposioAuthConfigId(provider: ComposioProvider): string {
-  const envKey = AUTH_CONFIG_ENV[provider];
-  const id = process.env[envKey]?.trim();
+const authConfigCache = new Map<string, string>();
+
+/** Resolve the Composio auth config (`ac_…`) for a provider from the project API. */
+export async function resolveComposioAuthConfigId(provider: ComposioProvider): Promise<string> {
+  const slug = TOOLKIT_SLUG[provider];
+  const cached = authConfigCache.get(slug);
+  if (cached) return cached;
+
+  const composio = getComposioClient();
+  let list = await composio.authConfigs.list({ toolkit: slug, isComposioManaged: true });
+  let id = list.items?.[0]?.id;
+
+  if (!id) {
+    list = await composio.authConfigs.list({ toolkit: slug });
+    id = list.items?.[0]?.id;
+  }
+
   if (!id) {
     throw new Error(
-      `${envKey} not configured. Create a Composio auth config (managed OAuth) for this toolkit and paste the ac_… id.`,
+      `No Composio auth config for toolkit "${slug}". Enable ${slug} (managed OAuth) in your Composio project.`,
     );
   }
+
+  authConfigCache.set(slug, id);
   return id;
 }
 

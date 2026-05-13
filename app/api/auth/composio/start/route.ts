@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getComposioClient, hasComposio } from "@/lib/composio/client";
-import { appBaseUrl, getComposioAuthConfigId, type ComposioProvider } from "@/lib/composio/config";
+import { appBaseUrl, resolveComposioAuthConfigId, type ComposioProvider } from "@/lib/composio/config";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
   try {
     const composio = getComposioClient();
-    const authConfigId = getComposioAuthConfigId(provider);
+    const authConfigId = await resolveComposioAuthConfigId(provider);
     const callbackUrl = `${appBaseUrl(req)}/auth/composio/done`;
 
     const existing = await composio.connectedAccounts.list({
