@@ -33,7 +33,7 @@ importers:
 
   adapters/file-watcher:
     dependencies:
-      '@vita/runtime':
+      '@viter-org/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
       chokidar:
@@ -86,7 +86,7 @@ importers:
       '@tailwindcss/typography':
         specifier: ^0.5.19
         version: 0.5.19(tailwindcss@4.2.4)
-      '@vita/adapter-whatsapp-gowa':
+      '@viter-org/adapter-whatsapp-gowa':
         specifier: workspace:*
         version: link:../../adapters/whatsapp-gowa
       next:
@@ -146,10 +146,10 @@ importers:
       '@trigger.dev/sdk':
         specifier: ^4.4.5
         version: 4.4.5(ai@6.0.175(zod@4.4.3))(zod@4.4.3)
-      '@vita/adapter-whatsapp-gowa':
+      '@viter-org/adapter-whatsapp-gowa':
         specifier: workspace:*
         version: link:../../adapters/whatsapp-gowa
-      '@vita/runtime':
+      '@viter-org/runtime':
         specifier: workspace:*
         version: link:../runtime
       ai:
