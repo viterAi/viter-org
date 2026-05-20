@@ -3,7 +3,7 @@
  * Wraps the env-var contract so pages/actions don't repeat themselves.
  */
 
-import { GowaClient, type GowaClientConfig } from '@vita/adapter-whatsapp-gowa';
+import { GowaClient, type GowaClientConfig } from '@viter-org/adapter-whatsapp-gowa';
 
 let cached: GowaClient | null = null;
 

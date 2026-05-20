@@ -1,5 +1,5 @@
 {
-  "name": "@vita/adapter-whatsapp-gowa",
+  "name": "@viter-org/adapter-whatsapp-gowa",
   "version": "0.1.0",
   "private": true,
   "type": "module",

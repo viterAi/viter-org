@@ -1,5 +1,5 @@
 /**
- * @vita/adapter-whatsapp-gowa
+ * @viter-org/adapter-whatsapp-gowa
  *
  * Public surface for the GOWA adapter package. Re-exports everything
  * downstream code needs: typed REST client, webhook payload schemas,

@@ -20,7 +20,7 @@
 
 import { schedules, metadata, logger } from '@trigger.dev/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { GowaClient } from '@vita/adapter-whatsapp-gowa';
+import { GowaClient } from '@viter-org/adapter-whatsapp-gowa';
 
 interface ChatRow {
   chat_id: string;

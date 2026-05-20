@@ -14,7 +14,7 @@
 import { schemaTask, tags, wait } from '@trigger.dev/sdk';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
-import { GowaClient } from '@vita/adapter-whatsapp-gowa';
+import { GowaClient } from '@viter-org/adapter-whatsapp-gowa';
 
 const Payload = z.object({
   tenant_id: z.string().uuid(),

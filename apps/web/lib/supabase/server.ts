@@ -28,7 +28,7 @@ export function getServiceRoleClient(): SupabaseClient {
  *
  * v0.2: lookup waterfall
  *   1. auth session → tenant_members (first row, ordered admin > member)
- *   2. fallback to env VITA_DEFAULT_TENANT_SLUG (defaults to 'viter')
+ *   2. fallback to env VITER_ORG_DEFAULT_TENANT_SLUG (defaults to 'viter')
  *
  * Webhook + cron paths run without an auth session — they fall through
  * to the env-default. Page renders run with the cookie session.
@@ -54,7 +54,7 @@ export async function getCurrentTenantId(): Promise<string> {
     // No request context (background job / webhook). Fall through.
   }
 
-  const slug = process.env.VITA_DEFAULT_TENANT_SLUG ?? 'viter';
+  const slug = process.env.VITER_ORG_DEFAULT_TENANT_SLUG ?? 'viter';
   const { data, error } = await db.from('tenants').select('id').eq('slug', slug).single();
   if (error || !data) throw new Error(`default tenant '${slug}' not found: ${error?.message}`);
   return data.id as string;

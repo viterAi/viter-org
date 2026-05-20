@@ -38,7 +38,7 @@ const EXTRACTOR_ID = 'openrouter:google/gemini-3.1-flash-lite@2026-05-11-claim';
 const MODEL        = 'google/gemini-3.1-flash-lite-preview';
 
 // (System prompts identical to scripts/backfill-claim-facets.ts — keep in sync,
-// or extract to @vita/runtime/extractors/claim-prompts.ts if preferred.)
+// or extract to @viter-org/runtime/extractors/claim-prompts.ts if preferred.)
 const SYS_EVENT  = '...';  // see backfill script
 const SYS_COMMIT = '...';
 

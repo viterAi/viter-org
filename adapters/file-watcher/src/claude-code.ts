@@ -14,7 +14,7 @@
  * each cleanly attributable. Query layer can pick latest by metadata.session_id.
  *
  * Run locally:
- *   pnpm --filter @vita/adapter-file-watcher watch
+ *   pnpm --filter @viter-org/adapter-file-watcher watch
  *
  * Run as a launchd daemon (Mac):
  *   see README.md for the .plist template
@@ -24,7 +24,7 @@ import { homedir } from 'node:os';
 import { join, basename, dirname } from 'node:path';
 
 import chokidar from 'chokidar';
-import { createServiceRoleClient, Runner } from '@vita/runtime';
+import { createServiceRoleClient, Runner } from '@viter-org/runtime';
 
 const DEBOUNCE_MS = 5_000;
 
@@ -50,7 +50,7 @@ function deriveChannelIdentifierFromPath(filePath: string): string {
 
 async function main() {
   const projectsRoot = join(homedir(), '.claude', 'projects');
-  const userCanonical = process.env.VITA_USER_CANONICAL_ID ?? 'mordechai-potash';
+  const userCanonical = process.env.VITER_ORG_USER_CANONICAL_ID ?? 'mordechai-potash';
 
   console.log(`[watcher] starting · projectsRoot=${projectsRoot} · user=${userCanonical}`);
 
@@ -111,10 +111,10 @@ async function main() {
   }
 
   // ignoreInitial=true by default: only catch NEW writes after start.
-  // Set VITA_WATCHER_CATCHUP=1 to process all existing files on startup (will run
+  // Set VITER_ORG_WATCHER_CATCHUP=1 to process all existing files on startup (will run
   // every JSONL through Runner.ingestFile; sha256 dedup makes already-ingested files
   // a no-op but FRESH files get fully ingested — pick scope deliberately).
-  const catchUp = process.env.VITA_WATCHER_CATCHUP === '1';
+  const catchUp = process.env.VITER_ORG_WATCHER_CATCHUP === '1';
   const watcher = chokidar.watch(`${projectsRoot}/-Users-mordechai-*/*.jsonl`, {
     persistent: true,
     ignoreInitial: !catchUp,

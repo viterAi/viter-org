@@ -40,8 +40,8 @@ import {
   transcribeWithAssemblyAI,
   ASSEMBLYAI_EXTRACTOR_VERSION,
   ASSEMBLYAI_MODEL_ID,
-} from '@vita/runtime/extractors-meeting';
-import { createLLMCallLogger } from '@vita/runtime/llm-log';
+} from '@viter-org/runtime/extractors-meeting';
+import { createLLMCallLogger } from '@viter-org/runtime/llm-log';
 
 const IngestMeetingPayload = z.object({
   tenant_slug: z.string(),

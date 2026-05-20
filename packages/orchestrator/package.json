@@ -1,5 +1,5 @@
 {
-  "name": "@vita/orchestrator",
+  "name": "@viter-org/orchestrator",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -18,8 +18,8 @@
     "ai": "^6.0.168",
     "@trigger.dev/build": "^4.4.5",
     "@trigger.dev/sdk": "^4.4.5",
-    "@vita/adapter-whatsapp-gowa": "workspace:*",
-    "@vita/runtime": "workspace:*",
+    "@viter-org/adapter-whatsapp-gowa": "workspace:*",
+    "@viter-org/runtime": "workspace:*",
     "mammoth": "^1.10.0",
     "node-stream-zip": "^1.15.0",
     "xlsx": "^0.18.5",

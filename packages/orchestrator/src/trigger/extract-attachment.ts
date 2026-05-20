@@ -14,8 +14,8 @@ import { schemaTask, tags, metadata, logger } from '@trigger.dev/sdk';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 
-import { dispatchExtract } from '@vita/runtime/extractors-attachments';
-import { createLLMCallLogger } from '@vita/runtime/llm-log';
+import { dispatchExtract } from '@viter-org/runtime/extractors-attachments';
+import { createLLMCallLogger } from '@viter-org/runtime/llm-log';
 
 const ExtractAttachmentPayload = z.object({
   tenant_id: z.string().uuid(),

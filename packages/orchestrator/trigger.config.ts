@@ -26,7 +26,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * Trigger.dev's deploy uploads only this package's tracked git files; the
  * pnpm symlinks pointing at sibling workspace packages (../../adapters/...,
  * ../runtime/) are NOT followed during upload. So esbuild on the build
- * server can't resolve `@vita/adapter-whatsapp-gowa` or `@vita/runtime`.
+ * server can't resolve `@viter-org/adapter-whatsapp-gowa` or `@viter-org/runtime`.
  *
  * Fix: vendor the deps' built dist/ + the runtime's source-only subpath
  * exports into a local `vendored/` folder (committed to git), and register
@@ -69,13 +69,13 @@ const aliasWorkspaceDepsExtension: any = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onBuildStart: async (context: any) => {
     const aliasMap: Record<string, string> = {
-      '@vita/adapter-whatsapp-gowa': resolve(VENDOR_ROOT, 'adapter-whatsapp-gowa/index.js'),
-      '@vita/runtime': resolve(VENDOR_ROOT, 'runtime-dist/index.js'),
-      '@vita/runtime/extractors-attachments': resolve(VENDOR_ROOT, 'runtime-src/extractors/attachments/dispatcher.ts'),
-      '@vita/runtime/extractors-meeting': resolve(VENDOR_ROOT, 'runtime-src/extractors/meeting/index.ts'),
-      '@vita/runtime/llm-log': resolve(VENDOR_ROOT, 'runtime-src/llm-log/index.ts'),
-      '@vita/runtime/synthesizers': resolve(VENDOR_ROOT, 'runtime-dist/synthesizers/index.js'),
-      '@vita/runtime/types': resolve(VENDOR_ROOT, 'runtime-dist/types.js'),
+      '@viter-org/adapter-whatsapp-gowa': resolve(VENDOR_ROOT, 'adapter-whatsapp-gowa/index.js'),
+      '@viter-org/runtime': resolve(VENDOR_ROOT, 'runtime-dist/index.js'),
+      '@viter-org/runtime/extractors-attachments': resolve(VENDOR_ROOT, 'runtime-src/extractors/attachments/dispatcher.ts'),
+      '@viter-org/runtime/extractors-meeting': resolve(VENDOR_ROOT, 'runtime-src/extractors/meeting/index.ts'),
+      '@viter-org/runtime/llm-log': resolve(VENDOR_ROOT, 'runtime-src/llm-log/index.ts'),
+      '@viter-org/runtime/synthesizers': resolve(VENDOR_ROOT, 'runtime-dist/synthesizers/index.js'),
+      '@viter-org/runtime/types': resolve(VENDOR_ROOT, 'runtime-dist/types.js'),
     };
     context.registerPlugin({
       name: 'alias-workspace-deps',

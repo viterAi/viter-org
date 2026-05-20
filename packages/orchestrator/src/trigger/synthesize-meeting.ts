@@ -17,8 +17,8 @@ import { createClient } from '@supabase/supabase-js';
 import { generateText } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
-import { synthesize } from '@vita/runtime/synthesizers';
-import type { LLMClient, LLMCompletionRequest, LLMCompletionResult } from '@vita/runtime/synthesizers';
+import { synthesize } from '@viter-org/runtime/synthesizers';
+import type { LLMClient, LLMCompletionRequest, LLMCompletionResult } from '@viter-org/runtime/synthesizers';
 
 /**
  * LLM client using @openrouter/ai-sdk-provider (same pattern as viterAi/viter).

@@ -13,8 +13,8 @@
  *   tsx scripts/backfill-claude-code.ts --limit 5       # only first N files
  *
  * Env required: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
- * Optional: VITA_TENANT_ID (default: viter slug looked up at runtime)
- *           VITA_USER_CANONICAL_ID (default: 'mordechai-potash')
+ * Optional: VITER_ORG_TENANT_ID (default: viter slug looked up at runtime)
+ *           VITER_ORG_USER_CANONICAL_ID (default: 'mordechai-potash')
  */
 
 import { homedir } from 'node:os';
@@ -116,7 +116,7 @@ async function main() {
   if (tenantErr || !tenantRow) throw new Error(`tenant '${tenantSlug}' not found: ${tenantErr?.message}`);
 
   const tenantId = tenantRow.id as string;
-  const userCanonical = process.env.VITA_USER_CANONICAL_ID ?? 'mordechai-potash';
+  const userCanonical = process.env.VITER_ORG_USER_CANONICAL_ID ?? 'mordechai-potash';
   const runner = new Runner(db, tenantId);
 
   console.log(`[backfill] connected · tenant=${tenantSlug} (${tenantId}) · user=${userCanonical}`);

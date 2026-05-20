@@ -1,5 +1,5 @@
 {
-  "name": "@vita/adapter-file-watcher",
+  "name": "@viter-org/adapter-file-watcher",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "watch": "tsx src/claude-code.ts"
   },
   "dependencies": {
-    "@vita/runtime": "workspace:*",
+    "@viter-org/runtime": "workspace:*",
     "chokidar": "^4.0.1"
   },
   "devDependencies": {
