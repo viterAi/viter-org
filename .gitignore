@@ -60,3 +60,9 @@ Ahiya HaShiloni Street*.md
 # one-shot scripts that reference specific personal data
 scripts/insert-ahiya-meeting-l1.ts
 scripts/test-extractor-logging.ts
+
+# private audit library — strictly local; served from /audit via CLI deploy only.
+# DO NOT remove this line. Committing library/ exposes private content to every
+# viterAi/vita collaborator (including Yitzchak).
+library/
+shaul diretives/

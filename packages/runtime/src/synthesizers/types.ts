@@ -23,6 +23,7 @@ export interface L1EventForPrompt {
   modality: string;
   content: string | null;
   position: number;
+  actor_id: string | null;
   actor_canonical: string | null;
   actor_display: string | null;
   channel_kind: string | null;

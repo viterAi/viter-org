@@ -44,7 +44,7 @@ export async function scopeByMeeting(
   // Resolve active extraction run for this channel's artifacts
   const { data: events, error: evErr } = await db
     .from('l1_events')
-    .select('id, extraction_run_id, event_at, facet, modality, content, position, artifact_id, metadata')
+    .select('id, extraction_run_id, event_at, facet, modality, content, position, artifact_id, actor_id, metadata')
     .eq('tenant_id', input.tenantId)
     .eq('channel_id', channelId)
     .eq('facet', 'transcription')
@@ -67,15 +67,35 @@ export async function scopeByMeeting(
     (activeRows ?? []).map((a: any) => `${a.artifact_id}::${a.facet}::${a.active_run_id}`),
   );
 
+  // Collect actor_ids that need display name resolution
+  const actorIds = [...new Set(
+    events.map((e: any) => e.actor_id as string | null).filter(Boolean)
+  )] as string[];
+  const actorNames = new Map<string, string>();
+  if (actorIds.length > 0) {
+    const { data: principals } = await db
+      .from('principals')
+      .select('id, display_name')
+      .in('id', actorIds);
+    for (const p of principals ?? []) {
+      actorNames.set(p.id as string, p.display_name as string);
+    }
+  }
+
   return events
     .filter((e: any) => activeKey.has(`${e.artifact_id}::transcription::${e.extraction_run_id}`))
     .map((e: any) => {
+      // Prefer actor_id (MacWhisper backfill path) over metadata.speaker (AssemblyAI path)
+      const actorId = e.actor_id as string | null;
       const speakerCode = (e.metadata?.speaker as string | null) ?? null;
-      const speakerName = speakerCode && speakersMap?.[speakerCode]?.name
-        ? speakersMap[speakerCode]!.name!
-        : speakerCode
-          ? `Speaker ${speakerCode}`
-          : 'Unknown';
+      const speakerName = actorId && actorNames.has(actorId)
+        ? actorNames.get(actorId)!
+        : (e.metadata?.speaker_name as string | null)
+          ?? (speakerCode && speakersMap?.[speakerCode]?.name
+            ? speakersMap[speakerCode]!.name!
+            : speakerCode
+              ? `Speaker ${speakerCode}`
+              : 'Unknown');
 
       return {
         id: e.id as string,
@@ -86,7 +106,8 @@ export async function scopeByMeeting(
         content: e.content as string | null,
         position: e.position as number,
         artifact_id: e.artifact_id as string,
-        actor_canonical: speakerCode ? `speaker-${speakerCode.toLowerCase()}` : null,
+        actor_id: actorId,
+        actor_canonical: actorId ?? (speakerCode ? `speaker-${speakerCode.toLowerCase()}` : null),
         actor_display: speakerName,
         channel_kind: 'meeting',
         channel_identifier: channelIdentifier,

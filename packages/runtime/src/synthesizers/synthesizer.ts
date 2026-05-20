@@ -75,7 +75,7 @@ export async function synthesize(
   const { systemPrompt, userPrompt, codeMap } = dispatchPromptBuilder(scopeKind, scopeKey, events);
 
   // ── 3. LLM ─────────────────────────────────────────────────────────
-  const model = opts.modelOverride ?? 'anthropic/claude-opus-4-5';
+  const model = opts.modelOverride ?? 'google/gemini-3.1-flash-lite';
   const promptVersion = scopeKind === 'day' ? PROMPT_VERSION_DAY : 'unknown';
   const params = { max_tokens: 16384, temperature: 0.2 };
 

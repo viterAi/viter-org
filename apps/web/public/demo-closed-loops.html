@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vita — Closed Loops · last 2 weeks</title>
+<style>
+  :root { --bg:#0b0d10; --card:#13161b; --border:#2a2f37; --text:#e8eaed; --muted:#9aa0a6; --accent:#10b981; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:48px 24px; background:var(--bg); color:var(--text); font:14px/1.5 ui-monospace,'JetBrains Mono','Fira Code',monospace; }
+  h1 { font-size:28px; margin:0 0 8px; font-weight:600; letter-spacing:-0.02em; }
+  .sub { color:var(--muted); margin-bottom:32px; font-size:13px; max-width:900px; }
+  .container { max-width:1280px; margin:0 auto; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:32px; }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; }
+  .stat-num { font-size:28px; font-weight:600; color:var(--accent); }
+  .stat-lbl { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-top:4px; }
+  h2 { font-size:18px; margin:32px 0 12px; font-weight:600; color:var(--text); }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  th { background:#191c22; padding:10px 14px; text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); font-weight:600; letter-spacing:0.05em; }
+  td { padding:14px; border-top:1px solid var(--border); vertical-align:top; font-size:13px; }
+  tr:hover td { background:#191c22; }
+  .ts { color:var(--muted); white-space:nowrap; font-size:12px; }
+  .who { color:var(--text); font-weight:500; white-space:nowrap; }
+  .text { color:var(--text); max-width:380px; }
+  .kind { display:inline-block; padding:2px 8px; border-radius:4px; border:1px solid; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:0.04em; margin-left:6px; }
+  .lag { display:inline-block; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .lag-fast  { background:#10b98140; color:#10b981; border:1px solid #10b981; }
+  .lag-good  { background:#3b82f640; color:#3b82f6; border:1px solid #3b82f6; }
+  .lag-slow  { background:#f59e0b40; color:#f59e0b; border:1px solid #f59e0b; }
+  .lag-stale { background:#ef444440; color:#ef4444; border:1px solid #ef4444; }
+  .sim { color:var(--muted); font-size:11px; font-family:inherit; }
+  .footer { margin-top:48px; color:var(--muted); font-size:11px; text-align:center; line-height:1.8; padding-top:32px; border-top:1px solid var(--border); }
+  .footer code { background:var(--card); padding:2px 6px; border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Vita · closed-loop accountability</h1>
+<div class="sub">Every directive, pain, and scope-shift in vita ⟶ every commit that responded ⟶ how fast.<br>Auto-extracted via gemini-3.1-flash-lite + cosine similarity over 14 days. No tickets filed. No process change.</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-num">30</div><div class="stat-lbl">closed loops, 14 days</div></div>
+  <div class="stat"><div class="stat-num">10 min</div><div class="stat-lbl">fastest ask→ship</div></div>
+  <div class="stat"><div class="stat-num">1.3 h</div><div class="stat-lbl">median ask→ship</div></div>
+  <div class="stat"><div class="stat-num">50</div><div class="stat-lbl">open asks (no ship yet)</div></div>
+</div>
+
+<h2>✓ Closed loops — what was asked, what shipped</h2>
+<table>
+<thead><tr>
+  <th>Asked</th><th>Where</th><th>Ask</th>
+  <th>Shipped</th><th>What shipped</th><th>Lag</th><th>Sim</th>
+</tr></thead>
+<tbody>
+<tr>
+  <td class="ts">22/04, 16:27</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span> The user is concerned that variance values are displayed in GBP rather than the source currency.</td>
+  <td class="ts">22/04, 22:13</td>
+  <td class="text"><span class="kind" style="color:#14b8a6;border-color:#14b8a6">fix</span> Correct the variance calculation to use the primary source currency instead of defaulting to GBP.</td>
+  <td><span class="lag lag-good">5.8 h</span></td>
+  <td class="sim">0.759</td>
+</tr><tr>
+  <td class="ts">14/04, 22:04</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Integrate Plunet project data with Xero data to create a master listing.</td>
+  <td class="ts">15/04, 21:32</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Implement Plunet data ingestion and reconciliation to identify financial gaps between Plunet and Xero</td>
+  <td><span class="lag lag-good">23.5 h</span></td>
+  <td class="sim">0.752</td>
+</tr><tr>
+  <td class="ts">16/04, 09:59</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> Limit the invoice reconciliation to a one-way check from Plunet to Xero.</td>
+  <td class="ts">16/04, 10:16</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Implement a one-way reconciliation interface between Plunet payables and Xero bills for suppliers</td>
+  <td><span class="lag lag-fast">17 min</span></td>
+  <td class="sim">0.743</td>
+</tr><tr>
+  <td class="ts">16/04, 13:13</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Implement an override feature to mark items as reconciled for difficult cases</td>
+  <td class="ts">16/04, 18:33</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Enhance the reconciliation override feature with a new 'Mark reconciled' action, reason prompts, and the ability to undo overrides.</td>
+  <td><span class="lag lag-good">5.3 h</span></td>
+  <td class="sim">0.741</td>
+</tr><tr>
+  <td class="ts">29/04, 05:07</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> Update the KPI dashboard to include Orders Received, margin, number of orders, and orders in progress.</td>
+  <td class="ts">29/04, 11:27</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Replace financial KPI tiles with operations-focused metrics including orders received, total orders, orders in progress, and margin percentage.</td>
+  <td><span class="lag lag-good">6.3 h</span></td>
+  <td class="sim">0.736</td>
+</tr><tr>
+  <td class="ts">16/04, 18:54</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> Add a manual reconciliation override feature for simple suppliers.</td>
+  <td class="ts">19/04, 15:17</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add manual reconciliation and 'no statement received' flags to supplier records</td>
+  <td><span class="lag lag-slow">2.8 d</span></td>
+  <td class="sim">0.720</td>
+</tr><tr>
+  <td class="ts">20/04, 07:30</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Fix the visibility issue for uploaded documents.</td>
+  <td class="ts">20/04, 17:15</td>
+  <td class="text"><span class="kind" style="color:#14b8a6;border-color:#14b8a6">fix</span> Resolve visibility issues for uploaded documents by surfacing unlinked, stuck, and failed records in the admin interface</td>
+  <td><span class="lag lag-good">9.8 h</span></td>
+  <td class="sim">0.706</td>
+</tr><tr>
+  <td class="ts">28/04, 16:22</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Update the watch list supplier dashboard to display total suppliers, suggested payments due, number of invoices not received, and number of statements not received.</td>
+  <td class="ts">28/04, 16:32</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Replace the hero banner on the supplier watchlist with four interactive KPI tiles for Total Suppliers Owed, Suggested Payments Due, Invoices Not Received, and Statements Not Received.</td>
+  <td><span class="lag lag-fast">10 min</span></td>
+  <td class="sim">0.705</td>
+</tr><tr>
+  <td class="ts">28/04, 16:19</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span> The AP Funnel logic is failing to match records due to discrepancies in invoice references or amounts.</td>
+  <td class="ts">28/04, 17:16</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add a new matching logic for AP Funnel that identifies supplier invoices based on supplier name, currency, and amount tolerance, independent of invoice reference.</td>
+  <td><span class="lag lag-fast">57 min</span></td>
+  <td class="sim">0.696</td>
+</tr><tr>
+  <td class="ts">04/05, 14:35</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Identify paid invoices that are currently reflected as variances on the statement.</td>
+  <td class="ts">04/05, 15:00</td>
+  <td class="text"><span class="kind" style="color:#14b8a6;border-color:#14b8a6">fix</span> Exclude already paid invoices from the reconciliation variance calculation to prevent them from being incorrectly flagged as discrepancies.</td>
+  <td><span class="lag lag-fast">26 min</span></td>
+  <td class="sim">0.692</td>
+</tr><tr>
+  <td class="ts">22/04, 16:27</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span> The user is concerned that variance values are displayed in GBP rather than the source currency.</td>
+  <td class="ts">22/04, 23:51</td>
+  <td class="text"><span class="kind" style="color:#14b8a6;border-color:#14b8a6">fix</span> Correct the variance column rendering to use the source currency instead of the Xero outstanding currency</td>
+  <td><span class="lag lag-good">7.4 h</span></td>
+  <td class="sim">0.673</td>
+</tr><tr>
+  <td class="ts">19/04, 13:59</td>
+  <td class="who">Mordechai Potash</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> The developer is adding a 'no statement' flag to the suppliers list.</td>
+  <td class="ts">19/04, 15:17</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add manual reconciliation and 'no statement received' flags to supplier records</td>
+  <td><span class="lag lag-good">1.3 h</span></td>
+  <td class="sim">0.669</td>
+</tr><tr>
+  <td class="ts">19/04, 13:59</td>
+  <td class="who">Mordechai Potash</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> The developer is adding a 'no statement' flag to the suppliers list.</td>
+  <td class="ts">19/04, 15:17</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add manual reconciliation and 'no statement received' flags to supplier records</td>
+  <td><span class="lag lag-good">1.3 h</span></td>
+  <td class="sim">0.669</td>
+</tr><tr>
+  <td class="ts">28/04, 12:28</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> Add gross margin reporting by vendor and customer with order-level drill-down capability</td>
+  <td class="ts">28/04, 13:07</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add a Vendor Gross Margin tab to the Plunet dashboard, including cost, revenue, and margin metrics with filtering capabilities.</td>
+  <td><span class="lag lag-fast">39 min</span></td>
+  <td class="sim">0.665</td>
+</tr><tr>
+  <td class="ts">21/04, 16:04</td>
+  <td class="who">Mordechai Potash</td>
+  <td class="text"><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span> The Xero integration scopes are currently incorrect or difficult to configure.</td>
+  <td class="ts">21/04, 23:57</td>
+  <td class="text"><span class="kind" style="color:#a855f7;border-color:#a855f7">infra</span> Update Xero connection scopes to comply with post-2026-03-02 requirements</td>
+  <td><span class="lag lag-good">7.9 h</span></td>
+  <td class="sim">0.660</td>
+</tr><tr>
+  <td class="ts">19/04, 13:59</td>
+  <td class="who">Mordechai Potash</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> The developer is adding a 'no statement' flag to the suppliers list.</td>
+  <td class="ts">22/04, 20:06</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Introduce a 'Never tracked' status for active suppliers that have no statement history.</td>
+  <td><span class="lag lag-stale">3.3 d</span></td>
+  <td class="sim">0.659</td>
+</tr><tr>
+  <td class="ts">19/04, 13:59</td>
+  <td class="who">Mordechai Potash</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> The developer is adding a 'no statement' flag to the suppliers list.</td>
+  <td class="ts">22/04, 20:06</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Introduce a 'Never tracked' status for active suppliers that have no statement history.</td>
+  <td><span class="lag lag-stale">3.3 d</span></td>
+  <td class="sim">0.659</td>
+</tr><tr>
+  <td class="ts">17/04, 06:05</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span> The current supplier reconciliation process is inaccurate</td>
+  <td class="ts">19/04, 15:17</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add manual reconciliation and 'no statement received' flags to supplier records</td>
+  <td><span class="lag lag-slow">2.4 d</span></td>
+  <td class="sim">0.657</td>
+</tr><tr>
+  <td class="ts">23/04, 14:43</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> Add the ability to delete statement lines</td>
+  <td class="ts">23/04, 15:29</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add a delete functionality for statement lines in the reconciliation UI to remove erroneous entries from variance calculations.</td>
+  <td><span class="lag lag-fast">46 min</span></td>
+  <td class="sim">0.654</td>
+</tr><tr>
+  <td class="ts">16/04, 10:06</td>
+  <td class="who">Mordechai Potash</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> The developer will create a dedicated view for supplier reconciliation.</td>
+  <td class="ts">16/04, 10:16</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add a new UI tab for supplier reconciliation with search functionality and bill-level drill-down</td>
+  <td><span class="lag lag-fast">10 min</span></td>
+  <td class="sim">0.652</td>
+</tr><tr>
+  <td class="ts">04/05, 14:35</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span> The variance calculation incorrectly includes paid invoices.</td>
+  <td class="ts">04/05, 15:00</td>
+  <td class="text"><span class="kind" style="color:#14b8a6;border-color:#14b8a6">fix</span> Exclude already paid invoices from the reconciliation variance calculation to prevent them from being incorrectly flagged as discrepancies.</td>
+  <td><span class="lag lag-fast">26 min</span></td>
+  <td class="sim">0.649</td>
+</tr><tr>
+  <td class="ts">16/04, 09:59</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Compare supplier invoices in Plunet against Xero to identify missing entries.</td>
+  <td class="ts">16/04, 10:16</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Implement a one-way reconciliation interface between Plunet payables and Xero bills for suppliers</td>
+  <td><span class="lag lag-fast">17 min</span></td>
+  <td class="sim">0.645</td>
+</tr><tr>
+  <td class="ts">07/05, 19:27</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Investigate the supplier detail page to verify if the manual reconciliation toggle and note field are correctly placed and functional.</td>
+  <td class="ts">07/05, 20:17</td>
+  <td class="text"><span class="kind" style="color:#06b6d4;border-color:#06b6d4">refactor</span> Decouple supplier notes from the manually_reconciled flag to allow independent updates and improve UI consistency.</td>
+  <td><span class="lag lag-fast">50 min</span></td>
+  <td class="sim">0.642</td>
+</tr><tr>
+  <td class="ts">28/04, 15:08</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Update the top graph to display sales data instead of costs.</td>
+  <td class="ts">28/04, 15:39</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Update stacked-bar chart to default to Sales metrics with a toggle for Costs and a contrast overlay line</td>
+  <td><span class="lag lag-fast">31 min</span></td>
+  <td class="sim">0.641</td>
+</tr><tr>
+  <td class="ts">19/04, 13:59</td>
+  <td class="who">Mordechai Potash</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> The developer is currently implementing a per-supplier 'mark as reconciled' feature.</td>
+  <td class="ts">19/04, 15:17</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add manual reconciliation and 'no statement received' flags to supplier records</td>
+  <td><span class="lag lag-good">1.3 h</span></td>
+  <td class="sim">0.640</td>
+</tr><tr>
+  <td class="ts">19/04, 13:59</td>
+  <td class="who">Mordechai Potash</td>
+  <td class="text"><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span> The developer is currently implementing a per-supplier 'mark as reconciled' feature.</td>
+  <td class="ts">19/04, 15:17</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add manual reconciliation and 'no statement received' flags to supplier records</td>
+  <td><span class="lag lag-good">1.3 h</span></td>
+  <td class="sim">0.640</td>
+</tr><tr>
+  <td class="ts">28/04, 15:01</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Include all watchlist suppliers in search results even if they have no statements.</td>
+  <td class="ts">28/04, 15:26</td>
+  <td class="text"><span class="kind" style="color:#14b8a6;border-color:#14b8a6">fix</span> Ensure search results include all active suppliers regardless of priority status when a search query is provided</td>
+  <td><span class="lag lag-fast">25 min</span></td>
+  <td class="sim">0.635</td>
+</tr><tr>
+  <td class="ts">23/04, 09:19</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Implement functionality to delete old or incorrect statements and lines.</td>
+  <td class="ts">23/04, 15:29</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add a delete functionality for statement lines in the reconciliation UI to remove erroneous entries from variance calculations.</td>
+  <td><span class="lag lag-good">6.2 h</span></td>
+  <td class="sim">0.631</td>
+</tr><tr>
+  <td class="ts">26/04, 13:56</td>
+  <td class="who">Mordechai Potash</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Create a customer-invoice view showing delivered, invoiced, and quoted breakdowns per project.</td>
+  <td class="ts">28/04, 13:07</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add a customer drill-down view to the Projects P&amp;L tab to allow collapsing and expanding orders by customer.</td>
+  <td><span class="lag lag-slow">2.0 d</span></td>
+  <td class="sim">0.631</td>
+</tr><tr>
+  <td class="ts">04/05, 14:35</td>
+  <td class="who">WhatsApp · viter ai mvp dev group (M+S+J)</td>
+  <td class="text"><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span> Identify paid invoices that are currently reflected as variances on the statement.</td>
+  <td class="ts">04/05, 15:00</td>
+  <td class="text"><span class="kind" style="color:#10b981;border-color:#10b981">feature</span> Add a new 'Paid invoices still on statement' line item to the reconciliation UI and Excel exports to improve reporting clarity.</td>
+  <td><span class="lag lag-fast">26 min</span></td>
+  <td class="sim">0.621</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>⊘ Open asks — no commit match within 7 days</h2>
+<table>
+<thead><tr><th>Asked</th><th>Where</th><th>Kind</th><th>Ask</th></tr></thead>
+<tbody>
+<tr>
+  <td class="ts">10/05, 23:24</td>
+  <td class="who">Shaul (DM)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Prioritize the discussion regarding the VITA structure and its implementation with the speaker's father.</td>
+</tr><tr>
+  <td class="ts">10/05, 22:58</td>
+  <td class="who">Shaul (DM)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">The recipient should suggest a time to meet tomorrow morning.</td>
+</tr><tr>
+  <td class="ts">10/05, 21:52</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Park the multi-tenant model and MCP server auth work until Gate 2.</td>
+</tr><tr>
+  <td class="ts">10/05, 21:52</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Write a short design document for the MCP server interface.</td>
+</tr><tr>
+  <td class="ts">10/05, 21:52</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Swap the L2 connected data task for an unblocked task.</td>
+</tr><tr>
+  <td class="ts">10/05, 21:52</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Prioritize connector interface design, rendering primitives, and Spatial View documentation.</td>
+</tr><tr>
+  <td class="ts">10/05, 21:52</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Reference specific checklist items by section and number in future check-ins.</td>
+</tr><tr>
+  <td class="ts">10/05, 21:52</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span></td>
+  <td class="text">Defer multi-tenant model and MCP server auth work to Gate 2.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:34</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span></td>
+  <td class="text">The system requires a new mechanism to pass user-provided facts from the GenUI layer to the agent layer.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:34</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#f59e0b;border-color:#f59e0b">scope_shift</span></td>
+  <td class="text">The system requires an authentication flow for the new fact-passing mechanism.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:26</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Mordechai is assigned to handle AI requests sent to the MCP server and verify the user.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:16</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">The Supabase L2 tables are empty, preventing the use of real data for multi-user authentication.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:12</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Grant the user administrator privileges.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:08</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">The speaker lacks necessary administrative access on the Mac.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:07</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Determine if the Masabo event is restricted to family members only</td>
+</tr><tr>
+  <td class="ts">10/05, 20:04</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Provide a one-line explanation of HPI and its role in the platform.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:04</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Identify the person responsible for the integration of these features.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:04</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Provide a simplified explanation of the project's purpose.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:03</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">The speaker requests a meeting with the recipient tonight.</td>
+</tr><tr>
+  <td class="ts">10/05, 20:03</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">The speaker is uncertain about their availability due to a social event.</td>
+</tr><tr>
+  <td class="ts">10/05, 16:40</td>
+  <td class="who">WhatsApp · wa-group-120363426456104239</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Notify the speaker of availability for a call</td>
+</tr><tr>
+  <td class="ts">10/05, 16:07</td>
+  <td class="who">Shaul (DM)</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">The expected message was not received</td>
+</tr><tr>
+  <td class="ts">10/05, 16:07</td>
+  <td class="who">Shaul (DM)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">The speaker intends to apply patches before leaving</td>
+</tr><tr>
+  <td class="ts">10/05, 16:01</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Focus the project on connecting Plunet, Zero, and AppC data sources to the Vita platform.</td>
+</tr><tr>
+  <td class="ts">10/05, 15:51</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Post a summary of the previous discussion, last week's build, this week's plan, goals, and end-of-day tasks to the shared channel.</td>
+</tr><tr>
+  <td class="ts">10/05, 14:37</td>
+  <td class="who">WhatsApp · Viter (Mordechai+Shaul+Yitzchak)</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Shaul must inform the speaker of his availability for a meeting on Zoom or in person.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:33</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">There are 59 hollow artifacts in the database that are not being processed.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:33</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Delete the hollow artifacts to allow for a successful backfill.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:33</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Investigate the total number of artifacts missing extraction data</td>
+</tr><tr>
+  <td class="ts">10/05, 11:33</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">Extraction runs and events are missing for artifact 6f44ea58 despite the shell existing</td>
+</tr><tr>
+  <td class="ts">10/05, 11:33</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Investigate the location of the missing April events</td>
+</tr><tr>
+  <td class="ts">10/05, 11:33</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">April events are not appearing in the system despite using the correct timestamp</td>
+</tr><tr>
+  <td class="ts">10/05, 11:31</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">The system is reporting 84 duplicates while incorrectly displaying only May events.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:30</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Verify the current contents of the database.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:30</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">The previous database query produced incorrect results regarding duplicate files.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:28</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Run the backfill for all 47 April files.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:28</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Display user prompts from file feccd5ae.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:28</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">Forty-seven April files are missing from the vita system.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:28</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Prioritize the backfill of the April 13–19 file block.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:28</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Display user prompts from the April 15–19 file cluster.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:28</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#ef4444;border-color:#ef4444">pain</span></td>
+  <td class="text">Forty-seven April files are missing from the vita system.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:28</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Prioritize the backfill of the April 13–19 file block.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:28</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Display user prompts from the April 15–19 file cluster.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:28</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Run the backfill for all 47 April files.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:28</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Display user prompts from the file feccd5ae.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:27</td>
+  <td class="who">Mordechai Potash</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Identify all April JSONL files in the CC directory that are related to Shaul and are not currently in the database.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:27</td>
+  <td class="who">Mordechai Potash</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Identify all April JSONL files in the CC directory that are related to Shaul and are not currently in the database.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:25</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Build a vita ingestor for the clawdbot/Discord format.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:25</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Review claude-export/shaul/canonical.jsonl before making a decision on ingestion.</td>
+</tr><tr>
+  <td class="ts">10/05, 11:25</td>
+  <td class="who">Claude Sonnet 4.6</td>
+  <td><span class="kind" style="color:#3b82f6;border-color:#3b82f6">directive</span></td>
+  <td class="text">Build a vita ingestor for the clawdbot/Discord format.</td>
+</tr>
+</tbody>
+</table>
+
+
+<div class="footer">
+  Generated 11/05/2026, 6:48:53 · Asia/Jerusalem<br>
+  Substrate: <code>vita.l1_events</code> facet=<code>claim_facet</code> · view <code>v_claim_to_commit</code><br>
+  Extractor: <code>openrouter:google/gemini-3.1-flash-lite</code> · Embeddings: <code>openai/text-embedding-3-small</code>
+</div>
+
+</div></body></html>

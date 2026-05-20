@@ -24,6 +24,8 @@ const GATED_PATTERNS = [
   /^\/chat(\/.*)?$/,
   /^\/settings(\/.*)?$/,
   /^\/spaces(\/.*)?$/,
+  // Note: /audit uses its own password cookie (apps/web/app/audit/actions.ts).
+  // Don't add it here — it does NOT use a Supabase session.
 ];
 
 export async function proxy(req: NextRequest) {

@@ -9,3 +9,4 @@ export { synthesize } from './synthesizer.js';
 export type { SynthesizerDeps } from './synthesizer.js';
 export { scoreL2 } from './rubric.js';
 export type { RubricChecks, RubricScore, ScoreOptions } from './rubric.js';
+export { createLLMClient } from './llm.js';

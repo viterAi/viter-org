@@ -1,0 +1,56 @@
+# What NOT to upload to Vercel from this monorepo root.
+# Vercel CLI uploads everything in cwd by default; this trims the deploy bundle.
+# Note: Vercel still respects .gitignore + rootDirectory (=apps/web), but we
+# upload the parent (library/ lives outside apps/web) so this list matters.
+
+node_modules
+**/node_modules
+.git
+.turbo
+.next
+**/.next
+**/dist
+**/.cache
+coverage
+.venv
+__pycache__
+*.pyc
+
+# Massive local artifacts not needed for deploy
+scripts/transcribe-benchmark-out
+*.m4a
+*.mp4
+*.mp3
+*.wav
+*.opus
+*.ogg
+
+# Local-only state
+.claude
+**/.claude
+HANDOVER.md
+.mcp.json
+shaul diretives
+
+# Sensitive local material
+private
+client-data
+inbox
+
+# Pipeline / extract intermediate outputs
+docs/l2-simulations
+plunet-data-snapshot-*
+reconcile-bruteforce-*
+
+# Local fixtures Vercel doesn't need to build.
+# DO NOT add adapters/, packages/, or apps/ here — those are pnpm-workspace
+# packages that the web build depends on (see pnpm-workspace.yaml).
+chat-log
+meetings
+transcripts
+whatsapp
+audio
+deliverables
+clients
+infra
+archive

@@ -25,19 +25,27 @@ export interface ParsedCitations {
   all_codes: string[];
 }
 
-/** Match patterns like [e23], [e23, e24], [e23,e24,e25]. Captures the inner code list. */
-const CITATION_PATTERN = /\[((?:e\d+)(?:\s*,\s*e\d+)*)\]/g;
+/** Match [e23], [e23, e24], [e23,e24,e25], or range [e23-e25]. Captures the inner content. */
+const CITATION_PATTERN = /\[(e\d+(?:\s*[-,]\s*e\d+)*)\]/g;
 
 /** Match a single eN code. */
-const SINGLE_CODE_PATTERN = /e\d+/g;
+const SINGLE_CODE_PATTERN = /e(\d+)/g;
 
 export function extractCodes(body: string): string[] {
   const seen = new Set<string>();
   for (const match of body.matchAll(CITATION_PATTERN)) {
     const inner = match[1];
     if (!inner) continue;
-    for (const m of inner.matchAll(SINGLE_CODE_PATTERN)) {
-      if (m[0]) seen.add(m[0]);
+    const parts = inner.split(/\s*[-,]\s*/);
+    if (parts.length === 2 && inner.includes('-')) {
+      // Range: expand [e23-e25] → e23, e24, e25
+      const a = parseInt(parts[0]!.slice(1), 10);
+      const b = parseInt(parts[1]!.slice(1), 10);
+      for (let i = a; i <= b; i++) seen.add(`e${i}`);
+    } else {
+      for (const m of inner.matchAll(SINGLE_CODE_PATTERN)) {
+        seen.add(`e${m[1]}`);
+      }
     }
   }
   return Array.from(seen).sort(byCodeNumeric);

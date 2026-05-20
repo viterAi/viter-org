@@ -98,7 +98,19 @@ async function processImageVision(db: SupabaseClient, args: { l0Id: string; tena
   await bc(db, args.l0Id, 'vision-done', { chars: text.length, ms: Date.now() - t0 });
 }
 
+// Whitelist: only these 5 Viter chat JIDs are processed. Everything else is silently dropped.
+const VITER_CHAT_WHITELIST = new Set([
+  '972533145330@s.whatsapp.net',   // Mordechai ↔ Shaul
+  '972552631180@s.whatsapp.net',   // Mordechai ↔ Yitzchak
+  '120363425543175451@g.us',       // M+S+Y group
+  '120363426456104239@g.us',       // MVP dev M+S+J (Jeffrey+Shaul+Mordechai)
+  '972546668182@s.whatsapp.net',   // Mordechai ↔ Jeffrey
+]);
+
 async function handleMessage(db: SupabaseClient, device: ResolvedDevice, msg: MessageData, webhookReceivedAt: string, rawEvent: Record<string, unknown>): Promise<{ ok: true; l0_id: string; l1_id?: string; mediaJob?: string } | { ok: false; error: string }> {
+  if (!VITER_CHAT_WHITELIST.has(msg.chat_id)) {
+    return { ok: true, l0_id: 'skipped:not-whitelisted' };
+  }
   const channelId = await resolveOrCreateChannel(db, { tenantId: device.tenant_id, chatId: msg.chat_id, isGroup: !!msg.is_group, groupSubject: msg.group_subject, pushName: msg.push_name });
   if (!channelId) return { ok: false, error: 'channel resolution failed' };
   if (!device.channel_id) await db.from('whatsapp_devices').update({ channel_id: channelId }).eq('id', device.id);

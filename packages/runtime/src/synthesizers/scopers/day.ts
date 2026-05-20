@@ -116,6 +116,7 @@ async function scopeByDayInline(args: {
       content: r.content,
       position: r.position,
       artifact_id: r.artifact_id,
+      actor_id: (r as any).actor_id ?? null,
       actor_canonical: r.principals?.canonical_id ?? null,
       actor_display: r.principals?.display_name ?? null,
       channel_kind: r.channels?.kind ?? null,

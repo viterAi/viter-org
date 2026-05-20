@@ -98,15 +98,8 @@ function createOpenRouterClient(): LLMClient {
 }
 
 function openrouterModelToCanonical(model: string): string {
-  const m = model.toLowerCase();
-  if (m.includes('claude-opus-4-7') || m.includes('claude-opus-4.7')) return 'claude-opus-4-7';
-  if (m.includes('claude-opus-4-5') || m.includes('claude-opus-4.5')) return 'claude-opus-4-7'; // map to seeded principal
-  if (m.includes('claude-sonnet-4-6') || m.includes('claude-sonnet-4.6')) return 'claude-sonnet-4-6';
-  if (m.includes('claude-opus')) return 'claude-opus-4-7';
-  if (m.includes('claude-sonnet')) return 'claude-sonnet-4-6';
-  if (m.includes('gpt-5')) return 'gpt-5';
-  if (m.includes('gemini')) return 'gemini-3-pro';
-  return 'claude-opus-4-7';
+  // Strip dated suffix: 'google/gemini-3.1-flash-lite-20260507' → 'google/gemini-3.1-flash-lite'
+  return model.replace(/-\d{8}$/, '');
 }
 
 // ────────────────────────────────────────────────────────────────────

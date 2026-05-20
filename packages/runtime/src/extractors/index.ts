@@ -9,6 +9,7 @@
 
 import type { Extractor } from '../types';
 import { claudeCodeJsonl } from './claudeCodeJsonl';
+import { clawdbotJsonl, EXTRACTOR_NAME as CLAWDBOT_NAME, EXTRACTOR_VERSION as CLAWDBOT_VERSION } from './clawdbotJsonl';
 
 export interface ExtractorEntry {
   extractor: Extractor;
@@ -36,6 +37,13 @@ export const REGISTRY: Record<string, ExtractorEntry> = {
     is_deterministic: true,
     default_parameters: {},
   },
+  'clawdbot_jsonl:turn_text': {
+    extractor: clawdbotJsonl,
+    name: CLAWDBOT_NAME,
+    version: CLAWDBOT_VERSION,
+    is_deterministic: true,
+    default_parameters: {},
+  },
 };
 
 export function getExtractor(sourceType: string, facet: string): ExtractorEntry | null {
@@ -43,3 +51,4 @@ export function getExtractor(sourceType: string, facet: string): ExtractorEntry 
 }
 
 export { claudeCodeJsonl };
+export { clawdbotJsonl };
