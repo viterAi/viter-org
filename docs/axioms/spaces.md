@@ -3,10 +3,10 @@
 
 ---
 layer: substrate
-owner: vita
+owner: viter-org
 depends_on:
   - SHL2-1@shelet    # L2 must cite L1 (spaces render L2-derived facts)
-  - VTA-1@vita       # confidence + representation (facts spaces display carry these)
+  - VTA-1@viter-org       # confidence + representation (facts spaces display carry these)
 ---
 
 ## The opinion

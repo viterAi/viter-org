@@ -1,4 +1,4 @@
-# @vita/adapter-file-watcher
+# @viter-org/adapter-file-watcher
 
 Live ingestion adapter for Claude Code session JSONLs.
 
@@ -17,14 +17,14 @@ Watches `~/.claude/projects/-Users-mordechai-*/*.jsonl`. On every write:
 # from monorepo root
 SUPABASE_URL=https://dkccadwohifcqcdzhhnu.supabase.co \
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key> \
-pnpm --filter @vita/adapter-file-watcher watch
+pnpm --filter @viter-org/adapter-file-watcher watch
 ```
 
 Service-role key from <https://supabase.com/dashboard/project/dkccadwohifcqcdzhhnu/settings/api>.
 
 ## Run as a launchd daemon (Mac)
 
-Save as `~/Library/LaunchAgents/ai.viter.vita.file-watcher.plist`:
+Save as `~/Library/LaunchAgents/ai.viter.viter-org.file-watcher.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -32,13 +32,13 @@ Save as `~/Library/LaunchAgents/ai.viter.vita.file-watcher.plist`:
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>ai.viter.vita.file-watcher</string>
+  <string>ai.viter.viter-org.file-watcher</string>
   <key>ProgramArguments</key>
   <array>
     <string>/usr/bin/env</string>
     <string>bash</string>
     <string>-c</string>
-    <string>cd /Users/mordechai/viter-workspace/vita && pnpm --filter @vita/adapter-file-watcher watch</string>
+    <string>cd /Users/mordechai/viter-workspace/viter-org && pnpm --filter @viter-org/adapter-file-watcher watch</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
@@ -56,9 +56,9 @@ Save as `~/Library/LaunchAgents/ai.viter.vita.file-watcher.plist`:
   <key>KeepAlive</key>
   <true/>
   <key>StandardOutPath</key>
-  <string>/tmp/vita-file-watcher.out.log</string>
+  <string>/tmp/viter-org-file-watcher.out.log</string>
   <key>StandardErrorPath</key>
-  <string>/tmp/vita-file-watcher.err.log</string>
+  <string>/tmp/viter-org-file-watcher.err.log</string>
 </dict>
 </plist>
 ```
@@ -66,9 +66,9 @@ Save as `~/Library/LaunchAgents/ai.viter.vita.file-watcher.plist`:
 Then load:
 
 ```bash
-launchctl load ~/Library/LaunchAgents/ai.viter.vita.file-watcher.plist
-launchctl list | grep ai.viter.vita
-tail -f /tmp/vita-file-watcher.out.log
+launchctl load ~/Library/LaunchAgents/ai.viter.viter-org.file-watcher.plist
+launchctl list | grep ai.viter.viter-org
+tail -f /tmp/viter-org-file-watcher.out.log
 ```
 
 ## Per-laptop install

@@ -58,7 +58,7 @@ export interface L2Synthesis {
 
   // Citation contract (required by CITATION-CONTRACT.md)
   cites_l1: string[];          // UUIDs of L1 rows used
-  cites_axioms: string[];      // e.g. ["OBL-3@persofi", "VTA-1@vita"]
+  cites_axioms: string[];      // e.g. ["OBL-3@persofi", "VTA-1@viter-org"]
   confidence: number;          // 0–1: how sure are we the extraction is right
   representation: string[];    // e.g. ["text/structured", "text/ocr"]
 

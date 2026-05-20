@@ -1,6 +1,6 @@
-# `@vita/adapter-whatsapp-gowa`
+# `@viter-org/adapter-whatsapp-gowa`
 
-Self-hosted WhatsApp adapter for vita. Replaces UniPile-class third-party
+Self-hosted WhatsApp adapter for viter-org. Replaces UniPile-class third-party
 SaaS with **[aldinokemal/go-whatsapp-web-multidevice](https://github.com/aldinokemal/go-whatsapp-web-multidevice)** (GOWA),
 a Railway-deployable Go binary built on **[tulir/whatsmeow](https://github.com/tulir/whatsmeow)**.
 
@@ -12,7 +12,7 @@ WhatsApp ←─[Signal protocol]─→ GOWA (Railway) ─[webhook]─→ Edge Fu
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  vita repo                                                      │
+│  viter-org repo                                                      │
 │                                                                 │
 │  manifests/gowa/0.1.0.yaml   ← typed contract (substrate moat) │
 │                                                                 │
@@ -35,7 +35,7 @@ WhatsApp ←─[Signal protocol]─→ GOWA (Railway) ─[webhook]─→ Edge Fu
 │  packages/runtime/src/                                          │
 │  ├── extractors/whatsapp-message-live/   ← reusable ingest core │
 │  └── principals/alias-resolver.ts        ← maps WA names →      │
-│                                              vita principals    │
+│                                              viter-org principals    │
 │                                                                 │
 │  infra/supabase/                                                │
 │  ├── migrations/                                                │
@@ -97,7 +97,7 @@ User clicks "Pair new device"
 apps/web server action calls GowaClient.createDevice()
        │
        ▼
-GOWA returns { device_id, qr } — vita inserts whatsapp_devices(status='pending')
+GOWA returns { device_id, qr } — viter-org inserts whatsapp_devices(status='pending')
        │
        ▼
 UI renders QR
@@ -106,7 +106,7 @@ UI renders QR
 User scans QR with phone
        │
        ▼
-GOWA fires `pair.qr.consumed` webhook → vita Edge Function flips status='linked'
+GOWA fires `pair.qr.consumed` webhook → viter-org Edge Function flips status='linked'
        │
        ▼
 Real-time UI update (Realtime channel) — banner clears, "linked" badge shown
@@ -116,8 +116,8 @@ Real-time UI update (Realtime channel) — banner clears, "linked" badge shown
 
 ```bash
 pnpm install
-pnpm --filter @vita/adapter-whatsapp-gowa typecheck
-pnpm --filter @vita/adapter-whatsapp-gowa test
+pnpm --filter @viter-org/adapter-whatsapp-gowa typecheck
+pnpm --filter @viter-org/adapter-whatsapp-gowa test
 ```
 
 ## Cost

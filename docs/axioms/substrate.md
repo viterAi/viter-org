@@ -3,7 +3,7 @@
 
 ---
 layer: substrate
-owner: vita
+owner: viter-org
 depends_on:
   - SHL0-1@shelet    # L0 immutability
   - SHL1-1@shelet    # L1 identity = input signature
@@ -15,7 +15,7 @@ depends_on:
 Vita is not a generic data platform — it is a SHELET implementation with opinions. Those opinions are encoded here as VTA-* axioms. Every OBL-*, RCG-*, TRU-*, PAT-* domain axiom operates *on top of* these substrate axioms. Without VTA-*, domain axioms have nothing to run on.
 
 > *"SHELET defines four layers that form a strict dependency chain. Each layer can only reference the layer below it. Staleness propagates automatically. Citations are enforced by triggers, not application code."*
-> — vita/README.md
+> — viter-org/README.md
 
 ---
 
