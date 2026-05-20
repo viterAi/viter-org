@@ -305,7 +305,7 @@ export default async function Dashboard() {
         <footer className="mt-16 border-t border-zinc-200 pt-6 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
           <p>
             vita v0.1 · TypeScript monorepo · Vercel + Railway + Supabase ·{' '}
-            <a href="https://github.com/viterAi/vita" target="_blank" rel="noreferrer noopener" className="underline hover:text-zinc-700 dark:hover:text-zinc-200">github.com/viterAi/vita</a>
+            <a href="https://github.com/viterAi/viter-org" target="_blank" rel="noreferrer noopener" className="underline hover:text-zinc-700 dark:hover:text-zinc-200">github.com/viterAi/viter-org</a>
           </p>
         </footer>
       </div>

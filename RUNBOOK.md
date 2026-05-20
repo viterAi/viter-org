@@ -40,14 +40,14 @@ The deeper architecture lives in `library/REPORT.md` + `library/bucket-a-viter/`
 ## Clone + install
 
 ```bash
-gh repo clone viterAi/vita
-cd vita
+gh repo clone viterAi/viter-org
+cd viter-org
 pnpm install
 ```
 
 Install takes 2–3 minutes the first time.
 
-> **Naming note:** the GitHub repo is `viterAi/vita` (historical) and a fresh clone lands in `vita/`. The substrate it backs is now called `viter-org` in Supabase, and Mordechai's local working tree has been `mv`-renamed to `viter-org/` for consistency. Either name works locally; `viter-org` is the name the docs prefer going forward. The GitHub repo rename is a separate, later move.
+> **Naming note:** the GitHub repo was renamed from `viterAi/vita` → `viterAi/viter-org` on 2026-05-20 to match the Supabase substrate name. GitHub keeps the old URL as a redirect, so any stale clones / scripts / Vercel webhooks pointing at `viterAi/vita` continue to work; update them at your leisure.
 
 ## Environment variables
 
@@ -84,7 +84,7 @@ If magic link redirects break: check that `http://localhost:3000` is in the Supa
 
 ## Build + deploy
 
-Vercel auto-deploys on every push to `viterAi/vita` `main` branch. Two projects watch this repo on the viter2 team:
+Vercel auto-deploys on every push to `viterAi/viter-org` `main` branch. Two projects watch this repo on the viter2 team:
 
 - **`vita-platform`** — production from `main`, serves `vita-roan.vercel.app`
 - **`vita-web`** — Yitzchak's project, production set to `main` but actually serves `genUI`-branch previews via manual aliasing
@@ -203,7 +203,7 @@ Full ownership table + migration plan: `library/REPORT.md` Part 6.
 | Role | Person | Where to reach |
 |---|---|---|
 | Platform substrate, L0→L3, viter-org repo | Mordechai Potash | WhatsApp; mordechai@viter.ai |
-| genUI sandbox (`vita-web`, viterAi/vita genUI branch) | Yitzchak Brown (Issac Brown) | WhatsApp; issacbrown@viter.ai |
+| genUI sandbox (`vita-web`, viterAi/viter-org genUI branch) | Yitzchak Brown (Issac Brown) | WhatsApp; issacbrown@viter.ai |
 | Product direction, Viter org | Shaul Levine | WhatsApp; shaul@viter.ai |
 | Insperanto domain questions (Plunet, Xero, reconciliation logic) | Jeffrey Levine (via Shaul or direct) | WhatsApp |
 
